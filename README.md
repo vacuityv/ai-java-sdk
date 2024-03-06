@@ -16,7 +16,7 @@
 ### Maven
 ```xml
    <dependency>
-    <groupId>me.vacuity.me.ai.sdk</groupId>
+    <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
     <version>1.0.0</version>       
    </dependency>
