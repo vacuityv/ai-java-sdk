@@ -13,7 +13,7 @@ import java.io.Serializable;
 
 
 @Data
-public class VacException extends RuntimeException implements Serializable {
+public class VacSdkException extends RuntimeException implements Serializable {
 
     private String code;
 
@@ -21,13 +21,13 @@ public class VacException extends RuntimeException implements Serializable {
     
     private ChatResponseError detail;
     
-    public VacException(String code, String msg) {
+    public VacSdkException(String code, String msg) {
         super(msg);
         this.code = code;
         this.msg = msg;
     }
 
-    public VacException(String code, String msg, ChatResponseError detail) {
+    public VacSdkException(String code, String msg, ChatResponseError detail) {
         super(msg);
         this.code = code;
         this.msg = msg;

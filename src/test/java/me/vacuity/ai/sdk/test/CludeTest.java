@@ -5,11 +5,11 @@ import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.claude.api.ClaudeApi;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
-import me.vacuity.ai.sdk.claude.exception.VacException;
+import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
-import me.vacuity.ai.sdk.client.ClaudeClient;
+import me.vacuity.ai.sdk.claude.ClaudeClient;
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.Test;
 import retrofit2.Retrofit;
@@ -20,9 +20,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static me.vacuity.ai.sdk.client.ClaudeClient.defaultClient;
-import static me.vacuity.ai.sdk.client.ClaudeClient.defaultObjectMapper;
-import static me.vacuity.ai.sdk.client.ClaudeClient.defaultRetrofit;
+import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultClient;
+import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
+import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultRetrofit;
 
 /**
  * @description:
@@ -48,7 +48,7 @@ public class CludeTest {
         try {
             ChatResponse response = client.chat(request);
             System.out.println(response);
-        } catch (VacException e) {
+        } catch (VacSdkException e) {
             if (e.getDetail() != null) {
                 System.out.println(e.getDetail().getError().getMessage());
             }
@@ -101,7 +101,7 @@ public class CludeTest {
         try {
             ChatResponse response = client.chat(request);
             System.out.println(response.getContent().get(0).getText());
-        } catch (VacException e) {
+        } catch (VacSdkException e) {
             if (e.getDetail() != null) {
                 System.out.println(e.getDetail().getError().getMessage());
             }

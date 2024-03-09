@@ -1,10 +1,14 @@
 # AI-Java-Sdk
 
-This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI, with future plans to support OpenAI and Google's Gemini.
+This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini, with future plans to support OpenAI.
 
 ## Supported Claude APIs
 - [Chat](https://docs.anthropic.com/claude/reference/messages_post)
 - [Streaming Chat](https://docs.anthropic.com/claude/reference/messages-streaming)
+
+## Supported Google Gemini
+- [对话](https://ai.google.dev/tutorials/rest_quickstart)
+- [流式对话](https://ai.google.dev/tutorials/rest_quickstart)
 
 
 
@@ -15,7 +19,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
    <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.0.0</version>       
+    <version>1.1.0</version>       
    </dependency>
 ```
 
@@ -114,14 +118,14 @@ public void proxyChat() {
 ```
 ## Additional Information
 
-You can view code examples in CludeTest.
+You can view code examples in CludeTest and GeminiTest.
 
 ## FAQ
 ### What models are supported?
-Currently, all models of Claude AI are supported.
+Currently, all models of Claude AI and part of gemini are supported.
 
 ### Are OpenAI and Google Gemini not supported?
-OpenAI and Google Gemini currently have their respective SDKs available on GitHub, so their support is not an urgent necessity but may be considered in the future.
+OpenAI currently have their respective SDKs available on GitHub, so their support is not an urgent necessity but may be considered in the future.
 
 ## License
 Published under the MIT License

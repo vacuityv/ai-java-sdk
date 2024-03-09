@@ -1,4 +1,4 @@
-package me.vacuity.ai.sdk.client;
+package me.vacuity.ai.sdk.claude;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -12,7 +12,7 @@ import me.vacuity.ai.sdk.claude.api.ClaudeApi;
 import me.vacuity.ai.sdk.claude.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.claude.entity.SSE;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-import me.vacuity.ai.sdk.claude.exception.VacException;
+import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
@@ -147,9 +147,8 @@ public class ClaudeClient {
                     throw e;
                 }
                 String errorBody = e.response().errorBody().string();
-                System.out.println(errorBody);
                 ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
-                VacException ve = new VacException("-1", "error", error);
+                VacSdkException ve = new VacSdkException("-1", "error", error);
                 throw ve;
             } catch (IOException ex) {
                 // couldn't parse error

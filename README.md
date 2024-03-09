@@ -3,11 +3,15 @@
 
 # AI-Java-Sdk
 
-为使用各大AI厂商提供的API创建的java sdk，目前支持Claude AI，未来考虑支持openai和Google的gemini。
+为使用各大AI厂商提供的API创建的java sdk，目前支持Google Gemini 和 Claude AI，未来考虑支持openai。
 
 ## 支持的 Claude api
 - [对话](https://docs.anthropic.com/claude/reference/messages_post)
 - [流式对话](https://docs.anthropic.com/claude/reference/messages-streaming)
+
+## 支持的 Google Gemini
+- [对话](https://ai.google.dev/tutorials/rest_quickstart)
+- [流式对话](https://ai.google.dev/tutorials/rest_quickstart)
 
 
 
@@ -18,7 +22,7 @@
    <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.0.0</version>       
+    <version>1.1.0</version>       
    </dependency>
 ```
 
@@ -117,14 +121,14 @@ public void proxyChat() {
 ```
 ## 其他
 
-你可以在 CludeTest 查看代码示例
+你可以在 CludeTest 和 GeminiTest 查看代码示例
 
 ## FAQ
 ### 支持什么模型
-目前支持Claude ai 的所有模型
+目前支持Claude ai 和 Google Gemini 的所有模型
 
 ### openai 和 Google Gemini 不支持吗
-openai 和 Google Gemini 目前在github上都有对应的sdk支持，所以不是紧急的需求，也许会在未来支持
+openai 目前在github上都有对应的sdk支持，所以不是紧急的需求，也许会在未来支持
 
 ## License
 Published under the MIT License
