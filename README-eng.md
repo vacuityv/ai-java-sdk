@@ -7,8 +7,8 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 - [Streaming Chat](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## Supported Google Gemini
-- [对话](https://ai.google.dev/tutorials/rest_quickstart)
-- [流式对话](https://ai.google.dev/tutorials/rest_quickstart)
+- [Chat](https://ai.google.dev/tutorials/rest_quickstart)
+- [Streaming Chat](https://ai.google.dev/tutorials/rest_quickstart)
 
 
 
@@ -124,7 +124,7 @@ You can view code examples in CludeTest and GeminiTest.
 ### What models are supported?
 Currently, all models of Claude AI and part of gemini are supported.
 
-### Are OpenAI and Google Gemini not supported?
+### Is OpenAI not supported?
 OpenAI currently have their respective SDKs available on GitHub, so their support is not an urgent necessity but may be considered in the future.
 
 ## License

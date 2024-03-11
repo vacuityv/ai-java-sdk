@@ -127,7 +127,7 @@ public void proxyChat() {
 ### 支持什么模型
 目前支持Claude ai 和 Google Gemini 的所有模型
 
-### openai 和 Google Gemini 不支持吗
+### openai 不支持吗
 openai 目前在github上都有对应的sdk支持，所以不是紧急的需求，也许会在未来支持
 
 ## License
