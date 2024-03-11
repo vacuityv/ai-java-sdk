@@ -19,7 +19,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultClient;
+import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultClient;
 import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultObjectMapper;
 import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
@@ -81,7 +81,7 @@ public class GeminiTest {
         int port = 7890;
         ObjectMapper mapper = defaultObjectMapper();
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
-        OkHttpClient httpClient = defaultClient(API_KEY, Duration.ofSeconds(60))
+        OkHttpClient httpClient = defaultClient(Duration.ofSeconds(60))
                 .newBuilder()
                 .proxy(proxy)
                 .build();
