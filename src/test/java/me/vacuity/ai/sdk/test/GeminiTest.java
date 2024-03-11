@@ -55,12 +55,14 @@ public class GeminiTest {
     @Test
     public void streamChat() {
         GeminiClient client = new GeminiClient(API_KEY);
-//        GeminiClient client = new GeminiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "按点列举介绍一下你自己"));
+        messages.add(new ChatMessage("user", "introduce yourself please"));
         ChatRequest request = ChatRequest.builder()
+                // set model here, if not set the default is gemini-pro 
+                .model("gemini-pro")
                 .contents(messages)
                 .build();
+        System.out.println(request);
         try {
             Flowable<StreamChatResponse> response = client.streamChat(request);
             response.doOnNext(s -> {
@@ -88,7 +90,7 @@ public class GeminiTest {
         GeminiClient client = new GeminiClient(API_KEY, api);
 
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "introduce yourself pls"));
+        messages.add(new ChatMessage("user", "introduce yourself please"));
         ChatRequest request = ChatRequest.builder()
                 .contents(messages)
                 .build();

@@ -166,11 +166,11 @@ public class GeminiClient {
 
 
     public ChatResponse chat(ChatRequest request) {
-        return execute(api.chat(this.apiKey, request));
+        return execute(api.chat(request.getModel(), this.apiKey, request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
-        return stream(api.streamChat(this.apiKey, request), StreamChatResponse.class);
+        return stream(api.streamChat(request.getModel(), this.apiKey, request), StreamChatResponse.class);
     }
 
     public static <T> Flowable<T> stream(Call<ResponseBody> apiCall, Class<T> cl) {

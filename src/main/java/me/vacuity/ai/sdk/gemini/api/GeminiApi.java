@@ -7,16 +7,17 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 
 public interface GeminiApi {
 
-    @POST("/v1beta/models/gemini-pro:generateContent")
-    Single<ChatResponse> chat(@Query("key") String apiKey, @Body ChatRequest request);
+    @POST("/v1beta/models/{model}:generateContent")
+    Single<ChatResponse> chat(@Path("model") String model, @Query("key") String apiKey, @Body ChatRequest request);
 
 
     @Streaming
-    @POST("/v1beta/models/gemini-pro:streamGenerateContent")
-    Call<ResponseBody> streamChat(@Query("key") String apiKey, @Body ChatRequest request);
+    @POST("/v1beta/models/{model}:streamGenerateContent")
+    Call<ResponseBody> streamChat(@Path("model") String model, @Query("key") String apiKey, @Body ChatRequest request);
 }
