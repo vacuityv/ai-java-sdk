@@ -1,5 +1,5 @@
 
-[[中文]](https://github.com/vacuityv/ai-java-sdk/tree/main) [[English]](https://github.com/vacuityv/ai-java-sdk/blob/main/README-eng.md)
+[[中文]](https://github.com/vacuityv/ai-java-sdk/tree/develop) [[English]](https://github.com/vacuityv/ai-java-sdk/blob/develop/README-eng.md)
 
 # AI-Java-Sdk
 
