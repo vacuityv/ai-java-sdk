@@ -2,7 +2,7 @@
 
 # AI-Java-Sdk
 
-This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini, with future plans to support OpenAI.
+This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini and part of OpenAI.
 
 ## Supported Claude APIs
 - [Chat](https://docs.anthropic.com/claude/reference/messages_post)
@@ -12,17 +12,22 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 - [Chat](https://ai.google.dev/tutorials/rest_quickstart)
 - [Streaming Chat](https://ai.google.dev/tutorials/rest_quickstart)
 
+## Supported openAI
+- [Chat](https://platform.openai.com/docs/api-reference/chat/create)
+- [Streaming Chat](https://platform.openai.com/docs/api-reference/chat/streaming)
+
+
 
 
 ## Importing
 
 ### Maven
 ```xml
-   <dependency>
+<dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.2.0</version>       
-   </dependency>
+    <version>1.3.0</version>       
+</dependency>
 ```
 
 ## Usage
@@ -76,6 +81,51 @@ For streaming chat:
     }
 ```
 
+openAI vision：
+
+```java
+@Test
+public void vision() throws IOException {
+    String imagePath = "222.jpg";
+    Path path = Paths.get(imagePath);
+    // read file
+    byte[] imageBytes = Files.readAllBytes(path);
+
+    InputStream is = new BufferedInputStream(new FileInputStream(imagePath));
+    String mimeType = URLConnection.guessContentTypeFromStream(is);
+
+    // convert image to base64 data
+    String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+    base64Image = "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(imageBytes);
+    String url = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg";
+
+    OpenaiClient client = new OpenaiClient(API_KEY, Duration.ofSeconds(120));
+    List<ChatMessage> messages = new ArrayList<>();
+
+    ChatMessageContent content = new ChatMessageContent();
+    ChatMessageContent.ImageUrl imageUrl = new ChatMessageContent.ImageUrl();
+    // imageUrl.setUrl(url);
+    imageUrl.setUrl(base64Image);
+    content.setType("image_url");
+    content.setImageUrl(imageUrl);
+    ChatMessageContent content2 = new ChatMessageContent();
+    content2.setType("text");
+    content2.setText("what is this?");
+
+    ChatMessage chatMessage = new ChatMessage("user", Arrays.asList(content, content2));
+    messages.add(chatMessage);
+
+    ChatRequest request = ChatRequest.builder()
+            .model("gpt-4-vision-preview")
+            .messages(messages)
+            .build();
+    Flowable<StreamChatResponse> response = client.streamChat(request);
+    response.doOnNext(s -> {
+        System.out.println(s.getSingleContent());
+    }).blockingSubscribe();
+}
+```
+
 
 ### Customizing the URL and Timeout
 
@@ -120,14 +170,14 @@ public void proxyChat() {
 ```
 ## Additional Information
 
-You can view code examples in CludeTest and GeminiTest.
+You can view code examples in CludeTest and GeminiTest and OpenaiTest.
 
 ## FAQ
 ### What models are supported?
-Currently, all models of Claude AI and part of gemini are supported.
+Currently, all models of Claude AI and part of gemini and openai are supported.
 
-### Is OpenAI not supported?
-OpenAI currently have their respective SDKs available on GitHub, so their support is not an urgent necessity but may be considered in the future.
+### Are there many other functions of OpenAI that this SDK does not support?
+OpenAI currently has corresponding SDK support on GitHub (such as: https://github.com/TheoKanning/openai-java), so it is not an urgent need, perhaps it will be supported in the future.
 
 ## License
 Published under the MIT License
