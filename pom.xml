@@ -6,7 +6,7 @@
 
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.0.0</version>
+    <version>1.4.0</version>
 
     <name>ai-java-sdk</name>
     <description>a java sdk for ai apis.</description>
@@ -90,6 +90,11 @@
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.kjetland</groupId>
+            <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>
+            <version>1.0.34</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -134,6 +139,10 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
+                        <configuration>
+                            <keyname>6CA06D37BDF7D5DD7E1C5E2CE37F8470BF0B7BDE</keyname>
+                            <passphraseServerId>6CA06D37BDF7D5DD7E1C5E2CE37F8470BF0B7BDE</passphraseServerId>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

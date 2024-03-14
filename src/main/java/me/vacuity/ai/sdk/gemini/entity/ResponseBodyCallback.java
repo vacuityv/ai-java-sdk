@@ -1,10 +1,10 @@
-package me.vacuity.ai.sdk.claude.entity;
+package me.vacuity.ai.sdk.gemini.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.FlowableEmitter;
-import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-import me.vacuity.ai.sdk.claude.exception.VacSdkException;
-import me.vacuity.ai.sdk.claude.ClaudeClient;
+import me.vacuity.ai.sdk.gemini.GeminiClient;
+import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
+import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Callback to parse Server Sent Events (SSE) from raw InputStream and
@@ -23,7 +25,7 @@ import java.nio.charset.StandardCharsets;
  * SSE.
  */
 public class ResponseBodyCallback implements Callback<ResponseBody> {
-    private static final ObjectMapper mapper = ClaudeClient.defaultObjectMapper();
+    private static final ObjectMapper mapper = GeminiClient.defaultObjectMapper();
 
     private FlowableEmitter<SSE> emitter;
     private boolean emitDone;
@@ -45,11 +47,12 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                 if (errorBody == null) {
                     throw e;
                 } else {
-                    ChatResponseError error = mapper.readValue(
+
+                    List<ChatResponseError> errors = mapper.readValue(
                             errorBody.string(),
-                            ChatResponseError.class
+                            mapper.getTypeFactory().constructCollectionType(List.class, ChatResponseError.class)
                     );
-                    throw new VacSdkException("-1", "stream error", error);
+                    throw new VacSdkException("-1", "stream error", errors);
                 }
             }
 
@@ -58,25 +61,10 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             String line;
             SSE sse = null;
 
-            boolean errF = false;
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
-                if (line.startsWith("data:")) {
-                    if (errF) {
-                        System.out.println("error: " + line);
-                    }
-                    String data = line.substring(6).trim();
-                    sse = new SSE(data);
-                } else if (line.equals("") && sse != null) {
+                if (line.contains("\"text\":")) {
+                    sse = new SSE("{" + line + "}");
                     emitter.onNext(sse);
-                    sse = null;
-                } else if (line.startsWith("event:")) {
-                    String event = line.substring(7).trim();
-                    if (event.contains("error")) {
-                        errF = true;
-                        continue;
-                    }
-                }else {
-                    throw new SSEFormatException("Invalid sse format! " + line);
                 }
             }
             emitter.onComplete();

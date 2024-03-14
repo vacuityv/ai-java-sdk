@@ -1,10 +1,10 @@
-package me.vacuity.ai.sdk.claude.entity;
+package me.vacuity.ai.sdk.openai.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.FlowableEmitter;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 import me.vacuity.ai.sdk.claude.exception.VacSdkException;
-import me.vacuity.ai.sdk.claude.ClaudeClient;
+import me.vacuity.ai.sdk.openai.OpenaiClient;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -17,16 +17,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Callback to parse Server Sent Events (SSE) from raw InputStream and
- * emit the events with io.reactivex.FlowableEmitter to allow streaming of
- * SSE.
- */
-public class ResponseBodyCallback implements Callback<ResponseBody> {
-    private static final ObjectMapper mapper = ClaudeClient.defaultObjectMapper();
 
-    private FlowableEmitter<SSE> emitter;
-    private boolean emitDone;
+public class ResponseBodyCallback implements Callback<ResponseBody> {
+    private static final ObjectMapper mapper = OpenaiClient.defaultObjectMapper();
+
+    private final FlowableEmitter<SSE> emitter;
+    private final boolean emitDone;
 
     public ResponseBodyCallback(FlowableEmitter<SSE> emitter, boolean emitDone) {
         this.emitter = emitter;
@@ -58,28 +54,26 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             String line;
             SSE sse = null;
 
-            boolean errF = false;
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
                 if (line.startsWith("data:")) {
-                    if (errF) {
-                        System.out.println("error: " + line);
-                    }
-                    String data = line.substring(6).trim();
+                    String data = line.substring(5).trim();
                     sse = new SSE(data);
                 } else if (line.equals("") && sse != null) {
+                    if (sse.isDone()) {
+                        if (emitDone) {
+                            emitter.onNext(sse);
+                        }
+                        break;
+                    }
                     emitter.onNext(sse);
                     sse = null;
-                } else if (line.startsWith("event:")) {
-                    String event = line.substring(7).trim();
-                    if (event.contains("error")) {
-                        errF = true;
-                        continue;
-                    }
-                }else {
+                } else {
                     throw new SSEFormatException("Invalid sse format! " + line);
                 }
             }
+
             emitter.onComplete();
+
         } catch (Throwable t) {
             onFailure(call, t);
         } finally {
@@ -87,7 +81,6 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                 try {
                     reader.close();
                 } catch (IOException e) {
-                    // do nothing
                 }
             }
         }

@@ -1,4 +1,4 @@
-package me.vacuity.ai.sdk.client;
+package me.vacuity.ai.sdk.gemini;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -7,15 +7,15 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import me.vacuity.ai.sdk.claude.Interceptor.ClaudeAuthenticationInterceptor;
-import me.vacuity.ai.sdk.claude.api.ClaudeApi;
-import me.vacuity.ai.sdk.claude.entity.ResponseBodyCallback;
-import me.vacuity.ai.sdk.claude.entity.SSE;
-import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-import me.vacuity.ai.sdk.claude.exception.VacException;
-import me.vacuity.ai.sdk.claude.request.ChatRequest;
-import me.vacuity.ai.sdk.claude.response.ChatResponse;
-import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
+import me.vacuity.ai.sdk.gemini.Interceptor.GeminiAuthenticationInterceptor;
+import me.vacuity.ai.sdk.gemini.api.GeminiApi;
+import me.vacuity.ai.sdk.gemini.entity.ResponseBodyCallback;
+import me.vacuity.ai.sdk.gemini.entity.SSE;
+import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
+import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
+import me.vacuity.ai.sdk.gemini.request.ChatRequest;
+import me.vacuity.ai.sdk.gemini.response.ChatResponse;
+import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
@@ -27,6 +27,7 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -36,44 +37,50 @@ import java.util.concurrent.TimeUnit;
  * @create: 2024-03-06 10:10
  **/
 
-public class ClaudeClient {
+public class GeminiClient {
 
-    private static final String BASE_URL = "https://api.anthropic.com";
+    private static final String BASE_URL = "https://generativelanguage.googleapis.com";
+    
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final ObjectMapper mapper = defaultObjectMapper();
 
+    private String apiKey;
 
-    private final ClaudeApi api;
+    private final GeminiApi api;
     private final ExecutorService executorService;
 
-    public ClaudeClient(final String token) {
+    public GeminiClient(final String apiKey) {
         ObjectMapper mapper = defaultObjectMapper();
-        OkHttpClient client = defaultClient(token, DEFAULT_TIMEOUT);
+        OkHttpClient client = defaultClient(DEFAULT_TIMEOUT);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
-        this.api = retrofit.create(ClaudeApi.class);
+        this.apiKey = apiKey;
+        this.api = retrofit.create(GeminiApi.class);
         this.executorService = client.dispatcher().executorService();
     }
 
-    public ClaudeClient(final String token, final Duration timeout) {
+    public GeminiClient(final String apiKey, final Duration timeout) {
         ObjectMapper mapper = defaultObjectMapper();
-        OkHttpClient client = defaultClient(token, timeout);
+        OkHttpClient client = defaultClient(timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
-        this.api = retrofit.create(ClaudeApi.class);
+        this.apiKey = apiKey;
+        this.api = retrofit.create(GeminiApi.class);
         this.executorService = client.dispatcher().executorService();
     }
 
-    public ClaudeClient(final String token, final Duration timeout, String baseUrl) {
+    public GeminiClient(final String apiKey, final Duration timeout, String baseUrl) {
         ObjectMapper mapper = defaultObjectMapper();
-        OkHttpClient client = defaultClient(token, timeout);
+        OkHttpClient client = defaultClient(timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
 
-        this.api = retrofit.create(ClaudeApi.class);
+        this.apiKey = apiKey;
+        this.api = retrofit.create(GeminiApi.class);
         this.executorService = client.dispatcher().executorService();
     }
 
-    public ClaudeClient(ClaudeApi api) {
+    public GeminiClient(String apiKey, GeminiApi api) {
+        this.apiKey = apiKey;
         this.api = api;
         this.executorService = null;
     }
@@ -86,9 +93,9 @@ public class ClaudeClient {
         return mapper;
     }
 
-    public static OkHttpClient defaultClient(String apiKey, Duration timeout) {
+    public static OkHttpClient defaultClient(Duration timeout) {
         return new OkHttpClient.Builder()
-                .addInterceptor(new ClaudeAuthenticationInterceptor(apiKey))
+                .addInterceptor(new GeminiAuthenticationInterceptor())
                 .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
                 .readTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .build();
@@ -147,9 +154,8 @@ public class ClaudeClient {
                     throw e;
                 }
                 String errorBody = e.response().errorBody().string();
-                System.out.println(errorBody);
                 ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
-                VacException ve = new VacException("-1", "error", error);
+                VacSdkException ve = new VacSdkException("-1", "error", Arrays.asList(error));
                 throw ve;
             } catch (IOException ex) {
                 // couldn't parse error
@@ -160,12 +166,11 @@ public class ClaudeClient {
 
 
     public ChatResponse chat(ChatRequest request) {
-        return execute(api.chat(request));
+        return execute(api.chat(request.getModel(), this.apiKey, request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
-        request.setStream(true);
-        return stream(api.streamChat(request), StreamChatResponse.class);
+        return stream(api.streamChat(request.getModel(), this.apiKey, request), StreamChatResponse.class);
     }
 
     public static <T> Flowable<T> stream(Call<ResponseBody> apiCall, Class<T> cl) {
