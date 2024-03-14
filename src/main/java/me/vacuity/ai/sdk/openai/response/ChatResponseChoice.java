@@ -25,7 +25,5 @@ public class ChatResponseChoice {
 
     private Integer index;
 
-    private ChatMessage message;
-
-    private ChatMessage delta;
+    private ChatResponseMessage message;
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 import me.vacuity.ai.sdk.openai.entity.ChatMessage;
+import me.vacuity.ai.sdk.openai.entity.ChatTool;
 
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,9 @@ public class ChatRequest {
 
     @JsonProperty("top_p")
     private Double topP;
-
-
-    // todo/tool_choice tools function
+    
+    private List<ChatTool> tools;
+    
+    @JsonProperty("tool_choice")
+    private Object toolChoice;
 }

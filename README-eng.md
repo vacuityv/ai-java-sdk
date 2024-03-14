@@ -13,6 +13,9 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 - [Streaming Chat](https://ai.google.dev/tutorials/rest_quickstart)
 
 ## Supported openAI
+
+> Support function calls, please refer to OpenaiTest (a large part of the function implementation is based on https://github.com/TheoKanning/openai-java).
+
 - [Chat](https://platform.openai.com/docs/api-reference/chat/create)
 - [Streaming Chat](https://platform.openai.com/docs/api-reference/chat/streaming)
 
@@ -26,7 +29,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.3.0</version>       
+    <version>1.4.0</version>       
 </dependency>
 ```
 

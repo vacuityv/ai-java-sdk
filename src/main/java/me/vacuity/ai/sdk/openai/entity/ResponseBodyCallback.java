@@ -21,8 +21,8 @@ import java.nio.charset.StandardCharsets;
 public class ResponseBodyCallback implements Callback<ResponseBody> {
     private static final ObjectMapper mapper = OpenaiClient.defaultObjectMapper();
 
-    private FlowableEmitter<SSE> emitter;
-    private boolean emitDone;
+    private final FlowableEmitter<SSE> emitter;
+    private final boolean emitDone;
 
     public ResponseBodyCallback(FlowableEmitter<SSE> emitter, boolean emitDone) {
         this.emitter = emitter;

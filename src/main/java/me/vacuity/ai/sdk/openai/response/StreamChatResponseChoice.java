@@ -25,5 +25,5 @@ public class StreamChatResponseChoice {
 
     private Integer index;
 
-    private ChatMessage delta;
+    private ChatResponseMessage delta;
 }

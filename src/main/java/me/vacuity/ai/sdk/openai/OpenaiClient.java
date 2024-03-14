@@ -1,6 +1,7 @@
 package me.vacuity.ai.sdk.openai;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
@@ -8,6 +9,10 @@ import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 import me.vacuity.ai.sdk.openai.api.OpenaiApi;
+import me.vacuity.ai.sdk.openai.entity.ChatFunction;
+import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
+import me.vacuity.ai.sdk.openai.entity.ChatFunctionCallMixIn;
+import me.vacuity.ai.sdk.openai.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.openai.entity.SSE;
@@ -85,6 +90,9 @@ public class OpenaiClient {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        mapper.addMixIn(ChatFunction.class, ChatFunctionMixIn.class);
+//        mapper.addMixIn(ChatRequest.class, ChatRequestMixIn.class);
+        mapper.addMixIn(ChatFunctionCall.class, ChatFunctionCallMixIn.class);
         return mapper;
     }
 
@@ -128,7 +136,8 @@ public class OpenaiClient {
     }
 
 
-    public ChatResponse chat(ChatRequest request) {
+    public ChatResponse chat(ChatRequest request) throws JsonProcessingException {
+        System.out.println(mapper.writeValueAsString(request));
         return execute(api.chat(request));
     }
 
