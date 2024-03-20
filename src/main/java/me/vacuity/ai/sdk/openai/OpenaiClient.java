@@ -352,8 +352,10 @@ public class OpenaiClient {
         return execute(api.createMessage(threadId, request));
     }
 
-    public List<AssistantMessage> listMessages(String threadId) {
-        return execute(api.listMessages(threadId)).data;
+    public List<AssistantMessage> listMessages(String threadId, ListRequest params) {
+        Map<String, Object> queryParameters = mapper.convertValue(params, new TypeReference<Map<String, Object>>() {
+        });
+        return execute(api.listMessages(threadId, queryParameters)).data;
     }
 
     public List<AssistantMessageFile> listMessageFiles(String threadId, String messageId, ListRequest params) {

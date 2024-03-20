@@ -139,7 +139,7 @@ public interface OpenaiApi {
 
     @Headers({"OpenAI-Beta: assistants=v1"})
     @GET("/v1/threads/{thread_id}/messages")
-    Single<ListResponse<AssistantMessage>> listMessages(@Path("thread_id") String threadId);
+    Single<ListResponse<AssistantMessage>> listMessages(@Path("thread_id") String threadId, @QueryMap Map<String, Object> listRequest);
 
     @Headers({"OpenAI-Beta: assistants=v1"})
     @GET("/v1/threads/{thread_id}/messages/{message_id}/files")

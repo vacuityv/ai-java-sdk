@@ -31,7 +31,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.5.0</version>       
+    <version>1.5.1</version>       
 </dependency>
 ```
 
