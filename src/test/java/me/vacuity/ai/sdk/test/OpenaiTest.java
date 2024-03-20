@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.test;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
@@ -37,6 +38,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
+import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
+import static me.vacuity.ai.sdk.test.openai.OpenaiConstant.API_KEY;
+
 
 /**
  * @description:
@@ -46,7 +50,8 @@ import java.util.Random;
 
 public class OpenaiTest {
 
-    public static final String API_KEY = "sk-*****";
+
+    ObjectMapper mapper = defaultObjectMapper();
 
     public static class Stock {
         @JsonPropertyDescription("the code of the stock, for example: AAPL, GOOGL")
@@ -73,7 +78,7 @@ public class OpenaiTest {
 
 
     @Test
-    public void chat() {
+    public void chat() throws JsonProcessingException {
 
         FunctionExecutor functionExecutor = new FunctionExecutor(Collections.singletonList(ChatFunction.builder()
                 .name("get_stock_value")
@@ -94,6 +99,7 @@ public class OpenaiTest {
                 .messages(messages)
                 .tools(Arrays.asList(tool))
                 .build();
+        System.out.println(mapper.writeValueAsString(request));
         try {
             ChatResponse response = client.chat(request);
             List<ChatFunctionCall> functionCalls = response.getChoices().get(0).getMessage().getToolCalls();

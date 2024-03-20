@@ -1,10 +1,10 @@
-package me.vacuity.ai.sdk.claude.entity;
+package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.FlowableEmitter;
-import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-import me.vacuity.ai.sdk.claude.exception.VacSdkException;
-import me.vacuity.ai.sdk.claude.ClaudeClient;
+import me.vacuity.ai.sdk.openai.OpenaiClient;
+import me.vacuity.ai.sdk.openai.error.ChatResponseError;
+import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -22,15 +22,12 @@ import java.nio.charset.StandardCharsets;
  * emit the events with io.reactivex.FlowableEmitter to allow streaming of
  * SSE.
  */
-public class ResponseBodyCallback implements Callback<ResponseBody> {
-    private static final ObjectMapper mapper = ClaudeClient.defaultObjectMapper();
+public class AssistantResponseBodyCallback implements Callback<ResponseBody> {
+    private static final ObjectMapper mapper = OpenaiClient.defaultObjectMapper();
 
-    private FlowableEmitter<SSE> emitter;
-    private boolean emitDone;
-
-    public ResponseBodyCallback(FlowableEmitter<SSE> emitter, boolean emitDone) {
+    private FlowableEmitter<AssistantSSE> emitter;
+    public AssistantResponseBodyCallback(FlowableEmitter<AssistantSSE> emitter) {
         this.emitter = emitter;
-        this.emitDone = emitDone;
     }
 
     @Override
@@ -56,19 +53,19 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             InputStream in = response.body().byteStream();
             reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             String line;
-            SSE sse = null;
-
+            AssistantSSE sse = null;
+            String event = null;
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
-                if (line.startsWith("data:")) {
+                if (line.startsWith("event:")) {
+                    event = line.substring(7).trim();
+                } else if (line.startsWith("data:")) {
                     String data = line.substring(6).trim();
-                    sse = new SSE(data);
+                    sse = new AssistantSSE(event, data);
                 } else if (line.equals("") && sse != null) {
                     emitter.onNext(sse);
                     sse = null;
-                } else if (line.startsWith("event:")) {
-                    String event = line.substring(7).trim();
-                }else {
-                    throw new SSEFormatException("Invalid sse format! " + line);
+                } else {
+                    throw new VacSdkException("-1", "Invalid sse format! " + line);
                 }
             }
             emitter.onComplete();
