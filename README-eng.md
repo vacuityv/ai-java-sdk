@@ -20,6 +20,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 - [Streaming Chat](https://platform.openai.com/docs/api-reference/chat/streaming)
 - [File](https://platform.openai.com/docs/api-reference/files)
 - [Assistant](https://platform.openai.com/docs/api-reference/assistants)
+- [Image](https://platform.openai.com/docs/api-reference/images)
 
 
 
@@ -31,7 +32,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.5.1</version>       
+    <version>1.6.0</version>       
 </dependency>
 ```
 

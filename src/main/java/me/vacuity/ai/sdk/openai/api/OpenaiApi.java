@@ -20,6 +20,8 @@ import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
 import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
+import me.vacuity.ai.sdk.openai.image.entity.Image;
+import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.ListResponse;
@@ -210,5 +212,13 @@ public interface OpenaiApi {
     @POST("/v1/threads/{thread_id}/runs/{run_id}/submit_tool_outputs")
     Call<ResponseBody> streamSubmitToolOutputs(@Path("thread_id") String threadId, @Path("run_id") String runId, @Body SubmitToolOutputsRequest submitToolOutputsRequest);
 
+    @POST("/v1/images/generations")
+    Single<ListResponse<Image>> createImage(@Body CreateImageRequest request);
+
+    @POST("/v1/images/edits")
+    Single<ListResponse<Image>> editImage(@Body RequestBody requestBody);
+
+    @POST("/v1/images/variations")
+    Single<ListResponse<Image>> imageVariation(@Body RequestBody requestBody);
 }
 

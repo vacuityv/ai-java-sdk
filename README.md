@@ -21,6 +21,7 @@
 - [流式对话](https://platform.openai.com/docs/api-reference/chat/streaming)
 - [文件](https://platform.openai.com/docs/api-reference/files)
 - [Assistant](https://platform.openai.com/docs/api-reference/assistants)
+- [Image](https://platform.openai.com/docs/api-reference/images)
 
 
 
@@ -31,7 +32,7 @@
 <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.5.1</version>       
+    <version>1.6.0</version>       
 </dependency>
 ```
 

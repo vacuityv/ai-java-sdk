@@ -44,6 +44,10 @@ import me.vacuity.ai.sdk.openai.entity.SSE;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
 import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
+import me.vacuity.ai.sdk.openai.image.entity.Image;
+import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
+import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
+import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
 import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
@@ -434,6 +438,73 @@ public class OpenaiClient {
 
     public Flowable<AssistantStreamResponse> streamSubmitToolOutputs(String threadId, String runId, SubmitToolOutputsRequest submitToolOutputsRequest) {
         return assistantStream(api.streamSubmitToolOutputs(threadId, runId, submitToolOutputsRequest));
+    }
+
+    public List<Image> createImage(CreateImageRequest request) {
+        return execute(api.createImage(request)).data;
+    }
+
+    public List<Image> editImage(EditImageRequest request, String imagePath, String maskPath) {
+        java.io.File image = new java.io.File(imagePath);
+        java.io.File mask = null;
+        if (maskPath != null) {
+            mask = new java.io.File(maskPath);
+        }
+        return editImage(request, image, mask);
+    }
+
+    public List<Image> editImage(EditImageRequest request, java.io.File image, java.io.File mask) {
+        RequestBody imageBody = RequestBody.create(MediaType.parse("image"), image);
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MediaType.get("multipart/form-data"))
+                .addFormDataPart("prompt", request.getPrompt())
+                .addFormDataPart("image", "image", imageBody);
+        if (request.getSize() != null) {
+            builder.addFormDataPart("size", request.getSize());
+        }
+        if (request.getResponseFormat() != null) {
+            builder.addFormDataPart("response_format", request.getResponseFormat());
+        }
+        if (request.getN() != null) {
+            builder.addFormDataPart("n", request.getN().toString());
+        }
+        if (mask != null) {
+            RequestBody maskBody = RequestBody.create(MediaType.parse("image"), mask);
+            builder.addFormDataPart("mask", "mask", maskBody);
+        }
+        if (request.getModel() != null) {
+            builder.addFormDataPart("model", request.getModel());
+        }
+        return execute(api.editImage(builder.build())).data;
+    }
+
+    public List<Image> imageVariation(ImageVariationRequest request, String imagePath) {
+        java.io.File image = new java.io.File(imagePath);
+        return imageVariation(request, image);
+    }
+
+    public List<Image> imageVariation(ImageVariationRequest request, java.io.File image) {
+        RequestBody imageBody = RequestBody.create(MediaType.parse("image"), image);
+
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MediaType.get("multipart/form-data"))
+                .addFormDataPart("image", "image", imageBody);
+        if (request.getSize() != null) {
+            builder.addFormDataPart("size", request.getSize());
+        }
+        if (request.getResponseFormat() != null) {
+            builder.addFormDataPart("response_format", request.getResponseFormat());
+        }
+        if (request.getN() != null) {
+            builder.addFormDataPart("n", request.getN().toString());
+        }
+        if (request.getModel() != null) {
+            builder.addFormDataPart("model", request.getModel());
+        }
+        if (request.getUser() != null) {
+            builder.addFormDataPart("user", request.getUser());
+        }
+        return execute(api.imageVariation(builder.build())).data;
     }
 
 }
