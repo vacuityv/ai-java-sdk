@@ -2,6 +2,8 @@
 
 # AI-Java-Sdk
 
+> Welcome to experience the interactive website connecting individuals with major AI vendors: [AI-CHAT](https://chat.vacuity.me/)
+
 This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini and part of OpenAI.
 
 ## Supported Claude APIs

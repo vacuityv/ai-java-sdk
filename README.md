@@ -3,7 +3,10 @@
 
 # AI-Java-Sdk
 
+> 欢迎体验个人对接的各大厂商AI的交互网站：[AI-CHAT 交互网站](https://chat.vacuity.me/)
+
 为使用各大AI厂商提供的API创建的java sdk，目前支持Google Gemini 和 Claude AI 以及 openai 的 chat、file 和 assistant 部分功能。
+
 
 ## 支持的 Claude api
 - [对话](https://docs.anthropic.com/claude/reference/messages_post)
