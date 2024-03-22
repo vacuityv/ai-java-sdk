@@ -259,7 +259,7 @@ public class OpenaiClient {
 
 
     public ChatResponse chat(ChatRequest request) throws JsonProcessingException {
-        System.out.println(mapper.writeValueAsString(request));
+        request.setStream(false);
         return execute(api.chat(request));
     }
 
@@ -381,10 +381,12 @@ public class OpenaiClient {
     }
 
     public Run createRun(String threadId, RunRequest runRequest) {
+        runRequest.setStream(false);
         return execute(api.createRun(threadId, runRequest));
     }
 
     public Run createThreadAndRun(ThreadAndRunRequest threadAndRunRequest) {
+        threadAndRunRequest.setStream(false);
         return execute(api.createThreadAndRun(threadAndRunRequest));
     }
 
@@ -433,10 +435,12 @@ public class OpenaiClient {
     }
 
     public Flowable<AssistantStreamResponse> streamCreateThreadAndRun(ThreadAndRunRequest threadAndRunRequest) {
+        threadAndRunRequest.setStream(true);
         return assistantStream(api.streamCreateThreadAndRun(threadAndRunRequest));
     }
 
     public Flowable<AssistantStreamResponse> streamSubmitToolOutputs(String threadId, String runId, SubmitToolOutputsRequest submitToolOutputsRequest) {
+        submitToolOutputsRequest.setStream(true);
         return assistantStream(api.streamSubmitToolOutputs(threadId, runId, submitToolOutputsRequest));
     }
 

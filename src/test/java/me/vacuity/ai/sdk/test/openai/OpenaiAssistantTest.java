@@ -6,9 +6,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
+import me.vacuity.ai.sdk.openai.assistant.constant.AssistantStreamEventsConstant;
 import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessage;
-import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessageDelta;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantStreamResponse;
 import me.vacuity.ai.sdk.openai.assistant.entity.Run;
 import me.vacuity.ai.sdk.openai.assistant.entity.RunStep;
@@ -16,18 +16,23 @@ import me.vacuity.ai.sdk.openai.assistant.entity.Thread;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantMessageRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.RunRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.SubmitToolOutputsRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
 import me.vacuity.ai.sdk.openai.constant.ChatToolConstant;
 import me.vacuity.ai.sdk.openai.entity.ChatFunction;
+import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
+import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.service.FunctionExecutor;
-import me.vacuity.ai.sdk.test.OpenaiTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,9 +54,9 @@ public class OpenaiAssistantTest {
     public void createAssistant() throws JsonProcessingException {
 
         FunctionExecutor functionExecutor = new FunctionExecutor(Collections.singletonList(ChatFunction.builder()
-                .name("get_stock_value")
-                .description("get the stock value of a stock on a date")
-                .executor(OpenaiTest.Stock.class, w -> new OpenaiTest.StockResponse(w.date, w.code, new Random().nextInt(50)))
+                .name("get_web_content")
+                .description("Get the direct content of the url address. if return '', the url is not valid.")
+                .executor(WebUrl.class, w -> new WebContentRes("nothing display"))
                 .build()));
 
         ChatTool tool1 = ChatTool.builder()
@@ -72,7 +77,7 @@ public class OpenaiAssistantTest {
                 .name("test-create")
                 .description("stock assistant")
                 .instructions("you are a stock assistant")
-                .fileIds(fileIds)
+//                .fileIds(fileIds)
                 .tools(Arrays.asList(tool1, tool2, tool3))
                 .build();
         System.out.println(mapper.writeValueAsString(request));
@@ -148,11 +153,11 @@ public class OpenaiAssistantTest {
 
     @Test
     public void streamCreateRun() {
-
+        
         FunctionExecutor functionExecutor = new FunctionExecutor(Collections.singletonList(ChatFunction.builder()
-                .name("get_stock_value")
-                .description("get the stock value of a stock on a date")
-                .executor(OpenaiTest.Stock.class, w -> new OpenaiTest.StockResponse(w.date, w.code, new Random().nextInt(50)))
+                .name("get_web_content")
+                .description("Get the direct content of the url address. if return '', the url is not valid.")
+                .executor(WebUrl.class, w -> new WebContentRes("33"))
                 .build()));
 
         ChatTool tool1 = ChatTool.builder()
@@ -170,39 +175,68 @@ public class OpenaiAssistantTest {
         List<String> fileIds = Arrays.asList(fileId);
         AssistantRequest request = AssistantRequest.builder()
                 .model("gpt-4-turbo-preview")
-                .name("test-assistant-stream")
-                .description("stock assistant")
-                .instructions("you are a stock assistant")
-                .fileIds(fileIds)
+                .name("AnswerBot")
+                .description("answer anything")
+                .instructions("answer anything")
+//                .fileIds(fileIds)
                 .tools(Arrays.asList(tool1, tool2, tool3))
                 .build();
-        Assistant assistant = client.createAssistant(request);
+//        Assistant assistant = client.createAssistant(request);
 
+        String assistantId = "asst_42vROiaI436Tx6M3GEPc0NuP";
         ThreadRequest threadRequest = ThreadRequest.builder()
                 .build();
         Thread thread = client.createThread(threadRequest);
 
         AssistantMessageRequest messageRequest = AssistantMessageRequest.builder()
                 .role("user")
-                .content("introduce yourself")
+                .content("what's the stock value of PAPP in 2023?")
                 .build();
         AssistantMessage message = client.createMessage(thread.getId(), messageRequest);
 
         RunRequest runRequest = RunRequest.builder()
-                .assistantId(assistant.getId())
+                .assistantId(assistantId)
                 .build();
+
+        
+        AtomicReference<String> runId = new AtomicReference<>("");
         Flowable<AssistantStreamResponse> flowable = client.streamCreateRun(thread.getId(), runRequest);
+        AtomicBoolean end = new AtomicBoolean(false);
+        List<SubmitToolOutputsRequest.ToolOutput> toolOutputs = new ArrayList<>();
         flowable.doOnNext(response -> {
             System.out.println(response.getEvent());
-            if (response.getDataClass() != null) {
-                System.out.println(response.getDataClass());
-                if (response.getDataClass() == AssistantMessageDelta.class) {
-                    AssistantMessageDelta delta = response.getMessageDelta();
-                    System.out.println(delta.getDelta().getContent());
+            if (response.getDataClass() == Run.class) {
+                runId.set(response.getRun().getId());
+                Run.RequiredAction requiredAction = response.getRun().getRequiredAction();
+                if (requiredAction != null) {
+                    List<ChatFunctionCall> toolCalls = requiredAction.getSubmitToolOutputs().getToolCalls();
+                    if (toolCalls != null) {
+                        for (ChatFunctionCall toolCall : toolCalls) {
+                            Optional<ChatMessage> temp = functionExecutor.executeAndConvertToMessageSafely(toolCall);
+                            SubmitToolOutputsRequest.ToolOutput toolOutput = new SubmitToolOutputsRequest.ToolOutput();
+                            toolOutput.setToolCallId(toolCall.getId());
+                            toolOutput.setOutput(temp.get().getContent().toString());
+                            toolOutputs.add(toolOutput);
+                        }
+                        SubmitToolOutputsRequest submitToolOutputsRequest = SubmitToolOutputsRequest.builder()
+                                .toolOutputs(toolOutputs)
+                                .build();
+                        System.out.println("===============================");
+                        System.out.println(submitToolOutputsRequest);
+                        Flowable<AssistantStreamResponse> f = client.streamSubmitToolOutputs(thread.getId(), runId.get(), submitToolOutputsRequest);
+                        f.doOnNext(s -> {
+                            System.out.println(s);
+                        }).blockingSubscribe();
+                    }
                 }
+            }
+            if (response.getEvent().equals(AssistantStreamEventsConstant.DONE)) {
+                end.set(true);
             }
 
         }).blockingSubscribe();
+
+        
     }
 
 
@@ -226,6 +260,20 @@ public class OpenaiAssistantTest {
             this.date = date;
             this.code = code;
             this.value = value;
+        }
+    }
+
+    public static class WebUrl {
+        @JsonPropertyDescription("the url of the target web address")
+        public String url;
+    }
+
+    public static class WebContentRes {
+
+        public String content;
+
+        public WebContentRes(String content) {
+            this.content = content;
         }
     }
 }
