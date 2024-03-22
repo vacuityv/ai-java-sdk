@@ -9,21 +9,21 @@
 
 
 ## 支持的 Claude api
-- [对话](https://docs.anthropic.com/claude/reference/messages_post)
-- [流式对话](https://docs.anthropic.com/claude/reference/messages-streaming)
+- [对话 (含vision)](https://docs.anthropic.com/claude/reference/messages_post)
+- [流式对话 (含vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## 支持的 Google Gemini
-- [对话](https://ai.google.dev/tutorials/rest_quickstart)
-- [流式对话](https://ai.google.dev/tutorials/rest_quickstart)
+- [对话 (含vision)](https://ai.google.dev/tutorials/rest_quickstart)
+- [流式对话 (含vision)](https://ai.google.dev/tutorials/rest_quickstart)
 
 ## 支持的 openAI
 
 > 支持函数调用，请参考 OpenaiTest（函数部分实现大量参考了 https://github.com/TheoKanning/openai-java ）
 
-- [对话](https://platform.openai.com/docs/api-reference/chat/create)
-- [流式对话](https://platform.openai.com/docs/api-reference/chat/streaming)
+- [对话 (含vision)](https://platform.openai.com/docs/api-reference/chat/create)
+- [流式对话 (含vision)](https://platform.openai.com/docs/api-reference/chat/streaming)
 - [文件](https://platform.openai.com/docs/api-reference/files)
-- [Assistant](https://platform.openai.com/docs/api-reference/assistants)
+- [Assistant (含stream)](https://platform.openai.com/docs/api-reference/assistants)
 - [Image](https://platform.openai.com/docs/api-reference/images)
 
 

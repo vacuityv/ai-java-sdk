@@ -7,21 +7,21 @@
 This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini and part of OpenAI.
 
 ## Supported Claude APIs
-- [Chat](https://docs.anthropic.com/claude/reference/messages_post)
-- [Streaming Chat](https://docs.anthropic.com/claude/reference/messages-streaming)
+- [Chat (include vision)](https://docs.anthropic.com/claude/reference/messages_post)
+- [Streaming Chat (include vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## Supported Google Gemini
-- [Chat](https://ai.google.dev/tutorials/rest_quickstart)
-- [Streaming Chat](https://ai.google.dev/tutorials/rest_quickstart)
+- [Chat (include vision)](https://ai.google.dev/tutorials/rest_quickstart)
+- [Streaming Chat (include vision)](https://ai.google.dev/tutorials/rest_quickstart)
 
 ## Supported openAI
 
 > Support function calls, please refer to OpenaiTest (a large part of the function implementation is based on https://github.com/TheoKanning/openai-java).
 
-- [Chat](https://platform.openai.com/docs/api-reference/chat/create)
-- [Streaming Chat](https://platform.openai.com/docs/api-reference/chat/streaming)
+- [Chat (include vision)](https://platform.openai.com/docs/api-reference/chat/create)
+- [Streaming Chat (include vision)](https://platform.openai.com/docs/api-reference/chat/streaming)
 - [File](https://platform.openai.com/docs/api-reference/files)
-- [Assistant](https://platform.openai.com/docs/api-reference/assistants)
+- [Assistant (include stream)](https://platform.openai.com/docs/api-reference/assistants)
 - [Image](https://platform.openai.com/docs/api-reference/images)
 
 
