@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.claude.api.ClaudeApi;
+import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.claude.exception.VacSdkException;
@@ -10,6 +12,7 @@ import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
+import me.vacuity.ai.sdk.claude.service.FunctionExecutor;
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.Test;
 import retrofit2.Retrofit;
@@ -23,7 +26,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultClient;
 import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
@@ -37,7 +42,7 @@ import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultRetrofit;
 
 public class CludeTest {
 
-    public static final String API_KEY = "sk-******";
+    public static final String API_KEY = "sk-*****";
 
 
     @Test
@@ -158,6 +163,50 @@ public class CludeTest {
             if (e.getDetail() != null) {
                 System.out.println(e.getDetail().getError().getMessage());
             }
+        }
+    }
+
+    @Test
+    public void chatWithFunction() {
+
+        FunctionExecutor functionExecutor = new FunctionExecutor(Collections.singletonList(ChatFunction.builder()
+                .name("get_stock_value")
+                .description("get the stock value of a stock on a date")
+                .executor(OpenaiTest.Stock.class, w -> new OpenaiTest.StockResponse(w.date, w.code, new Random().nextInt(50)))
+                .build()));
+        ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(120));
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "what's the stock value of APPL on 2023-02-18"));
+        ChatRequest request = ChatRequest.builder()
+                .model("claude-3-opus-20240229")
+                .messages(messages)
+                .tools(functionExecutor.getFunctions())
+                .maxTokens(1024)
+                .build();
+        try {
+            ChatResponse response = client.chat(request);
+            ChatMessage respMsg = new ChatMessage("assistant", response.getContent());
+            messages.add(respMsg);
+            List<ChatMessageContent> contents = response.getContent();
+            for (ChatMessageContent content : contents) {
+                if ("tool_use".equals(content.getType())) {
+                    System.out.println(defaultObjectMapper().writeValueAsString(content));
+                    ChatMessage functionMessage = functionExecutor.executeAndConvertToMessage(content);
+                    messages.add(functionMessage);
+                    request.setMessages(messages);
+                    ChatResponse response2 = client.chat(request);
+                    System.out.println("function response:");
+                    System.out.println(defaultObjectMapper().writeValueAsString(response2.getContent()));
+                } else {
+                    System.out.println(content.getText());
+                }
+            }
+        } catch (VacSdkException e) {
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().getError().getMessage());
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
+import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 
 import java.util.List;
@@ -44,4 +45,6 @@ public class ChatRequest {
 
     @JsonProperty("top_k")
     private Integer topK;
+    
+    private List<ChatFunction> tools;
 }

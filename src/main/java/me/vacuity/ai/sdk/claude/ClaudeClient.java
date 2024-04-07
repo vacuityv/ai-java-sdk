@@ -9,6 +9,8 @@ import io.reactivex.Flowable;
 import io.reactivex.Single;
 import me.vacuity.ai.sdk.claude.Interceptor.ClaudeAuthenticationInterceptor;
 import me.vacuity.ai.sdk.claude.api.ClaudeApi;
+import me.vacuity.ai.sdk.claude.entity.ChatFunction;
+import me.vacuity.ai.sdk.claude.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.claude.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.claude.entity.SSE;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
@@ -83,6 +85,7 @@ public class ClaudeClient {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        mapper.addMixIn(ChatFunction.class, ChatFunctionMixIn.class);
         return mapper;
     }
 
@@ -105,38 +108,6 @@ public class ClaudeClient {
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
-
-
-//    public Flowable<ChatMessageAccumulator> mapStreamToAccumulator(Flowable<ChatCompletionChunk> flowable) {
-//        ChatFunctionCall functionCall = new ChatFunctionCall(null, null);
-//        ChatMessage accumulatedMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), null);
-//
-//        return flowable.map(chunk -> {
-//            ChatMessage messageChunk = chunk.getChoices().get(0).getMessage();
-//            if (messageChunk.getFunctionCall() != null) {
-//                if (messageChunk.getFunctionCall().getName() != null) {
-//                    String namePart = messageChunk.getFunctionCall().getName();
-//                    functionCall.setName((functionCall.getName() == null ? "" : functionCall.getName()) + namePart);
-//                }
-//                if (messageChunk.getFunctionCall().getArguments() != null) {
-//                    String argumentsPart = messageChunk.getFunctionCall().getArguments() == null ? "" : messageChunk.getFunctionCall().getArguments().asText();
-//                    functionCall.setArguments(new TextNode((functionCall.getArguments() == null ? "" : functionCall.getArguments().asText()) + argumentsPart));
-//                }
-//                accumulatedMessage.setFunctionCall(functionCall);
-//            } else {
-//                accumulatedMessage.setContent((accumulatedMessage.getContent() == null ? "" : accumulatedMessage.getContent()) + (messageChunk.getContent() == null ? "" : messageChunk.getContent()));
-//            }
-//
-//            if (chunk.getChoices().get(0).getFinishReason() != null) { // last
-//                if (functionCall.getArguments() != null) {
-//                    functionCall.setArguments(mapper.readTree(functionCall.getArguments().asText()));
-//                    accumulatedMessage.setFunctionCall(functionCall);
-//                }
-//            }
-//
-//            return new ChatMessageAccumulator(messageChunk, accumulatedMessage);
-//        });
-//    }
 
     public static <T> T execute(Single<T> apiCall) {
         try {
