@@ -9,7 +9,7 @@
 
 
 ## 支持的 Claude api
-- [对话 (含vision)](https://docs.anthropic.com/claude/reference/messages_post)
+- [对话 (含vision，支持function)](https://docs.anthropic.com/claude/reference/messages_post)
 - [流式对话 (含vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## 支持的 Google Gemini
@@ -35,7 +35,7 @@
 <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.6.1</version>       
+    <version>1.6.2</version>       
 </dependency>
 ```
 

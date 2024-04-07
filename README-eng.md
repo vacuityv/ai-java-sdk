@@ -7,7 +7,7 @@
 This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini and part of OpenAI.
 
 ## Supported Claude APIs
-- [Chat (include vision)](https://docs.anthropic.com/claude/reference/messages_post)
+- [Chat (include vision, support function)](https://docs.anthropic.com/claude/reference/messages_post)
 - [Streaming Chat (include vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## Supported Google Gemini
@@ -34,7 +34,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.6.1</version>       
+    <version>1.6.2</version>       
 </dependency>
 ```
 
