@@ -1,9 +1,8 @@
 package me.vacuity.ai.sdk.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Flowable;
-import me.vacuity.ai.sdk.claude.api.ClaudeApi;
+import me.vacuity.ai.sdk.claude.ClaudeClient;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
@@ -11,11 +10,8 @@ import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
-import me.vacuity.ai.sdk.claude.ClaudeClient;
 import me.vacuity.ai.sdk.claude.service.FunctionExecutor;
-import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.Test;
-import retrofit2.Retrofit;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,9 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultClient;
 import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
-import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultRetrofit;
 
 /**
  * @description:
@@ -91,16 +85,10 @@ public class CludeTest {
     public void proxyChat() {
         String host = "127.0.0.1";
         int port = 7890;
-        ObjectMapper mapper = defaultObjectMapper();
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
-        OkHttpClient httpClient = defaultClient(API_KEY, Duration.ofSeconds(60))
-                .newBuilder()
-                .proxy(proxy)
-                .build();
-        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
-        ClaudeApi api = retrofit.create(ClaudeApi.class);
-        ClaudeClient client = new ClaudeClient(api);
-        
+
+        ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(60), proxy);
+
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
         ChatRequest request = ChatRequest.builder()
@@ -119,10 +107,11 @@ public class CludeTest {
     }
 
     /**
-    * claude version
-    * @param
-    * @return
-    **/
+     * claude version
+     *
+     * @param
+     * @return
+     **/
     @Test
     public void vision() throws IOException {
         String imagePath = "sonatype.jpg";
@@ -131,7 +120,7 @@ public class CludeTest {
 
         // 将图片文件转换为Base64编码
         String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-        
+
         ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(120));
         List<ChatMessage> messages = new ArrayList<>();
 
@@ -140,17 +129,17 @@ public class CludeTest {
         source.setType("base64");
         source.setMediaType("image/jpeg");
         source.setData(base64Image);
-        
+
         content.setType("image");
         content.setSource(source);
         ChatMessageContent content2 = new ChatMessageContent();
         content2.setType("text");
         content2.setText("what is this?");
-        
-        
+
+
         ChatMessage chatMessage = new ChatMessage("user", Arrays.asList(content, content2));
         messages.add(chatMessage);
-        
+
         ChatRequest request = ChatRequest.builder()
                 .model("claude-3-opus-20240229")
                 .messages(messages)

@@ -26,6 +26,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 public class GeminiClient {
 
     private static final String BASE_URL = "https://generativelanguage.googleapis.com";
-    
+
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final ObjectMapper mapper = defaultObjectMapper();
 
@@ -83,6 +84,18 @@ public class GeminiClient {
         this.apiKey = apiKey;
         this.api = api;
         this.executorService = null;
+    }
+
+    public GeminiClient(String apiKey, final Duration timeout, Proxy proxy) {
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.apiKey = apiKey;
+        this.api = retrofit.create(GeminiApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
     }
 
     public static ObjectMapper defaultObjectMapper() {

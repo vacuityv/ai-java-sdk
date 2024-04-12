@@ -28,6 +28,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +79,17 @@ public class ClaudeClient {
     public ClaudeClient(ClaudeApi api) {
         this.api = api;
         this.executorService = null;
+    }
+
+    public ClaudeClient(final String token, final Duration timeout, Proxy proxy) {
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(token, timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.api = retrofit.create(ClaudeApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
     }
 
     public static ObjectMapper defaultObjectMapper() {

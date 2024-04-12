@@ -34,7 +34,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.6.2</version>       
+    <version>1.6.3</version>       
 </dependency>
 ```
 
@@ -149,15 +149,9 @@ ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(100), "https:
 public void proxyChat() {
     String host = "127.0.0.1";
     int port = 7890;
-    ObjectMapper mapper = defaultObjectMapper();
     Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
-    OkHttpClient httpClient = defaultClient(API_KEY, Duration.ofSeconds(60))
-            .newBuilder()
-            .proxy(proxy)
-            .build();
-    Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
-    ClaudeApi api = retrofit.create(ClaudeApi.class);
-    ClaudeClient client = new ClaudeClient(api);
+
+    ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(60), proxy);
 
     List<ChatMessage> messages = new ArrayList<>();
     messages.add(new ChatMessage("user", "introduce yourself pls"));
@@ -169,7 +163,7 @@ public void proxyChat() {
     try {
         ChatResponse response = client.chat(request);
         System.out.println(response.getContent().get(0).getText());
-    } catch (VacException e) {
+    } catch (VacSdkException e) {
         if (e.getDetail() != null) {
             System.out.println(e.getDetail().getError().getMessage());
         }

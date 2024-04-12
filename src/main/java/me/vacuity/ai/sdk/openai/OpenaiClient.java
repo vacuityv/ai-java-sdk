@@ -65,6 +65,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -118,6 +119,17 @@ public class OpenaiClient {
     public OpenaiClient(OpenaiApi api) {
         this.api = api;
         this.executorService = null;
+    }
+
+    public OpenaiClient(final String token, final Duration timeout, Proxy proxy) {
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(token, timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.api = retrofit.create(OpenaiApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
     }
 
     public static ObjectMapper defaultObjectMapper() {
