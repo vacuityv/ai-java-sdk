@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import me.vacuity.ai.sdk.claude.api.ClaudeApi;
 import me.vacuity.ai.sdk.openai.api.OpenaiApi;
 import me.vacuity.ai.sdk.openai.assistant.constant.AssistantStreamEventsConstant;
 import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
@@ -52,12 +53,17 @@ import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.StreamChatResponse;
+import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
+import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.Route;
 import retrofit2.Call;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
@@ -126,6 +132,39 @@ public class OpenaiClient {
         OkHttpClient httpClient = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.api = retrofit.create(OpenaiApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
+    }
+
+    public OpenaiClient(final String token, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
+        Authenticator proxyAuthenticator = new Authenticator() {
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+                String credential = Credentials.basic(proxyUsername, proxyPassword);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            }
+        };
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(token, timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.api = retrofit.create(OpenaiApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
+    }
+
+    public OpenaiClient(final String token, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(token, timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
                 .build();
         Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
         this.api = retrofit.create(OpenaiApi.class);

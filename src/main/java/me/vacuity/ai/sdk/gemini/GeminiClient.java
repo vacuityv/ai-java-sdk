@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import me.vacuity.ai.sdk.claude.api.ClaudeApi;
 import me.vacuity.ai.sdk.gemini.Interceptor.GeminiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ResponseBodyCallback;
@@ -16,9 +17,14 @@ import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
+import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.Route;
 import retrofit2.Call;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
@@ -91,6 +97,41 @@ public class GeminiClient {
         OkHttpClient httpClient = defaultClient(timeout)
                 .newBuilder()
                 .proxy(proxy)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.apiKey = apiKey;
+        this.api = retrofit.create(GeminiApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
+    }
+
+    public GeminiClient(String apiKey, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
+        Authenticator proxyAuthenticator = new Authenticator() {
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+                String credential = Credentials.basic(proxyUsername, proxyPassword);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            }
+        };
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.apiKey = apiKey;
+        this.api = retrofit.create(GeminiApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
+    }
+
+    public GeminiClient(String apiKey, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
                 .build();
         Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
         this.apiKey = apiKey;

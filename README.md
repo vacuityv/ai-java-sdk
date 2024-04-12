@@ -35,7 +35,7 @@
 <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.6.3</version>       
+    <version>1.6.4</version>       
 </dependency>
 ```
 

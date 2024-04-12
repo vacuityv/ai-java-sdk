@@ -18,9 +18,14 @@ import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
+import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.Route;
 import retrofit2.Call;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
@@ -91,6 +96,40 @@ public class ClaudeClient {
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = httpClient.dispatcher().executorService();
     }
+    public ClaudeClient(final String token, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
+        Authenticator proxyAuthenticator = new Authenticator() {
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+                String credential = Credentials.basic(proxyUsername, proxyPassword);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            }
+        };
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(token, timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.api = retrofit.create(ClaudeApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
+    }
+
+    public ClaudeClient(final String token, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
+        ObjectMapper mapper = defaultObjectMapper();
+        OkHttpClient httpClient = defaultClient(token, timeout)
+                .newBuilder()
+                .proxy(proxy)
+                .proxyAuthenticator(proxyAuthenticator)
+                .build();
+        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        this.api = retrofit.create(ClaudeApi.class);
+        this.executorService = httpClient.dispatcher().executorService();
+    }
+    
+    
 
     public static ObjectMapper defaultObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
