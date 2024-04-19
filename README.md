@@ -5,7 +5,7 @@
 
 > 欢迎体验个人对接的各大厂商AI的交互网站：[AI-CHAT 交互网站](https://chat.vacuity.me/)
 
-为使用各大AI厂商提供的API创建的java sdk，目前支持Google Gemini 和 Claude AI 以及 openai 的 chat、file 和 assistant 部分功能。
+为使用各大AI厂商提供的API创建的java sdk，目前支持Google Gemini 和 Claude AI 以及 openai 的 chat、file 和 assistant (v2) 部分功能。
 
 
 ## 支持的 Claude api
@@ -35,7 +35,7 @@
 <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.6.4</version>       
+    <version>1.7.0</version>       
 </dependency>
 ```
 
