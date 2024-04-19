@@ -21,7 +21,7 @@ import java.util.List;
 public class AssistantMessageDelta {
 
     private String id;
-    
+
     private String object;
 
     private Delta delta;
@@ -30,7 +30,7 @@ public class AssistantMessageDelta {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Delta{
+    public static class Delta {
 
         private String role;
 

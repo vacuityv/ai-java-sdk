@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.TruncationStrategy;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 
 import java.util.List;
@@ -26,15 +27,38 @@ public class RunRequest {
     private String assistantId;
 
     private String model;
-    
+
     private String instructions;
-    
+
     @JsonProperty("additional_instructions")
     private String additionalInstructions;
-    
+
+    @JsonProperty("additional_messages")
+    private List<AssistantMessageRequest> additionalMessages;
+
     private List<ChatTool> tools;
-    
+
     private Map<String, Object> metadata;
 
     private Boolean stream;
+
+    private Float temperature;
+
+    @JsonProperty("top_p")
+    private Double topP;
+
+    @JsonProperty("response_format")
+    private Object responseFormat;
+
+    @JsonProperty("max_prompt_tokens")
+    private Integer maxPromptTokens;
+
+    @JsonProperty("max_completion_tokens")
+    private Integer maxCompletionTokens;
+
+    @JsonProperty("truncation_strategy")
+    private TruncationStrategy truncationStrategy;
+
+    @JsonProperty("tool_choice")
+    private Object toolChoice;
 }

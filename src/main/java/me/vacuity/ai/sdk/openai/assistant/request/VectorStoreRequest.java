@@ -3,7 +3,7 @@ package me.vacuity.ai.sdk.openai.assistant.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
-import me.vacuity.ai.sdk.openai.assistant.entity.inner.ToolResources;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.ExpiresAfter;
 
 import java.util.List;
 import java.util.Map;
@@ -11,18 +11,21 @@ import java.util.Map;
 /**
  * @description:
  * @author: vacuity
- * @create: 2024-03-19 18:24
+ * @create: 2024-04-19 14:42
  **/
 
 
 @Data
 @Builder
-public class ThreadRequest {
+public class VectorStoreRequest {
 
-    private List<AssistantMessageRequest> messages;
+    @JsonProperty("file_ids")
+    private List<String> fileIds;
 
-    @JsonProperty("tool_resources")
-    private ToolResources toolResources;
+    private String name;
+
+    @JsonProperty("expires_after")
+    private ExpiresAfter expiresAfter;
 
     private Map<String, Object> metadata;
 }

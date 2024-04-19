@@ -30,10 +30,10 @@ public class AssistantMessageContent {
     @Data
     @Builder
     public static class FileObject {
-        
+
         @JsonProperty("file_id")
         private String fileId;
-        
+
     }
 
 

@@ -21,13 +21,13 @@ import java.util.Map;
 public class RunTooCall {
 
     private String id;
-    
+
     private String type;
-    
+
     @JsonProperty("code_interpreter")
     private RunCodeInterpreter codeInterpreter;
 
     private Map<String, Object> retrieval;
-    
+
     private RunFunction function;
 }

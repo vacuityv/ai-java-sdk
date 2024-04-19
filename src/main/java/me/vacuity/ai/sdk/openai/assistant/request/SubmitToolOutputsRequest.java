@@ -20,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubmitToolOutputsRequest {
-    
+
     @JsonProperty("tool_outputs")
     private List<ToolOutput> toolOutputs;
 
@@ -32,10 +32,10 @@ public class SubmitToolOutputsRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ToolOutput {
-        
+
         @JsonProperty("tool_call_id")
         private String toolCallId;
-        
+
         private String output;
     }
 }

@@ -36,12 +36,12 @@ public class RunStep {
 
     @JsonProperty("assistant_id")
     private String assistantId;
-    
+
     @JsonProperty("run_id")
     private String runId;
 
     private String type;
-    
+
     private String status;
 
     @JsonProperty("step_details")

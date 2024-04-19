@@ -6,17 +6,15 @@ import lombok.Data;
 /**
  * @description:
  * @author: vacuity
- * @create: 2024-03-20 10:09
+ * @create: 2024-04-19 14:44
  **/
 
 
 @Data
 @Builder
-public class RunFunction {
+public class ExpiresAfter {
 
-    private String name;
+    private String anchor;
 
-    private String arguments;
-
-    private String output;
+    private Integer days;
 }

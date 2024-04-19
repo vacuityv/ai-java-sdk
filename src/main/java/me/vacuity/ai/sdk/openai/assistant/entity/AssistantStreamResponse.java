@@ -20,20 +20,20 @@ import me.vacuity.ai.sdk.openai.error.ChatResponseError;
 public class AssistantStreamResponse {
 
     private String event;
-    
+
     private Class dataClass;
 
     private Thread thread;
 
     private Run run;
-    
+
     private RunStep runStep;
-    
+
     private RunStepDelta runStepDelta;
-    
+
     private AssistantMessage message;
-    
+
     private AssistantMessageDelta messageDelta;
-    
+
     private ChatResponseError.ChatResponseErrorDetails error;
 }

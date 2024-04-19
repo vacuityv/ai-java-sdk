@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.TruncationStrategy;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
@@ -64,12 +65,29 @@ public class Run {
 
     private List<ChatTool> tools;
 
-    @JsonProperty("file_ids")
-    private List<String> fileIds;
-
     private Map<String, Object> metadata;
 
     private ChatResponse.Usage usage;
+
+    private Float temperature;
+
+    @JsonProperty("top_p")
+    private Double topP;
+
+    @JsonProperty("max_prompt_tokens")
+    private Integer maxPromptTokens;
+
+    @JsonProperty("max_completion_tokens")
+    private Integer maxCompletionTokens;
+
+    @JsonProperty("truncation_strategy")
+    private TruncationStrategy truncationStrategy;
+
+    @JsonProperty("tool_choice")
+    private Object toolChoice;
+
+    @JsonProperty("response_format")
+    private Object responseFormat;
 
 
     @Data

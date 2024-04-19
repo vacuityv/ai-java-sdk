@@ -24,11 +24,11 @@ public class ThreadAndRunRequest {
 
     @JsonProperty("assistant_id")
     private String assistantId;
-    
+
     private ThreadRequest thread;
 
     private String model;
-    
+
     private String instructions;
 
     private List<ChatTool> tools;

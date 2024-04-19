@@ -13,6 +13,7 @@ import me.vacuity.ai.sdk.openai.assistant.entity.AssistantStreamResponse;
 import me.vacuity.ai.sdk.openai.assistant.entity.Run;
 import me.vacuity.ai.sdk.openai.assistant.entity.RunStep;
 import me.vacuity.ai.sdk.openai.assistant.entity.Thread;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.ToolResources;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantMessageRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.RunRequest;
@@ -64,7 +65,7 @@ public class OpenaiAssistantTest {
                 .function(functionExecutor.getFunctions().get(0))
                 .build();
         ChatTool tool2 = ChatTool.builder()
-                .type(ChatToolConstant.TOOL_TYPE_RETRIEVAL)
+                .type(ChatToolConstant.TOOL_TYPE_FILE_SEARCH)
                 .build();
         ChatTool tool3 = ChatTool.builder()
                 .type(ChatToolConstant.TOOL_TYPE_CODE_INTERPRETER)
@@ -72,19 +73,36 @@ public class OpenaiAssistantTest {
 
         String fileId = "file-cyXRLxSuPQI65qRoEDVy3tK7";
         List<String> fileIds = Arrays.asList(fileId);
+        ToolResources.CodeInterpreterResources codeInterpreterResources = ToolResources.CodeInterpreterResources.builder()
+                .file_ids(fileIds)
+                .build();
+        ToolResources.VectorStoresResources vectorStoresResources = ToolResources.VectorStoresResources.builder()
+                .file_ids(fileIds)
+                .build();
+        ToolResources.FileSearchResources fileSearchResources = ToolResources.FileSearchResources.builder()
+//                .vectorStoreIds(Arrays.asList("vs_FPyAMjMGtpr2ZsQBPWPe9iSP"))
+                .vectorStores(Arrays.asList(vectorStoresResources))
+                .build();
+        
+        ToolResources toolResources = ToolResources.builder()
+                .codeInterpreter(codeInterpreterResources)
+                .fileSearch(fileSearchResources)
+                .build();
+        
+        
         AssistantRequest request = AssistantRequest.builder()
                 .model("gpt-4-turbo-preview")
                 .name("test-create")
                 .description("stock assistant")
                 .instructions("you are a stock assistant")
-//                .fileIds(fileIds)
+                .toolResources(toolResources)
                 .tools(Arrays.asList(tool1, tool2, tool3))
                 .build();
         System.out.println(mapper.writeValueAsString(request));
         Assistant assistant = client.createAssistant(request);
         assertNotNull(assistant);
         System.out.println(assistant);
-        // asst_A9CTTa6OTUOe9qpOBmZIipPS
+        // asst_KCIxFVn3sQpMWzynxeDDxfTj
     }
 
     @Test
@@ -94,12 +112,12 @@ public class OpenaiAssistantTest {
         Thread thread = client.createThread(request);
         assertNotNull(thread);
         System.out.println(thread);
-        // thread_JoX7Ou3KIRz9Nernxl5dKUWx
+        // thread_klV1abmzYseojhUJ5yNdUM9H
     }
 
     @Test
     public void createMessage() {
-        String threadId = "thread_JoX7Ou3KIRz9Nernxl5dKUWx";
+        String threadId = "thread_klV1abmzYseojhUJ5yNdUM9H";
         AssistantMessageRequest request = AssistantMessageRequest.builder()
                 .role("user")
                 .content("introduce yourself")
@@ -112,31 +130,31 @@ public class OpenaiAssistantTest {
 
     @Test
     public void createRun() {
-        String assistantId = "asst_A9CTTa6OTUOe9qpOBmZIipPS";
-        String threadId = "thread_JoX7Ou3KIRz9Nernxl5dKUWx";
+        String assistantId = "asst_KCIxFVn3sQpMWzynxeDDxfTj";
+        String threadId = "thread_klV1abmzYseojhUJ5yNdUM9H";
         RunRequest request = RunRequest.builder()
                 .assistantId(assistantId)
                 .build();
         Run run = client.createRun(threadId, request);
         assertNotNull(run);
         System.out.println(run);
-        // run_R1cwe8cotNHU098VA9Ozw5At
+        // run_DOYBh4f8IsoaUrdBkt1vkVgJ
     }
 
     @Test
     public void retrieveRun() {
-        String threadId = "thread_JoX7Ou3KIRz9Nernxl5dKUWx";
-        String runId = "run_R1cwe8cotNHU098VA9Ozw5At";
+        String threadId = "thread_klV1abmzYseojhUJ5yNdUM9H";
+        String runId = "run_DOYBh4f8IsoaUrdBkt1vkVgJ";
         Run run = client.retrieveRun(threadId, runId);
         assertNotNull(run);
         System.out.println(run);
-        // run_R1cwe8cotNHU098VA9Ozw5At
+        // run_DOYBh4f8IsoaUrdBkt1vkVgJ
     }
 
     @Test
     public void listRunSteps() {
-        String threadId = "thread_JoX7Ou3KIRz9Nernxl5dKUWx";
-        String runId = "run_R1cwe8cotNHU098VA9Ozw5At";
+        String threadId = "thread_klV1abmzYseojhUJ5yNdUM9H";
+        String runId = "run_DOYBh4f8IsoaUrdBkt1vkVgJ";
         List<RunStep> runSteps = client.listRunSteps(threadId, runId, null);
         assertNotNull(runSteps);
         System.out.println(runSteps);
@@ -144,8 +162,8 @@ public class OpenaiAssistantTest {
 
     @Test
     public void retrieveMessage() {
-        String threadId = "thread_JoX7Ou3KIRz9Nernxl5dKUWx";
-        String messageId = "msg_1gIbHuECqvAGmQbDShqX1V4a";
+        String threadId = "thread_klV1abmzYseojhUJ5yNdUM9H";
+        String messageId = "msg_sNv2XAgjAR7iCH2T6S3TB9fw";
         AssistantMessage message = client.retrieveMessage(threadId, messageId);
         assertNotNull(message);
         System.out.println(message);
@@ -165,7 +183,7 @@ public class OpenaiAssistantTest {
                 .function(functionExecutor.getFunctions().get(0))
                 .build();
         ChatTool tool2 = ChatTool.builder()
-                .type(ChatToolConstant.TOOL_TYPE_RETRIEVAL)
+                .type(ChatToolConstant.TOOL_TYPE_FILE_SEARCH)
                 .build();
         ChatTool tool3 = ChatTool.builder()
                 .type(ChatToolConstant.TOOL_TYPE_CODE_INTERPRETER)

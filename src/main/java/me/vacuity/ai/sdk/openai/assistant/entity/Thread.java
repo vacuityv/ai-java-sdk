@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.openai.assistant.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.ToolResources;
 
 import java.util.Map;
 
@@ -23,6 +24,9 @@ public class Thread {
 
     @JsonProperty("created_at")
     private Integer createdAt;
+
+    @JsonProperty("tool_resources")
+    private ToolResources toolResources;
 
     private Map<String, Object> metadata;
 }

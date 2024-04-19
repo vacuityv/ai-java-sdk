@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.openai.assistant.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.Attachment;
 
 import java.util.List;
 import java.util.Map;
@@ -18,17 +19,17 @@ import java.util.Map;
 public class AssistantMessage {
 
     private String id;
-    
+
     private String object;
-    
+
     @JsonProperty("created_at")
     private Integer createdAt;
-    
+
     @JsonProperty("thread_id")
     private String threadId;
-    
+
     private String status;
-    
+
     @JsonProperty("incomplete_details")
     private IncompleteDetails incompleteDetails;
 
@@ -41,15 +42,14 @@ public class AssistantMessage {
     private String role;
 
     private List<AssistantMessageContent> content;
-    
+
     @JsonProperty("assistant_id")
     private String assistantId;
 
     @JsonProperty("run_id")
     private String runId;
 
-    @JsonProperty("file_ids")
-    private List<String> fileIds;
+    private List<Attachment> attachments;
 
     private Map<String, Object> metadata;
 

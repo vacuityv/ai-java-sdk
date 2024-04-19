@@ -14,8 +14,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssistantSSE {
-    
+
     private String event;
-    
+
     private String data;
 }

@@ -9,14 +9,11 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import me.vacuity.ai.sdk.claude.api.ClaudeApi;
 import me.vacuity.ai.sdk.openai.api.OpenaiApi;
 import me.vacuity.ai.sdk.openai.assistant.constant.AssistantStreamEventsConstant;
 import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
-import me.vacuity.ai.sdk.openai.assistant.entity.AssistantFile;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessage;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessageDelta;
-import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessageFile;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantResponseBodyCallback;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantSSE;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantStreamResponse;
@@ -24,15 +21,21 @@ import me.vacuity.ai.sdk.openai.assistant.entity.Run;
 import me.vacuity.ai.sdk.openai.assistant.entity.RunStep;
 import me.vacuity.ai.sdk.openai.assistant.entity.RunStepDelta;
 import me.vacuity.ai.sdk.openai.assistant.entity.Thread;
-import me.vacuity.ai.sdk.openai.assistant.request.AssistantFileRequest;
+import me.vacuity.ai.sdk.openai.assistant.entity.VectorStore;
+import me.vacuity.ai.sdk.openai.assistant.entity.VectorStoreFile;
+import me.vacuity.ai.sdk.openai.assistant.entity.VectorStoreFileBatch;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantMessageRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ModifyAssistantMessageRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ModifyAssistantRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.ModifyVectorStoreRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.RunRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.SubmitToolOutputsRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ThreadAndRunRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileBatchRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreRequest;
 import me.vacuity.ai.sdk.openai.entity.ChatFunction;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCallMixIn;
@@ -351,28 +354,15 @@ public class OpenaiClient {
         return execute(api.createAssistant(request));
     }
 
-    public AssistantFile createAssistantFile(String assistantId, AssistantFileRequest fileRequest) {
-        return execute(api.createAssistantFile(assistantId, fileRequest));
-    }
-
     public List<Assistant> listAssistants(ListRequest request) {
         Map<String, Object> queryParameters = mapper.convertValue(request, new TypeReference<Map<String, Object>>() {
         });
         return execute(api.listAssistants(queryParameters)).data;
     }
 
-    public List<AssistantFile> listAssistantFiles(String assistantId, ListRequest request) {
-        Map<String, Object> queryParameters = mapper.convertValue(request, new TypeReference<Map<String, Object>>() {
-        });
-        return execute(api.listAssistantFiles(assistantId, queryParameters)).data;
-    }
 
     public Assistant retrieveAssistant(String assistantId) {
         return execute(api.retrieveAssistant(assistantId));
-    }
-
-    public AssistantFile retrieveAssistantFile(String assistantId, String fileId) {
-        return execute(api.retrieveAssistantFile(assistantId, fileId));
     }
 
     public Assistant modifyAssistant(String assistantId, ModifyAssistantRequest request) {
@@ -413,18 +403,8 @@ public class OpenaiClient {
         return execute(api.listMessages(threadId, queryParameters)).data;
     }
 
-    public List<AssistantMessageFile> listMessageFiles(String threadId, String messageId, ListRequest params) {
-        Map<String, Object> queryParameters = mapper.convertValue(params, new TypeReference<Map<String, Object>>() {
-        });
-        return execute(api.listMessageFiles(threadId, messageId, queryParameters)).data;
-    }
-
     public AssistantMessage retrieveMessage(String threadId, String messageId) {
         return execute(api.retrieveMessage(threadId, messageId));
-    }
-
-    public AssistantMessageFile retrieveMessageFile(String threadId, String messageId, String fileId) {
-        return execute(api.retrieveMessageFile(threadId, messageId, fileId));
     }
 
     public AssistantMessage modifyMessage(String threadId, String messageId, ModifyAssistantMessageRequest request) {
@@ -560,6 +540,63 @@ public class OpenaiClient {
             builder.addFormDataPart("user", request.getUser());
         }
         return execute(api.imageVariation(builder.build())).data;
+    }
+
+
+    public VectorStore createVectorStore(VectorStoreRequest request) {
+        return execute(api.createVectorStore(request));
+    }
+
+    public List<VectorStore> listVectorStores(ListRequest request) {
+        Map<String, Object> queryParameters = mapper.convertValue(request, new TypeReference<Map<String, Object>>() {
+        });
+        return execute(api.listVectorStores(queryParameters)).data;
+    }
+
+
+    public VectorStore retrieveVectorStore(String vectorStoreId) {
+        return execute(api.retrieveVectorStore(vectorStoreId));
+    }
+
+    public VectorStore modifyAssistant(String vectorStoreId, ModifyVectorStoreRequest request) {
+        return execute(api.modifyVectorStore(vectorStoreId, request));
+    }
+
+    public DeleteStatus deleteVectorStore(String vectorStoreId) {
+        return execute(api.deleteVectorStore(vectorStoreId));
+    }
+
+    public VectorStoreFile createVectorStoreFile(String vectorStoreId, VectorStoreFileRequest request) {
+        return execute(api.createVectorStoreFile(vectorStoreId, request));
+    }
+
+    public List<VectorStoreFile> listVectorStoreFiles(String vectorStoreId, ListRequest request) {
+        Map<String, Object> queryParameters = mapper.convertValue(request, new TypeReference<Map<String, Object>>() {
+        });
+        return execute(api.listVectorStoreFiles(vectorStoreId, queryParameters)).data;
+    }
+
+    public DeleteStatus deleteVectorStoreFile(String vectorStoreId, String fileId) {
+        return execute(api.deleteVectorStoreFile(vectorStoreId, fileId));
+    }
+
+
+    public VectorStoreFileBatch createVectorStoreFileBatch(String vectorStoreId, VectorStoreFileBatchRequest request) {
+        return execute(api.createVectorStoreFileBatch(vectorStoreId, request));
+    }
+
+    public VectorStoreFileBatch retrieveVectorStoreFileBatch(String vectorStoreId, String batchId) {
+        return execute(api.retrieveVectorStoreFileBatch(vectorStoreId, batchId));
+    }
+
+    public VectorStoreFileBatch cancelVectorStoreFileBatch(String vectorStoreId, String batchId) {
+        return execute(api.cancelVectorStoreFileBatch(vectorStoreId, batchId));
+    }
+
+    public List<VectorStoreFile> listVectorStoreFileInBatch(String vectorStoreId, String batchId, ListRequest request) {
+        Map<String, Object> queryParameters = mapper.convertValue(request, new TypeReference<Map<String, Object>>() {
+        });
+        return execute(api.listVectorStoreFileInBatch(vectorStoreId, batchId, queryParameters)).data;
     }
 
 }

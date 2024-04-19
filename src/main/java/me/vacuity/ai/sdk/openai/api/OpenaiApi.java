@@ -2,21 +2,25 @@ package me.vacuity.ai.sdk.openai.api;
 
 import io.reactivex.Single;
 import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
-import me.vacuity.ai.sdk.openai.assistant.entity.AssistantFile;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessage;
-import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessageFile;
 import me.vacuity.ai.sdk.openai.assistant.entity.Run;
 import me.vacuity.ai.sdk.openai.assistant.entity.RunStep;
 import me.vacuity.ai.sdk.openai.assistant.entity.Thread;
-import me.vacuity.ai.sdk.openai.assistant.request.AssistantFileRequest;
+import me.vacuity.ai.sdk.openai.assistant.entity.VectorStore;
+import me.vacuity.ai.sdk.openai.assistant.entity.VectorStoreFile;
+import me.vacuity.ai.sdk.openai.assistant.entity.VectorStoreFileBatch;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantMessageRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.AssistantRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ModifyAssistantMessageRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ModifyAssistantRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.ModifyVectorStoreRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.RunRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.SubmitToolOutputsRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ThreadAndRunRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileBatchRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileRequest;
+import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreRequest;
 import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
@@ -81,134 +85,112 @@ public interface OpenaiApi {
     Single<ResponseBody> retrieveFileContent(@Path("file_id") String fileId);
 
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @POST("/v1/assistants")
     Single<Assistant> createAssistant(@Body AssistantRequest request);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
-    @POST("/v1/assistants/{assistant_id}/files")
-    Single<AssistantFile> createAssistantFile(@Path("assistant_id") String assistantId, @Body AssistantFileRequest fileRequest);
-
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @GET("/v1/assistants")
     Single<ListResponse<Assistant>> listAssistants(@QueryMap Map<String, Object> filterRequest);
 
-
-    @Headers({"OpenAI-Beta: assistants=v1"})
-    @GET("/v1/assistants/{assistant_id}/files")
-    Single<ListResponse<AssistantFile>> listAssistantFiles(@Path("assistant_id") String assistantId, @QueryMap Map<String, Object> filterRequest);
-
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @GET("/v1/assistants/{assistant_id}")
     Single<Assistant> retrieveAssistant(@Path("assistant_id") String assistantId);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
-    @GET("/v1/assistants/{assistant_id}/files/{file_id}")
-    Single<AssistantFile> retrieveAssistantFile(@Path("assistant_id") String assistantId, @Path("file_id") String fileId);
-
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @POST("/v1/assistants/{assistant_id}")
     Single<Assistant> modifyAssistant(@Path("assistant_id") String assistantId, @Body ModifyAssistantRequest request);
 
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @DELETE("/v1/assistants/{assistant_id}")
     Single<DeleteStatus> deleteAssistant(@Path("assistant_id") String assistantId);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @DELETE("/v1/assistants/{assistant_id}/files/{file_id}")
     Single<DeleteStatus> deleteAssistantFile(@Path("assistant_id") String assistantId, @Path("file_id") String fileId);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @POST("/v1/threads")
     Single<Thread> createThread(@Body ThreadRequest request);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @GET("/v1/threads/{thread_id}")
     Single<Thread> retrieveThread(@Path("thread_id") String threadId);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @POST("/v1/threads/{thread_id}")
     Single<Thread> modifyThread(@Path("thread_id") String threadId, @Body ThreadRequest request);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @DELETE("/v1/threads/{thread_id}")
     Single<DeleteStatus> deleteThread(@Path("thread_id") String threadId);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @POST("/v1/threads/{thread_id}/messages")
     Single<AssistantMessage> createMessage(@Path("thread_id") String threadId, @Body AssistantMessageRequest request);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @GET("/v1/threads/{thread_id}/messages")
     Single<ListResponse<AssistantMessage>> listMessages(@Path("thread_id") String threadId, @QueryMap Map<String, Object> listRequest);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
-    @GET("/v1/threads/{thread_id}/messages/{message_id}/files")
-    Single<ListResponse<AssistantMessageFile>> listMessageFiles(@Path("thread_id") String threadId, @Path("message_id") String messageId, @QueryMap Map<String, Object> listRequest);
-
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @GET("/v1/threads/{thread_id}/messages/{message_id}")
     Single<AssistantMessage> retrieveMessage(@Path("thread_id") String threadId, @Path("message_id") String messageId);
 
-    @Headers({"OpenAI-Beta: assistants=v1"})
-    @GET("/v1/threads/{thread_id}/messages/{message_id}/files/{file_id}")
-    Single<AssistantMessageFile> retrieveMessageFile(@Path("thread_id") String threadId, @Path("message_id") String messageId, @Path("file_id") String fileId);
-
-
-    @Headers({"OpenAI-Beta: assistants=v1"})
+    @Headers({"OpenAI-Beta: assistants=v2"})
     @POST("/v1/threads/{thread_id}/messages/{message_id}")
     Single<AssistantMessage> modifyMessage(@Path("thread_id") String threadId, @Path("message_id") String messageId, @Body ModifyAssistantMessageRequest request);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/{thread_id}/runs")
     Single<Run> createRun(@Path("thread_id") String threadId, @Body RunRequest runRequest);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/runs")
     Single<Run> createThreadAndRun(@Body ThreadAndRunRequest threadAndRunRequest);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @GET("/v1/threads/{thread_id}/runs")
     Single<ListResponse<Run>> listRuns(@Path("thread_id") String threadId, @QueryMap Map<String, String> listRequest);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @GET("/v1/threads/{thread_id}/runs/{run_id}/steps")
     Single<ListResponse<RunStep>> listRunSteps(@Path("thread_id") String threadId, @Path("run_id") String runId, @QueryMap Map<String, Object> listRequest);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @GET("/v1/threads/{thread_id}/runs/{run_id}")
     Single<Run> retrieveRun(@Path("thread_id") String threadId, @Path("run_id") String runId);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @GET("/v1/threads/{thread_id}/runs/{run_id}/steps/{step_id}")
     Single<RunStep> retrieveRunStep(@Path("thread_id") String threadId, @Path("run_id") String runId, @Path("step_id") String stepId);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/{thread_id}/runs/{run_id}")
     Single<Run> modifyRun(@Path("thread_id") String threadId, @Path("run_id") String runId, @Body Map<String, Object> metadata);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/{thread_id}/runs/{run_id}/submit_tool_outputs")
     Single<Run> submitToolOutputs(@Path("thread_id") String threadId, @Path("run_id") String runId, @Body SubmitToolOutputsRequest submitToolOutputsRequest);
 
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/{thread_id}/runs/{run_id}/cancel")
     Single<Run> cancelRun(@Path("thread_id") String threadId, @Path("run_id") String runId);
 
 
     @Streaming
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/{thread_id}/runs")
     Call<ResponseBody> streamCreateRun(@Path("thread_id") String threadId, @Body RunRequest runRequest);
 
     @Streaming
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/runs")
     Call<ResponseBody> streamCreateThreadAndRun(@Body ThreadAndRunRequest threadAndRunRequest);
 
     @Streaming
-    @Headers("OpenAI-Beta: assistants=v1")
+    @Headers("OpenAI-Beta: assistants=v2")
     @POST("/v1/threads/{thread_id}/runs/{run_id}/submit_tool_outputs")
     Call<ResponseBody> streamSubmitToolOutputs(@Path("thread_id") String threadId, @Path("run_id") String runId, @Body SubmitToolOutputsRequest submitToolOutputsRequest);
 
@@ -220,5 +202,58 @@ public interface OpenaiApi {
 
     @POST("/v1/images/variations")
     Single<ListResponse<Image>> imageVariation(@Body RequestBody requestBody);
+
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @POST("/v1/vector_stores")
+    Single<VectorStore> createVectorStore(@Body VectorStoreRequest request);
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @GET("/v1/vector_stores")
+    Single<ListResponse<VectorStore>> listVectorStores(@QueryMap Map<String, Object> listRequest);
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @GET("/v1/vector_stores/{vector_store_id}")
+    Single<VectorStore> retrieveVectorStore(@Path("vector_store_id") String vectorStoreId);
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @POST("/v1/vector_stores/{vector_store_id}")
+    Single<VectorStore> modifyVectorStore(@Path("vector_store_id") String vectorStoreId, @Body ModifyVectorStoreRequest request);
+
+    @Headers({"OpenAI-Beta: assistants=v2"})
+    @DELETE("/v1/vector_stores/{vector_store_id}")
+    Single<DeleteStatus> deleteVectorStore(@Path("vector_store_id") String vectorStoreId);
+
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @POST("/v1/vector_stores/{vector_store_id}/files")
+    Single<VectorStoreFile> createVectorStoreFile(@Path("vector_store_id") String vectorStoreId, @Body VectorStoreFileRequest request);
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @GET("/v1/vector_stores/{vector_store_id}/files")
+    Single<ListResponse<VectorStoreFile>> listVectorStoreFiles(@Path("vector_store_id") String vectorStoreId, @QueryMap Map<String, Object> listRequest);
+
+    @Headers({"OpenAI-Beta: assistants=v2"})
+    @DELETE("/v1/vector_stores/{vector_store_id}/files/{file_id}")
+    Single<DeleteStatus> deleteVectorStoreFile(@Path("vector_store_id") String vectorStoreId, @Path("file_id") String fileId);
+
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @POST("/v1/vector_stores/{vector_store_id}/file_batches")
+    Single<VectorStoreFileBatch> createVectorStoreFileBatch(@Path("vector_store_id") String vectorStoreId, @Body VectorStoreFileBatchRequest request);
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @GET("/v1/vector_stores/{vector_store_id}/file_batches/{batch_id}")
+    Single<VectorStoreFileBatch> retrieveVectorStoreFileBatch(@Path("vector_store_id") String vectorStoreId, @Path("batch_id") String batchId);
+
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @POST("/v1/vector_stores/{vector_store_id}/file_batches/{batch_id}/cancel")
+    Single<VectorStoreFileBatch> cancelVectorStoreFileBatch(@Path("vector_store_id") String vectorStoreId, @Path("batch_id") String batchId);
+
+    @Headers("OpenAI-Beta: assistants=v2")
+    @GET("/v1/vector_stores/{vector_store_id}/file_batches/{batch_id}/files")
+    Single<ListResponse<VectorStoreFile>> listVectorStoreFileInBatch(@Path("vector_store_id") String vectorStoreId, @Path("batch_id") String batchId, @QueryMap Map<String, Object> listRequest);
+
 }
 

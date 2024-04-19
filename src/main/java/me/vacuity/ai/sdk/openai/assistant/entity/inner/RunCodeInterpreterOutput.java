@@ -17,10 +17,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RunCodeInterpreterOutput {
-    
+
     private String type;
-    
+
     private String logs;
-    
+
     private RunImage image;
 }

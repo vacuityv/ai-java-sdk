@@ -1,8 +1,8 @@
 package me.vacuity.ai.sdk.openai.assistant.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.Attachment;
 
 import java.util.List;
 import java.util.Map;
@@ -19,11 +19,12 @@ import java.util.Map;
 public class AssistantMessageRequest {
 
     private String role;
-    
+
     private String content;
-    
-    @JsonProperty("file_ids")
-    private List<String> fileIds;
+
+    private List<Attachment> attachments;
 
     private Map<String, Object> metadata;
+
+
 }
