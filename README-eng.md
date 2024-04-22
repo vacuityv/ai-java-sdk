@@ -34,9 +34,10 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.7.0</version>       
+    <version>${version}</version>       
 </dependency>
 ```
+You can get the version here：[Maven Central](https://central.sonatype.com/artifact/me.vacuity.ai.sdk/ai-java-sdk)
 
 ## Usage
 

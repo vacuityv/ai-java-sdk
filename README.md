@@ -35,9 +35,10 @@
 <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.7.0</version>       
+    <version>${version}</version>       
 </dependency>
 ```
+在这里可以查看最新的版本号：[Maven Central](https://central.sonatype.com/artifact/me.vacuity.ai.sdk/ai-java-sdk)
 
 ## 使用
 
