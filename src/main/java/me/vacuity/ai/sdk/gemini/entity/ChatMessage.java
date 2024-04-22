@@ -1,5 +1,7 @@
 package me.vacuity.ai.sdk.gemini.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.Arrays;
@@ -13,6 +15,8 @@ import java.util.List;
 
 
 @Data
+@Builder
+@AllArgsConstructor
 public class ChatMessage {
 
     private String role;
@@ -25,5 +29,4 @@ public class ChatMessage {
         List<ChatMessageContent> parts = Arrays.asList(chatMessageContent);
         this.parts = parts;
     }
-
 }

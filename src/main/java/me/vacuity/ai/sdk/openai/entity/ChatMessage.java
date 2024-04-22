@@ -31,9 +31,6 @@ public class ChatMessage {
     private List<ChatFunctionCall> toolCalls;
 
 
-    public ChatMessage() {
-    }
-
     public ChatMessage(String role, String content) {
         this.role = role;
         this.content = content;
