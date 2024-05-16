@@ -34,7 +34,7 @@ public class ToolResources {
     public static class CodeInterpreterResources {
 
         @JsonProperty("file_ids")
-        private List<String> file_ids;
+        private List<String> fileIds;
     }
 
     @Data
@@ -57,7 +57,7 @@ public class ToolResources {
     public static class VectorStoresResources {
 
         @JsonProperty("file_ids")
-        private List<String> file_ids;
+        private List<String> fileIds;
 
         private Map<String, Object> metadata;
     }

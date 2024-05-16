@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.openai.assistant.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import me.vacuity.ai.sdk.openai.assistant.entity.inner.ToolResources;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 
 import java.util.List;
@@ -29,8 +30,16 @@ public class ModifyAssistantRequest {
 
     private List<ChatTool> tools;
 
-    @JsonProperty("file_ids")
-    private List<String> fileIds;
+    @JsonProperty("tool_resources")
+    private ToolResources toolResources;
 
     private Map<String, Object> metadata;
+
+    private Float temperature;
+
+    @JsonProperty("top_p")
+    private Double topP;
+
+    @JsonProperty("response_format")
+    private Object responseFormat;
 }

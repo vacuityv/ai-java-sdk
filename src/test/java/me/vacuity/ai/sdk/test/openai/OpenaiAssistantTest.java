@@ -74,10 +74,8 @@ public class OpenaiAssistantTest {
         String fileId = "file-cyXRLxSuPQI65qRoEDVy3tK7";
         List<String> fileIds = Arrays.asList(fileId);
         ToolResources.CodeInterpreterResources codeInterpreterResources = ToolResources.CodeInterpreterResources.builder()
-                .file_ids(fileIds)
                 .build();
         ToolResources.VectorStoresResources vectorStoresResources = ToolResources.VectorStoresResources.builder()
-                .file_ids(fileIds)
                 .build();
         ToolResources.FileSearchResources fileSearchResources = ToolResources.FileSearchResources.builder()
 //                .vectorStoreIds(Arrays.asList("vs_FPyAMjMGtpr2ZsQBPWPe9iSP"))
