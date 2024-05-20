@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
+import me.vacuity.ai.sdk.openai.entity.StreamOptions;
 
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,9 @@ public class ChatRequest {
 
     private Boolean stream;
 
+    @JsonProperty("stream_options")
+    private StreamOptions streamOptions;
+
     private Float temperature;
 
     @JsonProperty("top_p")
@@ -61,4 +65,6 @@ public class ChatRequest {
     
     @JsonProperty("tool_choice")
     private Object toolChoice;
+
+    private String user;
 }

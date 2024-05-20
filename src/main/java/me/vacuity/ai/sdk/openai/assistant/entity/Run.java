@@ -7,6 +7,7 @@ import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.TruncationStrategy;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
+import me.vacuity.ai.sdk.openai.entity.Usage;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 
 import java.util.List;
@@ -67,7 +68,7 @@ public class Run {
 
     private Map<String, Object> metadata;
 
-    private ChatResponse.Usage usage;
+    private Usage usage;
 
     private Float temperature;
 

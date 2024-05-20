@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.RunStepDetails;
+import me.vacuity.ai.sdk.openai.entity.Usage;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 
 import java.util.Map;
@@ -64,5 +65,5 @@ public class RunStep {
 
     private Map<String, Object> metadata;
 
-    private ChatResponse.Usage usage;
+    private Usage usage;
 }

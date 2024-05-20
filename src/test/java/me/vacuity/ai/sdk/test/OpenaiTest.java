@@ -13,6 +13,7 @@ import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.entity.Model;
+import me.vacuity.ai.sdk.openai.entity.StreamOptions;
 import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
@@ -152,7 +153,7 @@ public class OpenaiTest {
 
         OpenaiClient client = new OpenaiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "what's the stock of AAPL on October 8, 2023"));
+        messages.add(new ChatMessage("user", "你好"));
         ChatRequest request = ChatRequest.builder()
                 .model("gpt-3.5-turbo")
                 .messages(messages)
@@ -272,5 +273,44 @@ public class OpenaiTest {
                 System.out.println("err:" + e.getDetail().getError().getMessage());
             }
         }
+    }
+
+    @Test
+    public void stream() {
+
+        OpenaiClient client = new OpenaiClient(API_KEY);
+
+        
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "hello"));
+
+        StreamOptions options = StreamOptions.builder()
+                .includeUsage(true)
+                .build();
+        ChatRequest request = ChatRequest.builder()
+                .model("gpt-4o")
+                .messages(messages)
+                .temperature(1f)
+                .presencePenalty(0.1f)
+                .streamOptions(options)
+                .build();
+        try {
+            Flowable<StreamChatResponse> response = client.streamChat(request);
+            response.doOnNext(s -> {
+                if (s != null) {
+                    if (s.getUsage() != null) {
+                        System.out.println("============");
+                        System.out.println(s.getUsage());
+                    }
+                    System.out.print(s.getSingleContent());
+                }
+
+            }).blockingSubscribe();
+        } catch (VacSdkException e) {
+            if (e.getDetail() != null) {
+                System.out.println("err:" + e.getDetail().getError().getMessage());
+            }
+        }
+
     }
 }

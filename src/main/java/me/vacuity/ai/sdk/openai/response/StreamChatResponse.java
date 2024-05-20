@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import me.vacuity.ai.sdk.openai.entity.Usage;
 
 import java.util.List;
 
@@ -33,6 +34,8 @@ public class StreamChatResponse {
     private String systemFingerprint;
 
     private String object;
+
+    private Usage usage;
 
     public String getSingleContent() {
         if (this == null || this.getChoices().size() == 0

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import me.vacuity.ai.sdk.openai.entity.Usage;
 
 import java.util.List;
 
@@ -35,22 +36,7 @@ public class ChatResponse {
     private String object;
 
     private Usage usage;
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Usage {
-
-        @JsonProperty("completion_tokens")
-        private Integer completionTokens;
-
-        @JsonProperty("prompt_tokens")
-        private Integer promptTokens;
-
-        @JsonProperty("total_tokens")
-        private Integer totalTokens;
-    }
+    
 
     public String getSingleContent() {
         if (this == null || this.getChoices().size() == 0 || this.getChoices().get(0).getMessage() == null) {
