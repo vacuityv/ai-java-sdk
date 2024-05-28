@@ -34,7 +34,7 @@ import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
  * @create: 2024-03-06 11:14
  **/
 
-public class CludeTest {
+public class ClaudeTest {
 
     public static final String API_KEY = "sk-*****";
 

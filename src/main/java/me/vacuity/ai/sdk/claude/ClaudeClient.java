@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.claude;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
@@ -135,7 +136,7 @@ public class ClaudeClient {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         mapper.addMixIn(ChatFunction.class, ChatFunctionMixIn.class);
         return mapper;
     }
