@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
-import me.vacuity.ai.sdk.openai.entity.ChatMessageContent;
 
 import java.util.List;
 

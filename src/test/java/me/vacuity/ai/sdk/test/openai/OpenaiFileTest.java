@@ -4,7 +4,6 @@ import me.vacuity.ai.sdk.openai.OpenaiClient;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;

@@ -5,11 +5,7 @@ import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
-import retrofit2.http.Body;
-import retrofit2.http.POST;
-import retrofit2.http.Path;
-import retrofit2.http.Query;
-import retrofit2.http.Streaming;
+import retrofit2.http.*;
 
 public interface GeminiApi {
 

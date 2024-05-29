@@ -9,12 +9,7 @@ import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class FunctionExecutor {
 

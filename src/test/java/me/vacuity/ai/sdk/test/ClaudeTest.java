@@ -19,12 +19,7 @@ import java.net.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
 
@@ -34,7 +29,7 @@ import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
  * @create: 2024-03-06 11:14
  **/
 
-public class CludeTest {
+public class ClaudeTest {
 
     public static final String API_KEY = "sk-*****";
 

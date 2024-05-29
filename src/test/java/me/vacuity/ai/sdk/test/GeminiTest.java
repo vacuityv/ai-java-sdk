@@ -19,9 +19,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultClient;
-import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultObjectMapper;
-import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
+import static me.vacuity.ai.sdk.gemini.GeminiClient.*;
 
 /**
  * @description:

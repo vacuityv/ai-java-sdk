@@ -1,7 +1,6 @@
 package me.vacuity.ai.sdk.openai.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jdk.nashorn.internal.objects.annotations.Property;
 import lombok.Builder;
 import lombok.Data;
 

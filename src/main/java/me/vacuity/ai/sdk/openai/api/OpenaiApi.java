@@ -1,26 +1,9 @@
 package me.vacuity.ai.sdk.openai.api;
 
 import io.reactivex.Single;
-import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
-import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessage;
-import me.vacuity.ai.sdk.openai.assistant.entity.Run;
-import me.vacuity.ai.sdk.openai.assistant.entity.RunStep;
 import me.vacuity.ai.sdk.openai.assistant.entity.Thread;
-import me.vacuity.ai.sdk.openai.assistant.entity.VectorStore;
-import me.vacuity.ai.sdk.openai.assistant.entity.VectorStoreFile;
-import me.vacuity.ai.sdk.openai.assistant.entity.VectorStoreFileBatch;
-import me.vacuity.ai.sdk.openai.assistant.request.AssistantMessageRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.AssistantRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.ModifyAssistantMessageRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.ModifyAssistantRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.ModifyVectorStoreRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.RunRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.SubmitToolOutputsRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.ThreadAndRunRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileBatchRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileRequest;
-import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreRequest;
+import me.vacuity.ai.sdk.openai.assistant.entity.*;
+import me.vacuity.ai.sdk.openai.assistant.request.*;
 import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
@@ -33,17 +16,7 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
-import retrofit2.http.Body;
-import retrofit2.http.DELETE;
-import retrofit2.http.GET;
-import retrofit2.http.Headers;
-import retrofit2.http.Multipart;
-import retrofit2.http.POST;
-import retrofit2.http.Part;
-import retrofit2.http.Path;
-import retrofit2.http.Query;
-import retrofit2.http.QueryMap;
-import retrofit2.http.Streaming;
+import retrofit2.http.*;
 
 import java.util.Map;
 

@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
-import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 
 /**
  * @description:
