@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
@@ -142,14 +142,11 @@ public class OpenaiClient {
     }
 
     public OpenaiClient(final String token, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
-        Authenticator proxyAuthenticator = new Authenticator() {
-            @Override
-            public Request authenticate(Route route, Response response) throws IOException {
-                String credential = Credentials.basic(proxyUsername, proxyPassword);
-                return response.request().newBuilder()
-                        .header("Proxy-Authorization", credential)
-                        .build();
-            }
+        Authenticator proxyAuthenticator = (route, response) -> {
+            String credential = Credentials.basic(proxyUsername, proxyPassword);
+            return response.request().newBuilder()
+                    .header("Proxy-Authorization", credential)
+                    .build();
         };
         ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
@@ -178,9 +175,8 @@ public class OpenaiClient {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         mapper.addMixIn(ChatFunction.class, ChatFunctionMixIn.class);
-//        mapper.addMixIn(ChatRequest.class, ChatRequestMixIn.class);
         mapper.addMixIn(ChatFunctionCall.class, ChatFunctionCallMixIn.class);
         return mapper;
     }
@@ -312,7 +308,7 @@ public class OpenaiClient {
     }
 
 
-    public ChatResponse chat(ChatRequest request) throws JsonProcessingException {
+    public ChatResponse chat(ChatRequest request) {
         request.setStream(false);
         return execute(api.chat(request));
     }

@@ -3,11 +3,10 @@ package me.vacuity.ai.sdk.gemini;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import me.vacuity.ai.sdk.claude.api.ClaudeApi;
 import me.vacuity.ai.sdk.gemini.Interceptor.GeminiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ResponseBodyCallback;
@@ -21,10 +20,7 @@ import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.Route;
 import retrofit2.Call;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
@@ -105,14 +101,11 @@ public class GeminiClient {
     }
 
     public GeminiClient(String apiKey, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
-        Authenticator proxyAuthenticator = new Authenticator() {
-            @Override
-            public Request authenticate(Route route, Response response) throws IOException {
-                String credential = Credentials.basic(proxyUsername, proxyPassword);
-                return response.request().newBuilder()
-                        .header("Proxy-Authorization", credential)
-                        .build();
-            }
+        Authenticator proxyAuthenticator = (route, response) -> {
+            String credential = Credentials.basic(proxyUsername, proxyPassword);
+            return response.request().newBuilder()
+                    .header("Proxy-Authorization", credential)
+                    .build();
         };
         ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(timeout)
@@ -143,7 +136,7 @@ public class GeminiClient {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         return mapper;
     }
 
@@ -166,38 +159,6 @@ public class GeminiClient {
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
-
-
-//    public Flowable<ChatMessageAccumulator> mapStreamToAccumulator(Flowable<ChatCompletionChunk> flowable) {
-//        ChatFunctionCall functionCall = new ChatFunctionCall(null, null);
-//        ChatMessage accumulatedMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), null);
-//
-//        return flowable.map(chunk -> {
-//            ChatMessage messageChunk = chunk.getChoices().get(0).getMessage();
-//            if (messageChunk.getFunctionCall() != null) {
-//                if (messageChunk.getFunctionCall().getName() != null) {
-//                    String namePart = messageChunk.getFunctionCall().getName();
-//                    functionCall.setName((functionCall.getName() == null ? "" : functionCall.getName()) + namePart);
-//                }
-//                if (messageChunk.getFunctionCall().getArguments() != null) {
-//                    String argumentsPart = messageChunk.getFunctionCall().getArguments() == null ? "" : messageChunk.getFunctionCall().getArguments().asText();
-//                    functionCall.setArguments(new TextNode((functionCall.getArguments() == null ? "" : functionCall.getArguments().asText()) + argumentsPart));
-//                }
-//                accumulatedMessage.setFunctionCall(functionCall);
-//            } else {
-//                accumulatedMessage.setContent((accumulatedMessage.getContent() == null ? "" : accumulatedMessage.getContent()) + (messageChunk.getContent() == null ? "" : messageChunk.getContent()));
-//            }
-//
-//            if (chunk.getChoices().get(0).getFinishReason() != null) { // last
-//                if (functionCall.getArguments() != null) {
-//                    functionCall.setArguments(mapper.readTree(functionCall.getArguments().asText()));
-//                    accumulatedMessage.setFunctionCall(functionCall);
-//                }
-//            }
-//
-//            return new ChatMessageAccumulator(messageChunk, accumulatedMessage);
-//        });
-//    }
 
     public static <T> T execute(Single<T> apiCall) {
         try {

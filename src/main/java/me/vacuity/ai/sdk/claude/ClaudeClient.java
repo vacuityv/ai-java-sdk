@@ -22,10 +22,7 @@ import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.Route;
 import retrofit2.Call;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
@@ -96,15 +93,13 @@ public class ClaudeClient {
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = httpClient.dispatcher().executorService();
     }
+
     public ClaudeClient(final String token, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
-        Authenticator proxyAuthenticator = new Authenticator() {
-            @Override
-            public Request authenticate(Route route, Response response) throws IOException {
-                String credential = Credentials.basic(proxyUsername, proxyPassword);
-                return response.request().newBuilder()
-                        .header("Proxy-Authorization", credential)
-                        .build();
-            }
+        Authenticator proxyAuthenticator = (route, response) -> {
+            String credential = Credentials.basic(proxyUsername, proxyPassword);
+            return response.request().newBuilder()
+                    .header("Proxy-Authorization", credential)
+                    .build();
         };
         ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
@@ -128,8 +123,7 @@ public class ClaudeClient {
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = httpClient.dispatcher().executorService();
     }
-    
-    
+
 
     public static ObjectMapper defaultObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -179,16 +173,6 @@ public class ClaudeClient {
         }
     }
 
-
-    public ChatResponse chat(ChatRequest request) {
-        return execute(api.chat(request));
-    }
-
-    public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
-        request.setStream(true);
-        return stream(api.streamChat(request), StreamChatResponse.class);
-    }
-
     public static <T> Flowable<T> stream(Call<ResponseBody> apiCall, Class<T> cl) {
         return stream(apiCall).map(sse -> {
             if (sse.getData() == null || "".equals(sse.getData())) {
@@ -205,6 +189,15 @@ public class ClaudeClient {
 
     public static Flowable<SSE> stream(Call<ResponseBody> apiCall, boolean emitDone) {
         return Flowable.create(emitter -> apiCall.enqueue(new ResponseBodyCallback(emitter, emitDone)), BackpressureStrategy.BUFFER);
+    }
+
+    public ChatResponse chat(ChatRequest request) {
+        return execute(api.chat(request));
+    }
+
+    public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
+        request.setStream(true);
+        return stream(api.streamChat(request), StreamChatResponse.class);
     }
 
 }

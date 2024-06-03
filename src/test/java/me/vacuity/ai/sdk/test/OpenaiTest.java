@@ -131,8 +131,6 @@ public class OpenaiTest {
             if (e.getDetail() != null) {
                 System.out.println("err:" + e.getDetail().getError().getMessage());
             }
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
         }
     }
 
