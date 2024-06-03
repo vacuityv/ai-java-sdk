@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.RunStepDetails;
 import me.vacuity.ai.sdk.openai.entity.Usage;
-import me.vacuity.ai.sdk.openai.response.ChatResponse;
 
 import java.util.Map;
 

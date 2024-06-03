@@ -6,19 +6,19 @@ package me.vacuity.ai.sdk.gemini.entity;
 public class SSE {
     private static final String DONE_DATA = "[DONE]";
     private static final String DONE_EVENT = "message_stop";
-    
+
     private final String data;
 
-    public SSE(String data){
+    public SSE(String data) {
         this.data = data;
     }
 
-    public String getData(){
+    public String getData() {
         return this.data;
     }
 
 
-    public byte[] toBytes(){
+    public byte[] toBytes() {
         return String.format("data: %s\n\n", this.data).getBytes();
     }
 

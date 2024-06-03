@@ -79,7 +79,7 @@ public class ClaudeTest {
             } else if (ResponseTypeConstant.ERROR.equals(s.getType())) {
                 System.out.println(s.getError().getMessage());
             }
-            
+
             // get input token
             if (s.getMessage() != null) {
                 System.out.println(s.getMessage().getUsage());
@@ -90,7 +90,7 @@ public class ClaudeTest {
                 System.out.println(s.getType());
                 System.out.println(s.getUsage());
             }
-            
+
         }).blockingSubscribe();
     }
 

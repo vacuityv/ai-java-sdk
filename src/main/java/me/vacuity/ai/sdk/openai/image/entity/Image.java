@@ -19,7 +19,7 @@ public class Image {
     private String b64Json;
 
     private String url;
-    
+
     @JsonProperty("revised_prompt")
     private String revisedPrompt;
 }

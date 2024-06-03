@@ -1,18 +1,19 @@
-
 [[中文]](https://github.com/vacuityv/ai-java-sdk/tree/develop) [[English]](https://github.com/vacuityv/ai-java-sdk/blob/develop/README-eng.md)
 
 # AI-Java-Sdk
 
 > 欢迎体验个人对接的各大厂商AI的交互网站：[AI-CHAT 交互网站](https://chat.vacuity.me/)
 
-为使用各大AI厂商提供的API创建的java sdk，目前支持Google Gemini 和 Claude AI 以及 openai 的 chat、file 和 assistant (v2) 部分功能。
-
+为使用各大AI厂商提供的API创建的java sdk，目前支持Google Gemini 和 Claude AI 以及 openai 的 chat、file 和 assistant (v2)
+部分功能。
 
 ## 支持的 Claude api
+
 - [对话 (含vision，支持function)](https://docs.anthropic.com/claude/reference/messages_post)
 - [流式对话 (含vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## 支持的 Google Gemini
+
 - [对话 (含vision)](https://ai.google.dev/tutorials/rest_quickstart)
 - [流式对话 (含vision)](https://ai.google.dev/tutorials/rest_quickstart)
 
@@ -26,11 +27,10 @@
 - [Assistant (含stream)](https://platform.openai.com/docs/api-reference/assistants)
 - [Image](https://platform.openai.com/docs/api-reference/images)
 
-
-
 ## Importing
 
 ### Maven
+
 ```xml
 <dependency>
     <groupId>me.vacuity.ai.sdk</groupId>
@@ -38,6 +38,7 @@
     <version>${version}</version>       
 </dependency>
 ```
+
 在这里可以查看最新的版本号：[Maven Central](https://central.sonatype.com/artifact/me.vacuity.ai.sdk/ai-java-sdk)
 
 ## 使用
@@ -45,6 +46,7 @@
 普通对话：
 
 ```java
+
 @Test
 public void chat() {
     ClaudeClient client = new ClaudeClient(API_KEY);
@@ -69,6 +71,7 @@ public void chat() {
 流式对话：
 
 ```java
+
 @Test
 public void streamChat() {
     ClaudeClient client = new ClaudeClient(API_KEY);
@@ -94,6 +97,7 @@ public void streamChat() {
 openAI vision：
 
 ```java
+
 @Test
 public void vision() throws IOException {
     String imagePath = "222.jpg";
@@ -136,17 +140,16 @@ public void vision() throws IOException {
 }
 ```
 
-
 ### 自定义地址和超时时间
 
 ```java
 ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(100), "https://example.com");
 ```
 
-
 ### 使用http代理
 
 ```java
+
 @Test
 @Test
 public void proxyChat() {
@@ -173,18 +176,23 @@ public void proxyChat() {
     }
 }
 ```
+
 ## 其他
 
 你可以在 CludeTest 和 GeminiTest 以及 OpenaiTest/OpenaiAssistantTest 查看代码示例
 
 ## FAQ
+
 ### 支持什么模型
+
 目前支持Claude ai 和 Google Gemini 以及 Openai 的部分模型
 
 ### openai 还有很多其他功能，这个sdk不支持吗
+
 openai 目前在github上都有对应的sdk支持（比如：https://github.com/TheoKanning/openai-java ），所以不是紧急的需求，也许会在未来支持
 
 ## License
+
 Published under the MIT License
 
 ## 如果您有余力，欢迎贡献代码 or Money

@@ -3,7 +3,6 @@ package me.vacuity.ai.sdk.gemini;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
@@ -46,11 +45,9 @@ public class GeminiClient {
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final ObjectMapper mapper = defaultObjectMapper();
-
-    private String apiKey;
-
     private final GeminiApi api;
     private final ExecutorService executorService;
+    private String apiKey;
 
     public GeminiClient(final String apiKey) {
         ObjectMapper mapper = defaultObjectMapper();
@@ -178,15 +175,6 @@ public class GeminiClient {
         }
     }
 
-
-    public ChatResponse chat(ChatRequest request) {
-        return execute(api.chat(request.getModel(), this.apiKey, request));
-    }
-
-    public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
-        return stream(api.streamChat(request.getModel(), this.apiKey, request), StreamChatResponse.class);
-    }
-
     public static <T> Flowable<T> stream(Call<ResponseBody> apiCall, Class<T> cl) {
         return stream(apiCall).map(sse -> {
             if (sse.getData() == null || "".equals(sse.getData())) {
@@ -203,6 +191,14 @@ public class GeminiClient {
 
     public static Flowable<SSE> stream(Call<ResponseBody> apiCall, boolean emitDone) {
         return Flowable.create(emitter -> apiCall.enqueue(new ResponseBodyCallback(emitter, emitDone)), BackpressureStrategy.BUFFER);
+    }
+
+    public ChatResponse chat(ChatRequest request) {
+        return execute(api.chat(request.getModel(), this.apiKey, request));
+    }
+
+    public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
+        return stream(api.streamChat(request.getModel(), this.apiKey, request), StreamChatResponse.class);
     }
 
 }

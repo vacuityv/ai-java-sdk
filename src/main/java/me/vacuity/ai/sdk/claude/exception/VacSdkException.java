@@ -18,9 +18,9 @@ public class VacSdkException extends RuntimeException implements Serializable {
     private String code;
 
     private String msg;
-    
+
     private ChatResponseError detail;
-    
+
     public VacSdkException(String code, String msg) {
         super(msg);
         this.code = code;

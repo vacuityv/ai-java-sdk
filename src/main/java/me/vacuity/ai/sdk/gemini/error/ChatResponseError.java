@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 /**
  * @description:
  * @author: vacuity
@@ -16,19 +14,19 @@ import java.util.List;
 
 @Data
 public class ChatResponseError {
-    
+
     private ChatResponseErrorDetail error;
-    
+
     @Data
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class ChatResponseErrorDetail{
-        
+    public static class ChatResponseErrorDetail {
+
         private String code;
-        
+
         private String message;
-        
+
         private String status;
     }
 }

@@ -18,12 +18,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageContent {
-    
+
     private String text;
 
     @JsonProperty("inline_data")
     private InlineData inlineData;
-    
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -32,7 +32,7 @@ public class ChatMessageContent {
 
         @JsonProperty("mime_type")
         private String mimeType;
-        
+
         private String data;
     }
 }

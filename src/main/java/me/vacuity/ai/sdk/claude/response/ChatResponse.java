@@ -7,10 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.claude.entity.Usage;
-import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @description:
@@ -26,9 +24,9 @@ import java.util.Map;
 public class ChatResponse {
 
     private String id;
-    
+
     private String type;
-    
+
     private String role;
 
     private List<ChatMessageContent> content;

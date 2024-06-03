@@ -66,7 +66,7 @@ public class GeminiTest {
         try {
             Flowable<StreamChatResponse> response = client.streamChat(request);
             response.doOnNext(s -> {
-                
+
                 if (s.getUsageMetadata() == null) {
                     System.out.println(s.getText());
                 } else {

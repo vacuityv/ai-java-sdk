@@ -16,11 +16,10 @@ import java.util.Map;
 import java.util.Optional;
 
 public class FunctionExecutor {
-    
-    public static final String FUNCTION_ROLE = "tool";
 
-    private ObjectMapper MAPPER = new ObjectMapper();
+    public static final String FUNCTION_ROLE = "tool";
     private final Map<String, ChatFunction> FUNCTIONS = new HashMap<>();
+    private ObjectMapper MAPPER = new ObjectMapper();
 
     public FunctionExecutor(List<ChatFunction> functions) {
         setFunctions(functions);

@@ -2,21 +2,26 @@
 
 # AI-Java-Sdk
 
-> Welcome to experience the interactive website connecting individuals with major AI vendors: [AI-CHAT](https://chat.vacuity.me/)
+> Welcome to experience the interactive website connecting individuals with major AI
+> vendors: [AI-CHAT](https://chat.vacuity.me/)
 
-This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and Google gemini and part of OpenAI.
+This is a Java SDK created for utilizing APIs provided by various AI companies. Currently, it supports Claude AI and
+Google gemini and part of OpenAI.
 
 ## Supported Claude APIs
+
 - [Chat (include vision, support function)](https://docs.anthropic.com/claude/reference/messages_post)
 - [Streaming Chat (include vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## Supported Google Gemini
+
 - [Chat (include vision)](https://ai.google.dev/tutorials/rest_quickstart)
 - [Streaming Chat (include vision)](https://ai.google.dev/tutorials/rest_quickstart)
 
 ## Supported openAI
 
-> Support function calls, please refer to OpenaiTest (a large part of the function implementation is based on https://github.com/TheoKanning/openai-java).
+> Support function calls, please refer to OpenaiTest (a large part of the function implementation is based
+> on https://github.com/TheoKanning/openai-java).
 
 - [Chat (include vision)](https://platform.openai.com/docs/api-reference/chat/create)
 - [Streaming Chat (include vision)](https://platform.openai.com/docs/api-reference/chat/streaming)
@@ -24,12 +29,10 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
 - [Assistant (include stream)](https://platform.openai.com/docs/api-reference/assistants)
 - [Image](https://platform.openai.com/docs/api-reference/images)
 
-
-
-
 ## Importing
 
 ### Maven
+
 ```xml
 <dependency>
     <groupId>me.vacuity.me.ai.sdk</groupId>
@@ -37,6 +40,7 @@ This is a Java SDK created for utilizing APIs provided by various AI companies. 
     <version>${version}</version>       
 </dependency>
 ```
+
 You can get the version here：[Maven Central](https://central.sonatype.com/artifact/me.vacuity.ai.sdk/ai-java-sdk)
 
 ## Usage
@@ -44,6 +48,7 @@ You can get the version here：[Maven Central](https://central.sonatype.com/arti
 For regular chat:
 
 ```java
+
 @Test
 public void chat() {
     ClaudeClient client = new ClaudeClient(API_KEY);
@@ -68,31 +73,33 @@ public void chat() {
 For streaming chat:
 
 ```java
+
 @Test
-    public void streamChat() {
-        ClaudeClient client = new ClaudeClient(API_KEY);
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "Why did Lu Xun hit Zhou Shuren"));
-        ChatRequest request = ChatRequest.builder()
-                .model("claude-3-opus-20240229")
-                .messages(messages)
-                .maxTokens(1024)
-                .build();
-        Flowable<StreamChatResponse> response = client.streamChat(request);
-        response.doOnNext(s -> {
-            if ("content_block_delta".equals(s.getType())) {
-                ChatMessageContent content = s.getDelta();
-                System.out.print(content.getText());
-            } else if ("error".equals(s.getType())) {
-                System.out.println(s.getError().getMessage());
-            }
-        }).blockingSubscribe();
-    }
+public void streamChat() {
+    ClaudeClient client = new ClaudeClient(API_KEY);
+    List<ChatMessage> messages = new ArrayList<>();
+    messages.add(new ChatMessage("user", "Why did Lu Xun hit Zhou Shuren"));
+    ChatRequest request = ChatRequest.builder()
+            .model("claude-3-opus-20240229")
+            .messages(messages)
+            .maxTokens(1024)
+            .build();
+    Flowable<StreamChatResponse> response = client.streamChat(request);
+    response.doOnNext(s -> {
+        if ("content_block_delta".equals(s.getType())) {
+            ChatMessageContent content = s.getDelta();
+            System.out.print(content.getText());
+        } else if ("error".equals(s.getType())) {
+            System.out.println(s.getError().getMessage());
+        }
+    }).blockingSubscribe();
+}
 ```
 
 openAI vision：
 
 ```java
+
 @Test
 public void vision() throws IOException {
     String imagePath = "222.jpg";
@@ -135,17 +142,16 @@ public void vision() throws IOException {
 }
 ```
 
-
 ### Customizing the URL and Timeout
 
 ```java
 ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(100), "https://example.com");
 ```
 
-
 ### Using an HTTP Proxy
 
 ```java
+
 @Test
 public void proxyChat() {
     String host = "127.0.0.1";
@@ -171,16 +177,22 @@ public void proxyChat() {
     }
 }
 ```
+
 ## Additional Information
 
 You can view code examples in CludeTest and GeminiTest and OpenaiTest/OpenaiAssistantTest.
 
 ## FAQ
+
 ### What models are supported?
+
 Currently, all models of Claude AI and part of gemini and openai are supported.
 
 ### Are there many other functions of OpenAI that this SDK does not support?
-OpenAI currently has corresponding SDK support on GitHub (such as: https://github.com/TheoKanning/openai-java), so it is not an urgent need, perhaps it will be supported in the future.
+
+OpenAI currently has corresponding SDK support on GitHub (such as: https://github.com/TheoKanning/openai-java), so it is
+not an urgent need, perhaps it will be supported in the future.
 
 ## License
+
 Published under the MIT License

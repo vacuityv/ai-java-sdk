@@ -54,30 +54,6 @@ public class OpenaiTest {
 
     ObjectMapper mapper = defaultObjectMapper();
 
-    public static class Stock {
-        @JsonPropertyDescription("the code of the stock, for example: AAPL, GOOGL")
-        public String code;
-
-        @JsonPropertyDescription("the date of the stock, for example: 20240101")
-        @JsonProperty(required = true)
-        public String date;
-    }
-
-    public static class StockResponse {
-        public String date;
-
-        public String code;
-
-        public Integer value;
-
-        public StockResponse(String date, String code, Integer value) {
-            this.date = date;
-            this.code = code;
-            this.value = value;
-        }
-    }
-
-
     @Test
     public void chat() throws JsonProcessingException {
 
@@ -278,7 +254,7 @@ public class OpenaiTest {
 
         OpenaiClient client = new OpenaiClient(API_KEY);
 
-        
+
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "hello"));
 
@@ -310,5 +286,28 @@ public class OpenaiTest {
             }
         }
 
+    }
+
+    public static class Stock {
+        @JsonPropertyDescription("the code of the stock, for example: AAPL, GOOGL")
+        public String code;
+
+        @JsonPropertyDescription("the date of the stock, for example: 20240101")
+        @JsonProperty(required = true)
+        public String date;
+    }
+
+    public static class StockResponse {
+        public String date;
+
+        public String code;
+
+        public Integer value;
+
+        public StockResponse(String date, String code, Integer value) {
+            this.date = date;
+            this.code = code;
+            this.value = value;
+        }
     }
 }

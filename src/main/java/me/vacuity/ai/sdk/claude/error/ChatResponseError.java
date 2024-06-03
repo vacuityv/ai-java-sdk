@@ -13,14 +13,14 @@ import lombok.Data;
 public class ChatResponseError {
 
     private String type;
-    
+
     private ChatResponseErrorDetail error;
-    
+
     @Data
-    public static class ChatResponseErrorDetail{
-        
+    public static class ChatResponseErrorDetail {
+
         private String type;
-        
+
         private String message;
     }
 }

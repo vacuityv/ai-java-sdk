@@ -14,17 +14,17 @@ import lombok.Data;
 @Data
 @Builder
 public class EditImageRequest {
-    
+
     private String prompt;
-    
+
     private String model;
-    
+
     private Integer n;
-    
+
     private String size;
-    
+
     @JsonProperty("response_format")
     private String responseFormat;
-    
+
     private String user;
 }

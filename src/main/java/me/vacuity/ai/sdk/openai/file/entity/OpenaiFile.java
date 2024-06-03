@@ -16,15 +16,15 @@ import lombok.Data;
 public class OpenaiFile {
 
     private String id;
-    
+
     private Integer bytes;
 
     @JsonProperty("created_at")
     private Integer createdAt;
-    
+
     private String filename;
-    
+
     private String object;
-    
+
     private String purpose;
 }

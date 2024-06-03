@@ -20,13 +20,13 @@ import java.util.Map;
 @Data
 @Builder
 public class ChatRequest {
-    
+
     private String model;
-    
+
     private List<ChatMessage> messages;
 
     private String system;
-    
+
     @NonNull
     @JsonProperty("max_tokens")
     private Integer maxTokens;
@@ -45,6 +45,6 @@ public class ChatRequest {
 
     @JsonProperty("top_k")
     private Integer topK;
-    
+
     private List<ChatFunction> tools;
 }

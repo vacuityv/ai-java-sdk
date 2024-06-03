@@ -9,8 +9,8 @@ import lombok.Data;
  **/
 @Data
 public class DeleteStatus {
-    
-    
+
+
     private String id;
 
     private String object;

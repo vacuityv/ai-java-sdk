@@ -36,7 +36,7 @@ public class ChatResponse {
     private String object;
 
     private Usage usage;
-    
+
 
     public String getSingleContent() {
         if (this == null || this.getChoices().size() == 0 || this.getChoices().get(0).getMessage() == null) {

@@ -18,9 +18,9 @@ public class ListRequest {
     private Integer limit;
 
     private OrderBy order;
-    
+
     private String after;
-    
+
     private String before;
 
     public enum OrderBy {

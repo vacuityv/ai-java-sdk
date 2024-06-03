@@ -23,7 +23,7 @@ public class ChatRequest {
     // default model: gemini-pro
     @Builder.Default
     private String model = "gemini-pro";
-    
+
     private List<ChatMessage> contents;
 
     private List<SafetySetting> safetySettings;

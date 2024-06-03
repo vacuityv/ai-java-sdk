@@ -60,9 +60,9 @@ public class ChatRequest {
 
     @JsonProperty("top_p")
     private Double topP;
-    
+
     private List<ChatTool> tools;
-    
+
     @JsonProperty("tool_choice")
     private Object toolChoice;
 

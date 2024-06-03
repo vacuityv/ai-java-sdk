@@ -1,6 +1,5 @@
 package me.vacuity.ai.sdk.claude.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,9 +8,6 @@ import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.claude.entity.ResponseStartMessage;
 import me.vacuity.ai.sdk.claude.entity.Usage;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * @description:
@@ -26,14 +22,14 @@ import java.util.Map;
 @NoArgsConstructor
 public class StreamChatResponse {
 
-    
+
     private String type;
 
     private ResponseStartMessage message;
-    
+
     private ChatMessageContent delta;
 
     private ChatResponseError.ChatResponseErrorDetail error;
-    
+
     private Usage usage;
 }

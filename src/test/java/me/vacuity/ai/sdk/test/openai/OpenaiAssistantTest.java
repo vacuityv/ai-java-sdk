@@ -81,13 +81,13 @@ public class OpenaiAssistantTest {
 //                .vectorStoreIds(Arrays.asList("vs_FPyAMjMGtpr2ZsQBPWPe9iSP"))
                 .vectorStores(Arrays.asList(vectorStoresResources))
                 .build();
-        
+
         ToolResources toolResources = ToolResources.builder()
                 .codeInterpreter(codeInterpreterResources)
                 .fileSearch(fileSearchResources)
                 .build();
-        
-        
+
+
         AssistantRequest request = AssistantRequest.builder()
                 .model("gpt-4-turbo-preview")
                 .name("test-create")
@@ -169,7 +169,7 @@ public class OpenaiAssistantTest {
 
     @Test
     public void streamCreateRun() {
-        
+
         FunctionExecutor functionExecutor = new FunctionExecutor(Collections.singletonList(ChatFunction.builder()
                 .name("get_web_content")
                 .description("Get the direct content of the url address. if return '', the url is not valid.")
@@ -214,7 +214,7 @@ public class OpenaiAssistantTest {
                 .assistantId(assistantId)
                 .build();
 
-        
+
         AtomicReference<String> runId = new AtomicReference<>("");
         Flowable<AssistantStreamResponse> flowable = client.streamCreateRun(thread.getId(), runRequest);
         AtomicBoolean end = new AtomicBoolean(false);
@@ -252,7 +252,7 @@ public class OpenaiAssistantTest {
 
         }).blockingSubscribe();
 
-        
+
     }
 
 

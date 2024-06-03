@@ -18,10 +18,10 @@ public class ImageVariationRequest {
     private String model;
 
     private Integer n;
-    
+
     @JsonProperty("response_format")
     private String responseFormat;
-    
+
     private String size;
 
     private String user;

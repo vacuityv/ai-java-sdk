@@ -32,7 +32,7 @@ public class OpenaiAssistantVectorStoreTest {
 
     ObjectMapper mapper = defaultObjectMapper();
 
-    
+
     // VectorStore
     @Test
     public void createVectorStore() {
@@ -62,7 +62,7 @@ public class OpenaiAssistantVectorStoreTest {
         System.out.println(stores);
     }
 
-    
+
     @Test
     public void retrieveVectorStore() {
         String id = "vs_pLAIKZbmJ9IEGERKHsSOOrpZ";
@@ -96,7 +96,7 @@ public class OpenaiAssistantVectorStoreTest {
         assertNotNull(status);
         System.out.println(status);
     }
-    
+
     // VectorStoreFile
     @Test
     public void createVectorStoreFile() {
@@ -130,7 +130,7 @@ public class OpenaiAssistantVectorStoreTest {
         assertNotNull(entity);
         System.out.println(entity);
     }
-    
+
     // VectorStoreFileBatch
     @Test
     public void createVectorStoreFileBatch() {

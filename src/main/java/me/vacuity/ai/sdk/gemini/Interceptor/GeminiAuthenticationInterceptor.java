@@ -5,13 +5,12 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 import java.io.IOException;
-import java.util.Objects;
 
 /**
  * OkHttp Interceptor that adds an authorization token header
  */
 public class GeminiAuthenticationInterceptor implements Interceptor {
-    
+
     public GeminiAuthenticationInterceptor() {
     }
 

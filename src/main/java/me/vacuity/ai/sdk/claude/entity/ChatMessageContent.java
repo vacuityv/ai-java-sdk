@@ -19,25 +19,25 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageContent {
-    
+
     private String type;
-    
+
     private String text;
-    
+
     private ContentSource source;
 
     @JsonProperty("tool_use_id")
     private String toolUseId;
 
     private String content;
-    
+
     // only in function response
     private String id;
-    
+
     private String name;
 
     private JsonNode input;
-    
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -47,7 +47,7 @@ public class ChatMessageContent {
 
         @JsonProperty("media_type")
         private String mediaType;
-        
+
         private String data;
     }
 }
