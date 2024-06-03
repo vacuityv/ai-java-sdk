@@ -67,7 +67,7 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                     sse = null;
                 } else if (line.startsWith("event:")) {
                     String event = line.substring(7).trim();
-                }else {
+                } else {
                     throw new SSEFormatException("Invalid sse format! " + line);
                 }
             }

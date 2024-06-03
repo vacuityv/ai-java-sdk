@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
+import me.vacuity.ai.sdk.claude.constant.ResponseTypeConstant;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
@@ -61,8 +62,8 @@ public class ClaudeTest {
 
     @Test
     public void streamChat() {
-        ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(100), "https://example.com");
-//        ClaudeClient client = new ClaudeClient(API_KEY);
+//        ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(100), "https://example.com");
+        ClaudeClient client = new ClaudeClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "鲁迅为什么打周树人"));
         ChatRequest request = ChatRequest.builder()
@@ -72,12 +73,24 @@ public class ClaudeTest {
                 .build();
         Flowable<StreamChatResponse> response = client.streamChat(request);
         response.doOnNext(s -> {
-            if ("content_block_delta".equals(s.getType())) {
+            if (ResponseTypeConstant.CONTENT_BLOCK_DELTA.equals(s.getType())) {
                 ChatMessageContent content = s.getDelta();
                 System.out.print(content.getText());
-            } else if ("error".equals(s.getType())) {
+            } else if (ResponseTypeConstant.ERROR.equals(s.getType())) {
                 System.out.println(s.getError().getMessage());
             }
+            
+            // get input token
+            if (s.getMessage() != null) {
+                System.out.println(s.getMessage().getUsage());
+            }
+
+            // get output token
+            if (s.getUsage() != null) {
+                System.out.println(s.getType());
+                System.out.println(s.getUsage());
+            }
+            
         }).blockingSubscribe();
     }
 

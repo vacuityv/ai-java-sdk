@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
+import me.vacuity.ai.sdk.claude.entity.Usage;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 
 import java.util.List;
@@ -40,5 +41,5 @@ public class ChatResponse {
     @JsonProperty("stop_sequence")
     private String stopSequence;
 
-    private Map<String, Object> usage;
+    private Usage usage;
 }
