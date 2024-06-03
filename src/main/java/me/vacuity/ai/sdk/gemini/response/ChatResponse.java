@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
+import me.vacuity.ai.sdk.gemini.entity.Usage;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ public class ChatResponse {
     private List<ChatResponseCandidate> candidates;
 
     private PromptFeedback promptFeedback;
+
+    private Usage usageMetadata;
 
     @Data
     @Builder

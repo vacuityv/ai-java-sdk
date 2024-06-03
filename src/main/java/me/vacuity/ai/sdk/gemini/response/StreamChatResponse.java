@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
+import me.vacuity.ai.sdk.gemini.entity.Usage;
 
 /**
  * @description:
@@ -21,4 +22,6 @@ import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 public class StreamChatResponse {
     
     private String text;
+
+    private Usage usageMetadata;
 }

@@ -36,7 +36,7 @@ public class GeminiTest {
 
     @Test
     public void chat() {
-        GeminiClient client = new GeminiClient("API_KEY");
+        GeminiClient client = new GeminiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
         ChatRequest request = ChatRequest.builder()
@@ -66,7 +66,12 @@ public class GeminiTest {
         try {
             Flowable<StreamChatResponse> response = client.streamChat(request);
             response.doOnNext(s -> {
-                System.out.println(s.getText());
+                
+                if (s.getUsageMetadata() == null) {
+                    System.out.println(s.getText());
+                } else {
+                    System.out.println(s.getUsageMetadata());
+                }
             }).blockingSubscribe();
         } catch (VacSdkException e) {
             if (e.getDetails() != null) {

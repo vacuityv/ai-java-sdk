@@ -16,8 +16,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Callback to parse Server Sent Events (SSE) from raw InputStream and
@@ -61,12 +62,22 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             String line;
             SSE sse = null;
 
+            Map<String, Integer> usage = new HashMap<>();
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
                 if (line.contains("\"text\":")) {
                     sse = new SSE("{" + line + "}");
                     emitter.onNext(sse);
+                } else if (line.contains("promptTokenCount") || line.contains("candidatesTokenCount") || line.contains("totalTokenCount")) {
+                    String key = line.substring(line.indexOf("\"") + 1, line.indexOf("\":"));
+                    Integer value = Integer.parseInt(line.substring(line.indexOf(":") + 1).replace(",", "").trim());
+                    usage.put(key, value);
                 }
+
             }
+            Map<String, Object> useagePar = new HashMap<>();
+            useagePar.put("usageMetadata", usage);
+            sse = new SSE(mapper.writeValueAsString(useagePar));
+            emitter.onNext(sse);
             emitter.onComplete();
         } catch (Throwable t) {
             onFailure(call, t);
