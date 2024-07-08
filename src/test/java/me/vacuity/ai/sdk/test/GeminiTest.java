@@ -5,6 +5,8 @@ import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.gemini.GeminiClient;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
+import me.vacuity.ai.sdk.gemini.enums.HarmBlockThreshold;
+import me.vacuity.ai.sdk.gemini.enums.HarmCategory;
 import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
@@ -39,8 +41,13 @@ public class GeminiTest {
         GeminiClient client = new GeminiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
+
+        List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
+        safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
+        
         ChatRequest request = ChatRequest.builder()
                 .contents(messages)
+                .safetySettings(safetySettings)
                 .build();
         try {
             ChatResponse response = client.chat(request);

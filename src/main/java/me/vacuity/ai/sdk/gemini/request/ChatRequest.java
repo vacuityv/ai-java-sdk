@@ -37,7 +37,6 @@ public class ChatRequest {
     @AllArgsConstructor
     public static class SafetySetting {
 
-        @JsonProperty("mime_type")
         private String category;
 
         private String threshold;
