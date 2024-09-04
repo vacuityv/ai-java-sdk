@@ -29,4 +29,10 @@ public class ChatMessage {
         List<ChatMessageContent> parts = Arrays.asList(chatMessageContent);
         this.parts = parts;
     }
+
+    public ChatMessage(String content) {
+        ChatMessageContent chatMessageContent = ChatMessageContent.builder().text(content).build();
+        List<ChatMessageContent> parts = Arrays.asList(chatMessageContent);
+        this.parts = parts;
+    }
 }

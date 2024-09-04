@@ -29,6 +29,8 @@ public class ChatRequest {
     private List<SafetySetting> safetySettings;
 
     private GenerationConfig generationConfig;
+    
+    private ChatMessage systemInstruction; 
 
 
     @Data

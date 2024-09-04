@@ -115,4 +115,31 @@ public class GeminiTest {
             }
         }
     }
+
+    @Test
+    public void testSystemInstruction() {
+        GeminiClient client = new GeminiClient(API_KEY);
+        ChatMessage systemInstruction = new ChatMessage("You are a assistant named koi, you can help me with my daily work.");
+        
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "what's your name"));
+
+        List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
+        safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
+
+        ChatRequest request = ChatRequest.builder()
+                .model("gemini-1.5-pro")
+                .contents(messages)
+                .safetySettings(safetySettings)
+                .systemInstruction(systemInstruction)
+                .build();
+        try {
+            ChatResponse response = client.chat(request);
+            System.out.println(response);
+        } catch (VacSdkException e) {
+            if (e.getDetails() != null) {
+                System.out.println(e.getDetails().get(0).getError().getMessage());
+            }
+        }
+    }
 }
