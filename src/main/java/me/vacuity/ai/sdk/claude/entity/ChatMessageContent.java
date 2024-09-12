@@ -38,6 +38,9 @@ public class ChatMessageContent {
 
     private JsonNode input;
 
+    @JsonProperty("partial_json")
+    private String partialJson;
+
     @Data
     @Builder
     @NoArgsConstructor

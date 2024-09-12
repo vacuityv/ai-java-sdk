@@ -33,7 +33,7 @@ import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
 public class GeminiTest {
 
-    public static final String API_KEY = "***";
+    public static final String API_KEY = "********";
 
 
     @Test
@@ -119,7 +119,7 @@ public class GeminiTest {
     @Test
     public void testSystemInstruction() {
         GeminiClient client = new GeminiClient(API_KEY);
-        ChatMessage systemInstruction = new ChatMessage("You are a assistant named koi, you can help me with my daily work.");
+        ChatMessage systemInstruction = new ChatMessage("You are a assistant. Your name is KOI, you can help me with my daily work.");
         
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "what's your name"));
@@ -128,7 +128,7 @@ public class GeminiTest {
         safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
 
         ChatRequest request = ChatRequest.builder()
-                .model("gemini-1.5-pro")
+                .model("gemini-1.5-flash")
                 .contents(messages)
                 .safetySettings(safetySettings)
                 .systemInstruction(systemInstruction)

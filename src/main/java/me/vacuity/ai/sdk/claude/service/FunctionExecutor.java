@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
+import me.vacuity.ai.sdk.claude.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 
@@ -31,7 +32,7 @@ public class FunctionExecutor {
         setObjectMapper(objectMapper);
     }
 
-    public Optional<ChatMessage> executeAndConvertToMessageSafely(ChatMessageContent call) {
+    public Optional<ChatMessage> executeAndConvertToMessageSafely(ChatFunctionCall call) {
         try {
             return Optional.ofNullable(executeAndConvertToMessage(call));
         } catch (Exception ignored) {
@@ -39,7 +40,7 @@ public class FunctionExecutor {
         }
     }
 
-    public ChatMessage executeAndConvertToMessageHandlingExceptions(ChatMessageContent call) {
+    public ChatMessage executeAndConvertToMessageHandlingExceptions(ChatFunctionCall call) {
         try {
             return executeAndConvertToMessage(call);
         } catch (Exception exception) {
@@ -57,7 +58,7 @@ public class FunctionExecutor {
         return new ChatMessage("user", Arrays.asList(content));
     }
 
-    public ChatMessage executeAndConvertToMessage(ChatMessageContent call) {
+    public ChatMessage executeAndConvertToMessage(ChatFunctionCall call) {
         ChatMessageContent content = new ChatMessageContent();
         content.setType("tool_result");
         content.setToolUseId(call.getId());
@@ -65,7 +66,19 @@ public class FunctionExecutor {
         return new ChatMessage("user", Arrays.asList(content));
     }
 
-    public JsonNode executeAndConvertToJson(ChatMessageContent call) {
+    public ChatMessage executeAndConvertToMessage(List<ChatFunctionCall> calls) {
+        List<ChatMessageContent> contents = new ArrayList<>();
+        for (ChatFunctionCall call : calls) {
+            ChatMessageContent content = new ChatMessageContent();
+            content.setType("tool_result");
+            content.setToolUseId(call.getId());
+            content.setContent(executeAndConvertToJson(call).toPrettyString());
+            contents.add(content);
+        }
+        return new ChatMessage("user", contents);
+    }
+
+    public JsonNode executeAndConvertToJson(ChatFunctionCall call) {
         try {
             Object execution = execute(call);
             if (execution instanceof TextNode) {
@@ -90,11 +103,11 @@ public class FunctionExecutor {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T execute(ChatMessageContent call) {
+    public <T> T execute(ChatFunctionCall call) {
         ChatFunction function = FUNCTIONS.get(call.getName());
         Object obj;
         try {
-            JsonNode arguments = call.getInput();
+            JsonNode arguments = call.getArguments();
             obj = MAPPER.readValue(arguments instanceof TextNode ? arguments.asText() : arguments.toPrettyString(), function.getParametersClass());
         } catch (JsonProcessingException e) {
             obj = null;

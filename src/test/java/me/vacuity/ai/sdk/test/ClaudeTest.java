@@ -1,10 +1,12 @@
 package me.vacuity.ai.sdk.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
 import me.vacuity.ai.sdk.claude.constant.ResponseTypeConstant;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
+import me.vacuity.ai.sdk.claude.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.claude.exception.VacSdkException;
@@ -24,7 +26,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
@@ -46,7 +50,7 @@ public class ClaudeTest {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-opus-20240229")
+                .model("claude-3-5-sonnet-20240620")
                 .messages(messages)
                 .maxTokens(1024)
                 .build();
@@ -67,7 +71,7 @@ public class ClaudeTest {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "鲁迅为什么打周树人"));
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-opus-20240229")
+                .model("claude-3-5-sonnet-20240620")
                 .messages(messages)
                 .maxTokens(1024)
                 .build();
@@ -105,7 +109,7 @@ public class ClaudeTest {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-opus-20240229")
+                .model("claude-3-5-sonnet-20240620")
                 .messages(messages)
                 .maxTokens(1024)
                 .build();
@@ -154,7 +158,7 @@ public class ClaudeTest {
         messages.add(chatMessage);
 
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-opus-20240229")
+                .model("claude-3-5-sonnet-20240620")
                 .messages(messages)
                 .maxTokens(1024)
                 .build();
@@ -178,9 +182,9 @@ public class ClaudeTest {
                 .build()));
         ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(120));
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "what's the stock value of APPL on 2023-02-18"));
+        messages.add(new ChatMessage("user", "what's the stock value of AAPL on 2023-02-15"));
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-opus-20240229")
+                .model("claude-3-5-sonnet-20240620")
                 .messages(messages)
                 .tools(functionExecutor.getFunctions())
                 .maxTokens(1024)
@@ -193,7 +197,12 @@ public class ClaudeTest {
             for (ChatMessageContent content : contents) {
                 if ("tool_use".equals(content.getType())) {
                     System.out.println(defaultObjectMapper().writeValueAsString(content));
-                    ChatMessage functionMessage = functionExecutor.executeAndConvertToMessage(content);
+                    ChatFunctionCall call = new ChatFunctionCall();
+                    call = new ChatFunctionCall();
+                    call.setId(content.getId());
+                    call.setName(content.getName());
+                    call.setArguments(content.getInput());
+                    ChatMessage functionMessage = functionExecutor.executeAndConvertToMessage(call);
                     messages.add(functionMessage);
                     request.setMessages(messages);
                     ChatResponse response2 = client.chat(request);
@@ -209,6 +218,102 @@ public class ClaudeTest {
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void streamChatWithFunction() throws JsonProcessingException {
+        FunctionExecutor functionExecutor = new FunctionExecutor(Collections.singletonList(ChatFunction.builder()
+                .name("get_stock_value")
+                .description("get the stock value of a stock on a date")
+                .executor(OpenaiTest.Stock.class, w -> new OpenaiTest.StockResponse(w.date, w.code, new Random().nextInt(50)))
+                .build()));
+        
+        ClaudeClient client = new ClaudeClient(API_KEY);
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "what's the stock value of AAPL on 20230218"));
+        ChatRequest request = ChatRequest.builder()
+                .model("claude-3-5-sonnet-20240620")
+                .messages(messages)
+                .maxTokens(2048)
+                .tools(functionExecutor.getFunctions())
+                .build();
+
+        StringBuilder sb = new StringBuilder();
+        
+        ChatMessage assistantMsg = ChatMessage.builder()
+                .role("assistant")
+                .build();
+        
+        List<ChatMessageContent> assistantContents = new ArrayList<>();
+        
+        while (true) {
+            Flowable<StreamChatResponse> response = client.streamChat(request);
+
+            
+            Map<Integer, ChatFunctionCall> functionMap = new HashMap<>();
+            Map<Integer, String> functionArguMap = new HashMap<>();
+            response.doOnNext(s -> {
+                System.out.println(s);
+                if (ResponseTypeConstant.CONTENT_BLOCK_START.equalsIgnoreCase(s.getType()) || ResponseTypeConstant.CONTENT_BLOCK_DELTA.equalsIgnoreCase(s.getType())) {
+                    ChatMessageContent content = s.getDelta() == null ? s.getContentBlock() : s.getDelta();
+                    if (ResponseTypeConstant.DELTA_TYPE_TEXT.equals(content.getType())) {
+                        sb.append(content.getText());
+                    } else if (ResponseTypeConstant.DELTA_TYPE_TOOL_USE.equals(content.getType())) {
+                        ChatFunctionCall call = new ChatFunctionCall();
+                        call = new ChatFunctionCall();
+                        call.setIndex(s.getIndex());
+                        call.setId(content.getId());
+                        call.setName(content.getName());
+                        functionMap.put(s.getIndex(), call);
+                    } else if (ResponseTypeConstant.DELTA_TYPE_JSON.equals(content.getType())) {
+                        String argu = functionArguMap.get(s.getIndex());
+                        if (argu == null) {
+                            argu = "";
+                        }
+                        argu += content.getPartialJson();
+                        functionArguMap.put(s.getIndex(), argu);
+                    }
+                }
+
+            }).blockingSubscribe();
+
+            System.out.println(sb.toString());
+
+            ChatMessageContent content1 = ChatMessageContent.builder()
+                    .type("text")
+                    .text(sb.toString())
+                    .build();
+            assistantContents.add(content1);
+
+            boolean functionFlag = false;
+            List<ChatFunctionCall> calls = new ArrayList<>();
+            if (functionMap.size() > 0) {
+                functionFlag = true;
+                for (Map.Entry<Integer, ChatFunctionCall> entry : functionMap.entrySet()) {
+                    ChatFunctionCall call = entry.getValue();
+                    String argu = functionArguMap.get(entry.getKey());
+                    call.setArguments(defaultObjectMapper().readTree(argu));
+                    calls.add(call);
+
+                    ChatMessageContent toolContent = ChatMessageContent.builder()
+                            .type("tool_use")
+                            .id(call.getId())
+                            .name(call.getName())
+                            .input(call.getArguments())
+                            .build();
+                    assistantContents.add(toolContent);
+                }
+            }
+            if (functionFlag) {
+                assistantMsg.setContent(assistantContents);
+                messages.add(assistantMsg);
+                messages.add(functionExecutor.executeAndConvertToMessage(calls));
+
+                System.out.println(defaultObjectMapper().writeValueAsString(messages));
+            } else {
+                break;
+            }
         }
     }
 }

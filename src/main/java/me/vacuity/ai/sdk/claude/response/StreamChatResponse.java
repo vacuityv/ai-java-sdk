@@ -1,5 +1,6 @@
 package me.vacuity.ai.sdk.claude.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,11 +24,16 @@ import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 public class StreamChatResponse {
 
 
+    private Integer index;
+    
     private String type;
 
     private ResponseStartMessage message;
 
     private ChatMessageContent delta;
+    
+    @JsonProperty("content_block")
+    private ChatMessageContent contentBlock;
 
     private ChatResponseError.ChatResponseErrorDetail error;
 

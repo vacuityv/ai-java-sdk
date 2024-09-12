@@ -17,4 +17,8 @@ public class ResponseTypeConstant {
 
     public static final String PING = "ping";
     public static final String ERROR = "error";
+    
+    public static final String DELTA_TYPE_TEXT = "text_delta";
+    public static final String DELTA_TYPE_TOOL_USE = "tool_use";
+    public static final String DELTA_TYPE_JSON = "input_json_delta";
 }
