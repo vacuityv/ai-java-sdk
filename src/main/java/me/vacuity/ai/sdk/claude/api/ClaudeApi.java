@@ -12,12 +12,12 @@ import retrofit2.http.Streaming;
 
 public interface ClaudeApi {
 
-    @Headers({"anthropic-version: 2023-06-01"})
+    @Headers({"anthropic-version: 2023-06-01", "anthropic-beta: pdfs-2024-09-25"})
     @POST("v1/messages")
     Single<ChatResponse> chat(@Body ChatRequest request);
 
 
-    @Headers({"anthropic-version: 2023-06-01"})
+    @Headers({"anthropic-version: 2023-06-01", "anthropic-beta: pdfs-2024-09-25"})
     @Streaming
     @POST("v1/messages")
     Call<ResponseBody> streamChat(@Body ChatRequest request);
