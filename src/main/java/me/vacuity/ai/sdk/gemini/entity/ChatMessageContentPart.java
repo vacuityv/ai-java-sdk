@@ -17,12 +17,20 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessageContent {
+public class ChatMessageContentPart {
 
     private String text;
 
     @JsonProperty("inline_data")
     private InlineData inlineData;
+    
+    private ChatFunctionCall functionCall;
+
+    private FunctionResponse functionResponse;
+
+    private ExecutableCode executableCode;
+
+    private CodeExecutionResult codeExecutionResult;
 
     @Data
     @Builder

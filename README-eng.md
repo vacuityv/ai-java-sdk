@@ -10,21 +10,21 @@ Google gemini and part of OpenAI.
 
 ## Supported Claude APIs
 
-- [Chat (include vision, support function)](https://docs.anthropic.com/claude/reference/messages_post)
-- [Streaming Chat (include vision)](https://docs.anthropic.com/claude/reference/messages-streaming)
+- [Chat (support function)](https://docs.anthropic.com/claude/reference/messages_post)
+- [Streaming Chat (support function)](https://docs.anthropic.com/claude/reference/messages-streaming)
 
 ## Supported Google Gemini
 
-- [Chat (include vision)](https://ai.google.dev/tutorials/rest_quickstart)
-- [Streaming Chat (include vision)](https://ai.google.dev/tutorials/rest_quickstart)
+- [Chat (support function)](https://ai.google.dev/tutorials/rest_quickstart)
+- [Streaming Chat (support function)](https://ai.google.dev/tutorials/rest_quickstart)
 
 ## Supported openAI
 
 > Support function calls, please refer to OpenaiTest (a large part of the function implementation is based
 > on https://github.com/TheoKanning/openai-java).
 
-- [Chat (include vision)](https://platform.openai.com/docs/api-reference/chat/create)
-- [Streaming Chat (include vision)](https://platform.openai.com/docs/api-reference/chat/streaming)
+- [Chat (support function)](https://platform.openai.com/docs/api-reference/chat/create)
+- [Streaming Chat (support function)](https://platform.openai.com/docs/api-reference/chat/streaming)
 - [File](https://platform.openai.com/docs/api-reference/files)
 - [Assistant (include stream)](https://platform.openai.com/docs/api-reference/assistants)
 - [Image](https://platform.openai.com/docs/api-reference/images)

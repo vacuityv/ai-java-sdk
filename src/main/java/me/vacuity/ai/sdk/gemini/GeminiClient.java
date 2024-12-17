@@ -8,6 +8,10 @@ import io.reactivex.Flowable;
 import io.reactivex.Single;
 import me.vacuity.ai.sdk.gemini.Interceptor.GeminiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
+import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
+import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCall;
+import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCallMixIn;
+import me.vacuity.ai.sdk.gemini.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.gemini.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.gemini.entity.SSE;
 import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
@@ -133,6 +137,8 @@ public class GeminiClient {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.addMixIn(ChatFunction.class, ChatFunctionMixIn.class);
+        mapper.addMixIn(ChatFunctionCall.class, ChatFunctionCallMixIn.class);
         return mapper;
     }
 

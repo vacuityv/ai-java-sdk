@@ -17,9 +17,7 @@ public class ChatResponseCandidate {
     private ChatMessage content;
 
     private String finishReason;
-
-    private Integer index;
-
+    
     private List<ChatResponseSafetyRating> safetyRatings;
 
 }

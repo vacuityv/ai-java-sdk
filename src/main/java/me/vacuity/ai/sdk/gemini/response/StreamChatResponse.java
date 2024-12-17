@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.gemini.entity.Usage;
 
+import java.util.List;
+
 /**
  * @description:
  * @author: vacuity
@@ -19,7 +21,7 @@ import me.vacuity.ai.sdk.gemini.entity.Usage;
 @NoArgsConstructor
 public class StreamChatResponse {
 
-    private String text;
-
+    private List<ChatResponseCandidate> candidates;
+    
     private Usage usageMetadata;
 }

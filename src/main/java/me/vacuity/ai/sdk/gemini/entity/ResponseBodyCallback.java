@@ -13,12 +13,9 @@ import retrofit2.Response;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Callback to parse Server Sent Events (SSE) from raw InputStream and
@@ -27,68 +24,121 @@ import java.util.Map;
  */
 public class ResponseBodyCallback implements Callback<ResponseBody> {
     private static final ObjectMapper mapper = GeminiClient.defaultObjectMapper();
-
-    private FlowableEmitter<SSE> emitter;
-    private boolean emitDone;
+    private final FlowableEmitter<SSE> emitter;
+    private StringBuilder jsonBuilder;
+    private int squareBracketCount = 0;  // 方括号计数
+    private int curlyBracketCount = 0;   // 花括号计数
+    private boolean isFirstObject = true; // 标记是否是数组中的第一个对象
 
     public ResponseBodyCallback(FlowableEmitter<SSE> emitter, boolean emitDone) {
         this.emitter = emitter;
-        this.emitDone = emitDone;
+        this.jsonBuilder = new StringBuilder();
     }
 
     @Override
     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-        BufferedReader reader = null;
+        if (!response.isSuccessful()) {
+            handleErrorResponse(response);
+            return;
+        }
 
-        try {
-            if (!response.isSuccessful()) {
-                HttpException e = new HttpException(response);
-                ResponseBody errorBody = response.errorBody();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(response.body().byteStream(), StandardCharsets.UTF_8))) {
 
-                if (errorBody == null) {
-                    throw e;
-                } else {
-
-                    List<ChatResponseError> errors = mapper.readValue(
-                            errorBody.string(),
-                            mapper.getTypeFactory().constructCollectionType(List.class, ChatResponseError.class)
-                    );
-                    throw new VacSdkException("-1", "stream error", errors);
-                }
-            }
-
-            InputStream in = response.body().byteStream();
-            reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             String line;
-            SSE sse = null;
-
-            Map<String, Integer> usage = new HashMap<>();
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
-                if (line.contains("\"text\":")) {
-                    sse = new SSE("{" + line + "}");
-                    emitter.onNext(sse);
-                } else if (line.contains("promptTokenCount") || line.contains("candidatesTokenCount") || line.contains("totalTokenCount")) {
-                    String key = line.substring(line.indexOf("\"") + 1, line.indexOf("\":"));
-                    Integer value = Integer.parseInt(line.substring(line.indexOf(":") + 1).replace(",", "").trim());
-                    usage.put(key, value);
-                }
-
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                processLine(line);
             }
-            Map<String, Object> useagePar = new HashMap<>();
-            useagePar.put("usageMetadata", usage);
-            sse = new SSE(mapper.writeValueAsString(useagePar));
-            emitter.onNext(sse);
+
             emitter.onComplete();
+
         } catch (Throwable t) {
             onFailure(call, t);
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    // do nothing
+        }
+    }
+
+    private void processLine(String line) {
+        try {
+            // 计算括号匹配
+            for (char c : line.toCharArray()) {
+                switch (c) {
+                    case '[':
+                        squareBracketCount++;
+                        break;
+                    case ']':
+                        squareBracketCount--;
+                        break;
+                    case '{':
+                        curlyBracketCount++;
+                        break;
+                    case '}':
+                        curlyBracketCount--;
+                        break;
                 }
             }
+
+            // 处理开始的 "[" 或 "[{"
+            if (jsonBuilder.length() == 0 && line.startsWith("[")) {
+                jsonBuilder.append(line);
+                return;
+            }
+
+            // 处理结束的 "]" 或 "}]"
+            if (line.endsWith("]") && squareBracketCount == 0) {
+                return;
+            }
+
+            // 处理对象分隔符 ","
+            if (line.equals(",")) {
+                isFirstObject = false;
+                jsonBuilder = new StringBuilder();
+                return;
+            }
+
+            jsonBuilder.append(line);
+
+            // 当花括号匹配且不是数组的结束时，可能是一个完整的对象
+            if (curlyBracketCount == 0 && squareBracketCount > 0) {
+                String currentJson = jsonBuilder.toString();
+                if (currentJson.endsWith("}")) {
+                    // 提取当前对象
+                    String objectJson;
+                    if (isFirstObject) {
+                        objectJson = currentJson.substring(1); // 去掉开头的 "["
+                    } else {
+                        objectJson = currentJson;
+                    }
+                    processJsonObject(objectJson);
+                }
+            }
+
+        } catch (Exception e) {
+            emitter.onError(e);
+        }
+    }
+
+    private void processJsonObject(String json) throws IOException {
+        emitter.onNext(new SSE(json));
+    }
+
+    private void handleErrorResponse(Response<ResponseBody> response) {
+        try {
+            HttpException e = new HttpException(response);
+            ResponseBody errorBody = response.errorBody();
+
+            if (errorBody == null) {
+                throw e;
+            }
+
+            List<ChatResponseError> errors = mapper.readValue(
+                    errorBody.string(),
+                    mapper.getTypeFactory().constructCollectionType(List.class, ChatResponseError.class)
+            );
+            throw new VacSdkException("-1", "stream error", errors);
+        } catch (IOException ex) {
+            emitter.onError(ex);
         }
     }
 

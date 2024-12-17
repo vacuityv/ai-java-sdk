@@ -21,18 +21,18 @@ public class ChatMessage {
 
     private String role;
 
-    private List<ChatMessageContent> parts;
+    private List<ChatMessageContentPart> parts;
 
     public ChatMessage(String role, String content) {
         this.role = role;
-        ChatMessageContent chatMessageContent = ChatMessageContent.builder().text(content).build();
-        List<ChatMessageContent> parts = Arrays.asList(chatMessageContent);
+        ChatMessageContentPart chatMessageContent = ChatMessageContentPart.builder().text(content).build();
+        List<ChatMessageContentPart> parts = Arrays.asList(chatMessageContent);
         this.parts = parts;
     }
 
     public ChatMessage(String content) {
-        ChatMessageContent chatMessageContent = ChatMessageContent.builder().text(content).build();
-        List<ChatMessageContent> parts = Arrays.asList(chatMessageContent);
+        ChatMessageContentPart chatMessageContent = ChatMessageContentPart.builder().text(content).build();
+        List<ChatMessageContentPart> parts = Arrays.asList(chatMessageContent);
         this.parts = parts;
     }
 }
