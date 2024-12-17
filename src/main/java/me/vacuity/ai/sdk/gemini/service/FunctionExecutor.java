@@ -63,6 +63,19 @@ public class FunctionExecutor {
         return new ChatMessage(FUNCTION_ROLE, parts);
     }
 
+    public ChatMessage executeAndConvertToMessage(List<ChatFunctionCall> calls) {
+        List<ChatMessageContentPart> parts = new ArrayList<>();
+        for (ChatFunctionCall call : calls) {
+            FunctionResponse functionResponse = FunctionResponse.builder()
+                    .name(call.getName())
+                    .response(executeAndConvertToJson(call))
+                    .build();
+            ChatMessageContentPart part = ChatMessageContentPart.builder().functionResponse(functionResponse).build();
+            parts.add(part);
+        }
+        return new ChatMessage(FUNCTION_ROLE, parts);
+    }
+
     public JsonNode executeAndConvertToJson(ChatFunctionCall call) {
         try {
             Object execution = execute(call);
