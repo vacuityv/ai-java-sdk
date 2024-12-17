@@ -60,13 +60,13 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
 
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
                 if (line.startsWith("data:")) {
-                    String data = line.substring(6).trim();
+                    String data = line.substring(5).trim();
                     sse = new SSE(data);
                 } else if (line.equals("") && sse != null) {
                     emitter.onNext(sse);
                     sse = null;
                 } else if (line.startsWith("event:")) {
-                    String event = line.substring(7).trim();
+                    String event = line.substring(6).trim();
                 } else {
                     throw new SSEFormatException("Invalid sse format! " + line);
                 }
