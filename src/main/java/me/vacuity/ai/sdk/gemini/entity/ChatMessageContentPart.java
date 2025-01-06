@@ -19,6 +19,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChatMessageContentPart {
 
+    private Boolean thought = Boolean.FALSE;
+
     private String text;
 
     @JsonProperty("inline_data")
