@@ -26,6 +26,8 @@ import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.entity.Image;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
+import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
+import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.ListResponse;
@@ -254,6 +256,9 @@ public interface OpenaiApi {
     @Headers("OpenAI-Beta: assistants=v2")
     @GET("v1/vector_stores/{vector_store_id}/file_batches/{batch_id}/files")
     Single<ListResponse<VectorStoreFile>> listVectorStoreFileInBatch(@Path("vector_store_id") String vectorStoreId, @Path("batch_id") String batchId, @QueryMap Map<String, Object> listRequest);
+
+    @POST("v1/realtime/sessions")
+    Single<RealtimeSession> createRealtimeSession(@Body CreateRealtimeSessionRequest request);
 
 }
 

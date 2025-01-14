@@ -15,6 +15,8 @@ import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.entity.StreamOptions;
 import me.vacuity.ai.sdk.openai.exception.VacSdkException;
+import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
+import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.StreamChatResponse;
@@ -241,6 +243,23 @@ public class OpenaiTest {
         OpenaiClient client = new OpenaiClient(API_KEY);
         try {
             List<Model> response = client.listModels();
+            System.out.println(response);
+        } catch (VacSdkException e) {
+            if (e.getDetail() != null) {
+                System.out.println("err:" + e.getDetail().getError().getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void createRealtimeSession() {
+        OpenaiClient client = new OpenaiClient(API_KEY);
+        
+        try {
+            CreateRealtimeSessionRequest request = CreateRealtimeSessionRequest.builder()
+                    .model("gpt-4o-realtime-preview-2024-12-17")
+                    .build();
+            RealtimeSession response = client.createRealtimeSession(request);
             System.out.println(response);
         } catch (VacSdkException e) {
             if (e.getDetail() != null) {

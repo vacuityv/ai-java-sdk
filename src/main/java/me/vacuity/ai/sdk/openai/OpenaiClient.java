@@ -53,6 +53,8 @@ import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
 import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
+import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
+import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.StreamChatResponse;
@@ -312,6 +314,11 @@ public class OpenaiClient {
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
         request.setStream(true);
+        try {
+            System.out.println(defaultObjectMapper().writeValueAsString(request));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
         return stream(api.streamChat(request), StreamChatResponse.class);
     }
 
@@ -592,4 +599,7 @@ public class OpenaiClient {
         return execute(api.listVectorStoreFileInBatch(vectorStoreId, batchId, queryParameters)).data;
     }
 
+    public RealtimeSession createRealtimeSession(CreateRealtimeSessionRequest request) {
+        return execute(api.createRealtimeSession(request));
+    }
 }
