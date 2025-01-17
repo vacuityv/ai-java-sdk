@@ -35,6 +35,9 @@ public class RealtimeSession {
     @JsonProperty("input_audio_transcription")
     private InputAudioTranscription inputAudioTranscription;
 
+    @JsonProperty("turn_detection")
+    private TurnDetection turnDetection;
+
     private List<ChatTool> tools;
 
     @JsonProperty("tool_choice")

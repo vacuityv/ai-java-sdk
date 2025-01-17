@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.realtime.entity.InputAudioTranscription;
+import me.vacuity.ai.sdk.openai.realtime.entity.TurnDetection;
 
 import java.util.List;
 import java.util.Set;
@@ -40,6 +41,9 @@ public class CreateRealtimeSessionRequest {
 
     @JsonProperty("input_audio_transcription")
     private InputAudioTranscription inputAudioTranscription;
+
+    @JsonProperty("turn_detection")
+    private TurnDetection turnDetection;
 
     private List<ChatTool> tools;
 
