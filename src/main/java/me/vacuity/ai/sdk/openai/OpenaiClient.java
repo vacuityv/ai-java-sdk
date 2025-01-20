@@ -314,11 +314,6 @@ public class OpenaiClient {
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
         request.setStream(true);
-        try {
-            System.out.println(defaultObjectMapper().writeValueAsString(request));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
         return stream(api.streamChat(request), StreamChatResponse.class);
     }
 
