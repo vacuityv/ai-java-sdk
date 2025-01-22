@@ -23,6 +23,9 @@ import java.util.List;
 public class ChatResponseMessage {
 
     private Object content;
+    
+    @JsonProperty("reasoning_content")
+    private String reasoningContent;
 
 
     @JsonProperty("tool_calls")
