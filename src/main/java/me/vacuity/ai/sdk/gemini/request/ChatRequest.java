@@ -10,6 +10,7 @@ import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @description:
@@ -64,5 +65,7 @@ public class ChatRequest {
         private float topP;
 
         private float topK;
+        
+        private Map<String, Object> thinkingConfig;
     }
 }

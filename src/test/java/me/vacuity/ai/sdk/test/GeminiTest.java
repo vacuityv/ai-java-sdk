@@ -27,7 +27,9 @@ import java.net.Proxy;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultClient;
@@ -42,7 +44,7 @@ import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
 public class GeminiTest {
 
-    public static final String API_KEY = "***";
+    public static final String API_KEY = "****";
 
 
     @Test
@@ -72,10 +74,18 @@ public class GeminiTest {
         List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
         safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
 
+        Map<String, Object> thinkingConfig = new HashMap<>();
+        thinkingConfig.put("include_thoughts", Boolean.TRUE);
+        
+        ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder().build();
+        config.setThinkingConfig(thinkingConfig);
+        
         ChatRequest request = ChatRequest.builder()
+                .model("gemini-2.0-flash-thinking-exp-01-21")
                 .contents(messages)
                 .safetySettings(safetySettings)
-                .tools(tools)
+//                .tools(tools)
+//                .generationConfig(config)
                 .build();
         try {
             ChatResponse response = client.chat(request);
