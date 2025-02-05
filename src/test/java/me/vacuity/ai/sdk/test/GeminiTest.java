@@ -47,7 +47,7 @@ import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
 public class GeminiTest {
 
-    public static final String API_KEY = "*****";
+    public static final String API_KEY = "***";
 
 
     @Test
@@ -251,15 +251,13 @@ public class GeminiTest {
 
         List<Tool> tools = new ArrayList<>();
         tools.add(Tool.builder()
-                .googleSearchRetrieval(GoogleSearchRetrieval.builder()
-                        .dynamicRetrievalConfig(DynamicRetrievalConfig.builder()
-                                .build())
-                        .build())
-                .build());
+                .googleSearch(new HashMap<>())
+                        .build()
+                );
 
         GeminiClient client = new GeminiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "2028年奥运会在哪举办"));
+        messages.add(new ChatMessage("user", "What is the current Google stock price?"));
 
         List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
         safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
@@ -271,7 +269,7 @@ public class GeminiTest {
         config.setThinkingConfig(thinkingConfig);
 
         ChatRequest request = ChatRequest.builder()
-                .model("gemini-1.5-pro-002")
+                .model("gemini-2.0-flash-exp")
                 .contents(messages)
                 .safetySettings(safetySettings)
                 .tools(tools)

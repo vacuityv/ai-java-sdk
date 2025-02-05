@@ -31,4 +31,7 @@ public class Tool {
 
     @JsonProperty("google_search_retrieval")
     private GoogleSearchRetrieval googleSearchRetrieval;
+
+    @Builder.Default
+    private Map<String, Object> googleSearch = new HashMap<>();
 }
