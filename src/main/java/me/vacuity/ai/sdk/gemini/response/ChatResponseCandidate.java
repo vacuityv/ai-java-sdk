@@ -20,4 +20,6 @@ public class ChatResponseCandidate {
     
     private List<ChatResponseSafetyRating> safetyRatings;
 
+    private GroundingMetadata groundingMetadata;
+
 }

@@ -4,11 +4,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Flowable;
+import lombok.SneakyThrows;
 import me.vacuity.ai.sdk.gemini.GeminiClient;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
+import me.vacuity.ai.sdk.gemini.entity.DynamicRetrievalConfig;
+import me.vacuity.ai.sdk.gemini.entity.GoogleSearchRetrieval;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
 import me.vacuity.ai.sdk.gemini.enums.HarmBlockThreshold;
 import me.vacuity.ai.sdk.gemini.enums.HarmCategory;
@@ -44,7 +47,7 @@ import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
 public class GeminiTest {
 
-    public static final String API_KEY = "****";
+    public static final String API_KEY = "*****";
 
 
     @Test
@@ -238,6 +241,52 @@ public class GeminiTest {
         public WeatherResponse(boolean success, String value) {
             this.success = success;
             this.value = value;
+        }
+    }
+
+    @SneakyThrows
+    @Test
+    public void chatWithSearch() {
+
+
+        List<Tool> tools = new ArrayList<>();
+        tools.add(Tool.builder()
+                .googleSearchRetrieval(GoogleSearchRetrieval.builder()
+                        .dynamicRetrievalConfig(DynamicRetrievalConfig.builder()
+                                .build())
+                        .build())
+                .build());
+
+        GeminiClient client = new GeminiClient(API_KEY);
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "2028年奥运会在哪举办"));
+
+        List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
+        safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
+
+        Map<String, Object> thinkingConfig = new HashMap<>();
+        thinkingConfig.put("include_thoughts", Boolean.TRUE);
+
+        ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder().build();
+        config.setThinkingConfig(thinkingConfig);
+
+        ChatRequest request = ChatRequest.builder()
+                .model("gemini-1.5-pro-002")
+                .contents(messages)
+                .safetySettings(safetySettings)
+                .tools(tools)
+//                .generationConfig(config)
+                .build();
+        try {
+
+            System.out.println(defaultObjectMapper().writeValueAsString(request));
+            
+            ChatResponse response = client.chat(request);
+            System.out.println(response);
+        } catch (VacSdkException e) {
+            if (e.getDetails() != null) {
+                System.out.println(e.getDetails().get(0).getError().getMessage());
+            }
         }
     }
 }

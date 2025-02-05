@@ -28,4 +28,7 @@ public class Tool {
     private CodeExcution codeExcution;
 
     private List<ChatFunction> functionDeclarations;
+
+    @JsonProperty("google_search_retrieval")
+    private GoogleSearchRetrieval googleSearchRetrieval;
 }
