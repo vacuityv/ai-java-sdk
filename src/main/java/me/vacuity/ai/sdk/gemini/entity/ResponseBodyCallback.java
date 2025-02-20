@@ -61,21 +61,39 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
 
     private void processLine(String line) {
         try {
+            boolean insideString = false; // 标记是否在字符串内
+            boolean escapeNextChar = false; // 标记下一个字符是否是转义字符
             // 计算括号匹配
             for (char c : line.toCharArray()) {
-                switch (c) {
-                    case '[':
-                        squareBracketCount++;
-                        break;
-                    case ']':
-                        squareBracketCount--;
-                        break;
-                    case '{':
-                        curlyBracketCount++;
-                        break;
-                    case '}':
-                        curlyBracketCount--;
-                        break;
+                if (escapeNextChar) {
+                    // 如果前一个字符是反斜杠，忽略当前字符，继续处理下一个字符
+                    escapeNextChar = false;
+                    continue;
+                }
+
+                if (c == '\\') {
+                    // 如果遇到反斜杠，标记下一个字符为转义字符
+                    escapeNextChar = true;
+                } else if (c == '"') {
+                    // 如果遇到引号，判断是否在字符串内
+                    insideString = !insideString;
+                }
+                // 仅在不在字符串内时计算括号
+                if (!insideString) {
+                    switch (c) {
+                        case '[':
+                            squareBracketCount++;
+                            break;
+                        case ']':
+                            squareBracketCount--;
+                            break;
+                        case '{':
+                            curlyBracketCount++;
+                            break;
+                        case '}':
+                            curlyBracketCount--;
+                            break;
+                    }
                 }
             }
 

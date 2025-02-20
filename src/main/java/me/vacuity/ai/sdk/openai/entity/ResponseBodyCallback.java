@@ -67,8 +67,6 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                     }
                     emitter.onNext(sse);
                     sse = null;
-                } else {
-                    throw new SSEFormatException("Invalid sse format! " + line);
                 }
             }
 
