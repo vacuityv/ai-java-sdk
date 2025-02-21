@@ -2,9 +2,9 @@ package me.vacuity.ai.sdk.openai.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.FlowableEmitter;
-import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
+import me.vacuity.ai.sdk.openai.error.ChatResponseError;
+import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
