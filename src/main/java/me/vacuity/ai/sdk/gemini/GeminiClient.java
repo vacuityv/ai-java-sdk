@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.gemini.Interceptor.GeminiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
@@ -15,7 +16,6 @@ import me.vacuity.ai.sdk.gemini.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.gemini.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.gemini.entity.SSE;
 import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
-import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
@@ -172,7 +172,7 @@ public class GeminiClient {
                 }
                 String errorBody = e.response().errorBody().string();
                 ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
-                VacSdkException ve = new VacSdkException("-1", "error", error);
+                VacSdkException ve = new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error);
                 throw ve;
             } catch (IOException ex) {
                 // couldn't parse error

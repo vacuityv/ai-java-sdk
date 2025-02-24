@@ -1,4 +1,4 @@
-package me.vacuity.ai.sdk.claude.exception;
+package me.vacuity.ai.sdk.common;
 
 import lombok.Data;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
@@ -17,20 +17,15 @@ public class VacSdkException extends RuntimeException implements Serializable {
 
     private String code;
 
-    private String msg;
+    private String message;
+    
+    private Object detail;
 
-    private ChatResponseError detail;
 
-    public VacSdkException(String code, String msg) {
-        super(msg);
+    public VacSdkException(String code, String message, Object detail) {
+        super(message);
         this.code = code;
-        this.msg = msg;
-    }
-
-    public VacSdkException(String code, String msg, ChatResponseError detail) {
-        super(msg);
-        this.code = code;
-        this.msg = msg;
+        this.message = message;
         this.detail = detail;
     }
 }

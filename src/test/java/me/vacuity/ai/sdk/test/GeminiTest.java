@@ -5,17 +5,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.gemini.GeminiClient;
 import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
-import me.vacuity.ai.sdk.gemini.entity.DynamicRetrievalConfig;
-import me.vacuity.ai.sdk.gemini.entity.GoogleSearchRetrieval;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
 import me.vacuity.ai.sdk.gemini.enums.HarmBlockThreshold;
 import me.vacuity.ai.sdk.gemini.enums.HarmCategory;
-import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.ChatResponseCandidate;
@@ -69,7 +67,7 @@ public class GeminiTest {
 //        tools.add(Tool.builder()
 //                .codeExcution(CodeExcution.builder().build())
 //                .build());
-        
+
         GeminiClient client = new GeminiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
@@ -79,10 +77,10 @@ public class GeminiTest {
 
         Map<String, Object> thinkingConfig = new HashMap<>();
         thinkingConfig.put("include_thoughts", Boolean.TRUE);
-        
+
         ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder().build();
         config.setThinkingConfig(thinkingConfig);
-        
+
         ChatRequest request = ChatRequest.builder()
                 .model("gemini-2.0-flash-thinking-exp-01-21")
                 .contents(messages)
@@ -94,9 +92,7 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -126,7 +122,7 @@ public class GeminiTest {
 
         GeminiClient client = new GeminiClient(API_KEY);
 //        GeminiClient client = new GeminiClient(API_KEY, Duration.ofMinutes(1), BASE);
-        
+
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "what's the weather of amoy on 2024-08-10"));
 //        messages.add(new ChatMessage("user", "你好，用500字详细介绍下你自己"));
@@ -144,7 +140,7 @@ public class GeminiTest {
             response.doOnNext(s -> {
                 System.out.println(s);
                 ChatResponseCandidate candidate = s.getCandidates().get(0);
-                
+
                 ChatFunctionCall call = candidate.getContent().getParts().get(0).getFunctionCall();
                 if (call != null) {
                     goon.set(true);
@@ -162,9 +158,7 @@ public class GeminiTest {
                 }).blockingSubscribe();
             }
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -191,9 +185,7 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response.getCandidates().get(0).getContent().getParts().get(0).getText());
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -218,9 +210,7 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -235,7 +225,7 @@ public class GeminiTest {
     public static class WeatherResponse {
 
         private boolean success;
-        
+
         public String value;
 
         public WeatherResponse(boolean success, String value) {
@@ -252,8 +242,8 @@ public class GeminiTest {
         List<Tool> tools = new ArrayList<>();
         tools.add(Tool.builder()
                 .googleSearch(new HashMap<>())
-                        .build()
-                );
+                .build()
+        );
 
         GeminiClient client = new GeminiClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
@@ -278,13 +268,11 @@ public class GeminiTest {
         try {
 
             System.out.println(defaultObjectMapper().writeValueAsString(request));
-            
+
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 }

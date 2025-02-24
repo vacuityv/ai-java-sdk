@@ -14,10 +14,10 @@ import me.vacuity.ai.sdk.claude.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.claude.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.claude.entity.SSE;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
-import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
@@ -164,7 +164,7 @@ public class ClaudeClient {
                 }
                 String errorBody = e.response().errorBody().string();
                 ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
-                VacSdkException ve = new VacSdkException("-1", "error", error);
+                VacSdkException ve = new VacSdkException(error.getError().getType(), error.getError().getMessage(), error);
                 throw ve;
             } catch (IOException ex) {
                 // couldn't parse error

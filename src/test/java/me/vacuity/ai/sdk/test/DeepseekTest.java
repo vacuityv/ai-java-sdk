@@ -2,10 +2,10 @@ package me.vacuity.ai.sdk.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.reactivex.Flowable;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
 import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.StreamOptions;
-import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.ChatResponseMessage;
@@ -50,9 +50,7 @@ public class DeepseekTest {
             System.out.println("==================");
             System.out.println(response.getUsage());
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println("err:" + e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 

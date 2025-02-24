@@ -2,9 +2,9 @@ package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.FlowableEmitter;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
-import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -47,7 +47,7 @@ public class AssistantResponseBodyCallback implements Callback<ResponseBody> {
                             errorBody.string(),
                             ChatResponseError.class
                     );
-                    throw new VacSdkException("-1", "stream error", error);
+                    throw new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error);
                 }
             }
 
@@ -66,7 +66,7 @@ public class AssistantResponseBodyCallback implements Callback<ResponseBody> {
                     emitter.onNext(sse);
                     sse = null;
                 } else {
-                    throw new VacSdkException("-1", "Invalid sse format! " + line);
+                    throw new VacSdkException("-1", "Invalid sse format! " + line, null);
                 }
             }
             emitter.onComplete();

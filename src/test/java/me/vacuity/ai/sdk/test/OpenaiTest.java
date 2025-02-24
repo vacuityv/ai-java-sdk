@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.reactivex.Flowable;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
 import me.vacuity.ai.sdk.openai.entity.ChatFunction;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
@@ -14,7 +15,6 @@ import me.vacuity.ai.sdk.openai.entity.ChatMessageContent;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.entity.StreamOptions;
-import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
 import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
@@ -106,9 +106,7 @@ public class OpenaiTest {
             }
             System.out.println(response.getSingleContent());
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println("err:" + e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -245,9 +243,7 @@ public class OpenaiTest {
             List<Model> response = client.listModels();
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println("err:" + e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -262,9 +258,7 @@ public class OpenaiTest {
             RealtimeSession response = client.createRealtimeSession(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println("err:" + e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -300,9 +294,7 @@ public class OpenaiTest {
 
             }).blockingSubscribe();
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println("err:" + e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
 
     }

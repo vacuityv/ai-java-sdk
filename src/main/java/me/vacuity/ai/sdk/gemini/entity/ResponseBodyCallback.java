@@ -2,9 +2,9 @@ package me.vacuity.ai.sdk.gemini.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.FlowableEmitter;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.gemini.GeminiClient;
 import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
-import me.vacuity.ai.sdk.gemini.exception.VacSdkException;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -52,7 +52,7 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
-                throw new VacSdkException("-1", "stream error", error);
+                throw new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error);
             }
         }
 

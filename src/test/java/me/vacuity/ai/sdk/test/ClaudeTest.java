@@ -9,11 +9,11 @@ import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
-import me.vacuity.ai.sdk.claude.exception.VacSdkException;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
 import me.vacuity.ai.sdk.claude.service.FunctionExecutor;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -58,9 +58,7 @@ public class ClaudeTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -117,9 +115,7 @@ public class ClaudeTest {
             ChatResponse response = client.chat(request);
             System.out.println(response.getContent().get(0).getText());
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -166,9 +162,7 @@ public class ClaudeTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         }
     }
 
@@ -213,9 +207,7 @@ public class ClaudeTest {
                 }
             }
         } catch (VacSdkException e) {
-            if (e.getDetail() != null) {
-                System.out.println(e.getDetail().getError().getMessage());
-            }
+            System.out.println(e.getMessage());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

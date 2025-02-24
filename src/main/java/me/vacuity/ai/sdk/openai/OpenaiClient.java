@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.openai.api.OpenaiApi;
 import me.vacuity.ai.sdk.openai.assistant.constant.AssistantStreamEventsConstant;
 import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
@@ -46,7 +47,6 @@ import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.openai.entity.SSE;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
-import me.vacuity.ai.sdk.openai.exception.VacSdkException;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.entity.Image;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
@@ -210,7 +210,7 @@ public class OpenaiClient {
                 }
                 String errorBody = e.response().errorBody().string();
                 ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
-                VacSdkException ve = new VacSdkException("-1", "error", error);
+                VacSdkException ve = new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error);
                 throw ve;
             } catch (IOException ex) {
                 // couldn't parse error
@@ -301,7 +301,7 @@ public class OpenaiClient {
                 }
                 return response;
             } catch (JsonProcessingException e) {
-                throw new VacSdkException("-1", "error process stream json");
+                throw new VacSdkException("-1", "error process stream json", null);
             }
         });
     }
