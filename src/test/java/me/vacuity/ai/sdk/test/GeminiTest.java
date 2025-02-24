@@ -94,8 +94,8 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetails() != null) {
-                System.out.println(e.getDetails().get(0).getError().getMessage());
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().getError().getMessage());
             }
         }
     }
@@ -162,8 +162,8 @@ public class GeminiTest {
                 }).blockingSubscribe();
             }
         } catch (VacSdkException e) {
-            if (e.getDetails() != null) {
-                System.out.println(e.getDetails().get(0).getError().getMessage());
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().getError().getMessage());
             }
         }
     }
@@ -191,8 +191,8 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response.getCandidates().get(0).getContent().getParts().get(0).getText());
         } catch (VacSdkException e) {
-            if (e.getDetails() != null) {
-                System.out.println(e.getDetails().get(0).getError().getMessage());
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().getError().getMessage());
             }
         }
     }
@@ -218,8 +218,8 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetails() != null) {
-                System.out.println(e.getDetails().get(0).getError().getMessage());
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().getError().getMessage());
             }
         }
     }
@@ -282,8 +282,8 @@ public class GeminiTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
-            if (e.getDetails() != null) {
-                System.out.println(e.getDetails().get(0).getError().getMessage());
+            if (e.getDetail() != null) {
+                System.out.println(e.getDetail().getError().getMessage());
             }
         }
     }

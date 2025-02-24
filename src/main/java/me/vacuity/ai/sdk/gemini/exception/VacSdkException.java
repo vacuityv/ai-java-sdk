@@ -20,7 +20,7 @@ public class VacSdkException extends RuntimeException implements Serializable {
 
     private String msg;
 
-    private List<ChatResponseError> details;
+    private ChatResponseError detail;
 
     public VacSdkException(String code, String msg) {
         super(msg);
@@ -28,10 +28,10 @@ public class VacSdkException extends RuntimeException implements Serializable {
         this.msg = msg;
     }
 
-    public VacSdkException(String code, String msg, List<ChatResponseError> details) {
+    public VacSdkException(String code, String msg, ChatResponseError detail) {
         super(msg);
         this.code = code;
         this.msg = msg;
-        this.details = details;
+        this.detail = detail;
     }
 }

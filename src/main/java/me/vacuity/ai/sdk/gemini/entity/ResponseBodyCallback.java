@@ -15,7 +15,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 /**
  * Callback to parse Server Sent Events (SSE) from raw InputStream and
@@ -38,8 +37,23 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
     @Override
     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
         if (!response.isSuccessful()) {
-            handleErrorResponse(response);
-            return;
+            HttpException e = new HttpException(response);
+            ResponseBody errorBody = response.errorBody();
+
+            if (errorBody == null) {
+                throw e;
+            } else {
+                ChatResponseError error = null;
+                try {
+                    error = mapper.readValue(
+                            errorBody.string(),
+                            ChatResponseError.class
+                    );
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+                throw new VacSdkException("-1", "stream error", error);
+            }
         }
 
         try (BufferedReader reader = new BufferedReader(
@@ -139,25 +153,6 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
 
     private void processJsonObject(String json) throws IOException {
         emitter.onNext(new SSE(json));
-    }
-
-    private void handleErrorResponse(Response<ResponseBody> response) {
-        try {
-            HttpException e = new HttpException(response);
-            ResponseBody errorBody = response.errorBody();
-
-            if (errorBody == null) {
-                throw e;
-            }
-
-            List<ChatResponseError> errors = mapper.readValue(
-                    errorBody.string(),
-                    mapper.getTypeFactory().constructCollectionType(List.class, ChatResponseError.class)
-            );
-            throw new VacSdkException("-1", "stream error", errors);
-        } catch (IOException ex) {
-            emitter.onError(ex);
-        }
     }
 
     @Override

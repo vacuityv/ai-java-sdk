@@ -172,7 +172,7 @@ public class GeminiClient {
                 }
                 String errorBody = e.response().errorBody().string();
                 ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
-                VacSdkException ve = new VacSdkException("-1", "error", Arrays.asList(error));
+                VacSdkException ve = new VacSdkException("-1", "error", error);
                 throw ve;
             } catch (IOException ex) {
                 // couldn't parse error
