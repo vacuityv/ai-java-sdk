@@ -23,4 +23,5 @@ public class ResponseTypeConstant {
     public static final String DELTA_TYPE_JSON = "input_json_delta";
     public static final String DELTA_TYPE_THINKING = "thinking_delta";
     public static final String DELTA_TYPE_SIGNATURE = "signature_delta";
+    public static final String DELTA_TYPE_REDACTED_THINKING = "redacted_thinking";
 }
