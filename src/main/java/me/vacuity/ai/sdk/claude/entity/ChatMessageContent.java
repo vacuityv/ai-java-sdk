@@ -23,6 +23,10 @@ public class ChatMessageContent {
     private String type;
 
     private String text;
+    
+    private String thinking;
+    
+    private String signature;
 
     private ContentSource source;
 
@@ -53,4 +57,6 @@ public class ChatMessageContent {
 
         private String data;
     }
+
+    private String data;
 }

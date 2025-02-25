@@ -1,7 +1,6 @@
 package me.vacuity.ai.sdk.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.reactivex.Flowable;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
 import me.vacuity.ai.sdk.claude.constant.ResponseTypeConstant;
@@ -9,6 +8,7 @@ import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
+import me.vacuity.ai.sdk.claude.entity.Thinking;
 import me.vacuity.ai.sdk.claude.request.ChatRequest;
 import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import me.vacuity.ai.sdk.claude.response.StreamChatResponse;
@@ -42,17 +42,25 @@ import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
 public class ClaudeTest {
 
     public static final String API_KEY = "sk-*****";
+    public static final String MODEL = "claude-3-7-sonnet-20250219";
 
+    ClaudeClient client = new ClaudeClient(API_KEY);
 
     @Test
     public void chat() {
-        ClaudeClient client = new ClaudeClient(API_KEY);
+
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "introduce yourself pls"));
+        Thinking thinking = Thinking.builder()
+                .type("enabled")
+                .budgetTokens(32000)
+                .build();
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-5-sonnet-20240620")
+                .model(MODEL)
                 .messages(messages)
-                .maxTokens(1024)
+                .thinking(thinking)
+                .maxTokens(128000)
+                .temperature(1f)
                 .build();
         try {
             ChatResponse response = client.chat(request);
@@ -64,20 +72,28 @@ public class ClaudeTest {
 
     @Test
     public void streamChat() {
-//        ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(100), "https://example.com");
-        ClaudeClient client = new ClaudeClient(API_KEY);
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "鲁迅为什么打周树人"));
+        Thinking thinking = Thinking.builder()
+                .type("enabled")
+                .budgetTokens(32000)
+                .build();
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-5-sonnet-20240620")
+                .model(MODEL)
                 .messages(messages)
-                .maxTokens(1024)
+                .thinking(thinking)
+                .maxTokens(128000)
+                .temperature(1f)
                 .build();
         Flowable<StreamChatResponse> response = client.streamChat(request);
         response.doOnNext(s -> {
             if (ResponseTypeConstant.CONTENT_BLOCK_DELTA.equals(s.getType())) {
                 ChatMessageContent content = s.getDelta();
-                System.out.print(content.getText());
+                if (ResponseTypeConstant.DELTA_TYPE_TEXT.equals(content.getType())) {
+                    System.out.print("text:\n" + content.getText());
+                } else if (ResponseTypeConstant.DELTA_TYPE_THINKING.equals(content.getType())) {
+                    System.out.print("thinking:\n" + content.getThinking());
+                }
             } else if (ResponseTypeConstant.ERROR.equals(s.getType())) {
                 System.out.println(s.getError().getMessage());
             }
@@ -174,14 +190,20 @@ public class ClaudeTest {
                 .description("get the stock value of a stock on a date")
                 .executor(OpenaiTest.Stock.class, w -> new OpenaiTest.StockResponse(w.date, w.code, new Random().nextInt(50)))
                 .build()));
-        ClaudeClient client = new ClaudeClient(API_KEY, Duration.ofSeconds(120));
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "what's the stock value of AAPL on 2023-02-15"));
+
+        Thinking thinking = Thinking.builder()
+                .type("enabled")
+                .budgetTokens(32000)
+                .build();
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-5-sonnet-20240620")
+                .model(MODEL)
                 .messages(messages)
                 .tools(functionExecutor.getFunctions())
-                .maxTokens(1024)
+                .thinking(thinking)
+                .maxTokens(128000)
+                .temperature(1f)
                 .build();
         try {
             ChatResponse response = client.chat(request);
@@ -203,6 +225,8 @@ public class ClaudeTest {
                     System.out.println("function response:");
                     System.out.println(defaultObjectMapper().writeValueAsString(response2.getContent()));
                 } else {
+                    System.out.println(content.getThinking());
+                    System.out.println("===============");
                     System.out.println(content.getText());
                 }
             }
@@ -220,29 +244,36 @@ public class ClaudeTest {
                 .description("get the stock value of a stock on a date")
                 .executor(OpenaiTest.Stock.class, w -> new OpenaiTest.StockResponse(w.date, w.code, new Random().nextInt(50)))
                 .build()));
-        
-        ClaudeClient client = new ClaudeClient(API_KEY);
+
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("user", "what's the stock value of AAPL on 20230218"));
+        Thinking thinking = Thinking.builder()
+                .type("enabled")
+                .budgetTokens(32000)
+                .build();
         ChatRequest request = ChatRequest.builder()
-                .model("claude-3-5-sonnet-20240620")
+                .model(MODEL)
                 .messages(messages)
-                .maxTokens(2048)
                 .tools(functionExecutor.getFunctions())
+                .thinking(thinking)
+                .maxTokens(128000)
+                .temperature(1f)
                 .build();
 
         StringBuilder sb = new StringBuilder();
-        
+        StringBuilder sbk = new StringBuilder();
+        StringBuilder sbkg = new StringBuilder();
+
         ChatMessage assistantMsg = ChatMessage.builder()
                 .role("assistant")
                 .build();
-        
+
         List<ChatMessageContent> assistantContents = new ArrayList<>();
-        
+
         while (true) {
             Flowable<StreamChatResponse> response = client.streamChat(request);
 
-            
+
             Map<Integer, ChatFunctionCall> functionMap = new HashMap<>();
             Map<Integer, String> functionArguMap = new HashMap<>();
             response.doOnNext(s -> {
@@ -251,6 +282,10 @@ public class ClaudeTest {
                     ChatMessageContent content = s.getDelta() == null ? s.getContentBlock() : s.getDelta();
                     if (ResponseTypeConstant.DELTA_TYPE_TEXT.equals(content.getType())) {
                         sb.append(content.getText());
+                    } else if (ResponseTypeConstant.DELTA_TYPE_THINKING.equals(content.getType())) {
+                        sbk.append(content.getThinking());
+                    } else if (ResponseTypeConstant.DELTA_TYPE_SIGNATURE.equals(content.getType())) {
+                        sbkg.append(content.getSignature());
                     } else if (ResponseTypeConstant.DELTA_TYPE_TOOL_USE.equals(content.getType())) {
                         ChatFunctionCall call = new ChatFunctionCall();
                         call = new ChatFunctionCall();
@@ -270,12 +305,19 @@ public class ClaudeTest {
 
             }).blockingSubscribe();
 
+            System.out.println(sbk.toString());
             System.out.println(sb.toString());
+            ChatMessageContent content0 = ChatMessageContent.builder()
+                    .type("thinking")
+                    .thinking(sbk.toString())
+                    .signature(sbkg.toString())
+                    .build();
 
             ChatMessageContent content1 = ChatMessageContent.builder()
                     .type("text")
                     .text(sb.toString())
                     .build();
+            assistantContents.add(content0);
             assistantContents.add(content1);
 
             boolean functionFlag = false;

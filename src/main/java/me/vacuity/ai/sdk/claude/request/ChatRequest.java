@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NonNull;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
+import me.vacuity.ai.sdk.claude.entity.Thinking;
 
 import java.util.List;
 import java.util.Map;
@@ -36,15 +37,17 @@ public class ChatRequest {
     @JsonProperty("stop_sequences")
     private List<String> stopSequences;
 
-    private boolean stream;
+    private Boolean stream;
 
-    private float temperature;
+    private Float temperature;
 
     @JsonProperty("top_p")
-    private float topP;
+    private Float topP;
 
     @JsonProperty("top_k")
     private Integer topK;
 
     private List<ChatFunction> tools;
+
+    private Thinking thinking;
 }
