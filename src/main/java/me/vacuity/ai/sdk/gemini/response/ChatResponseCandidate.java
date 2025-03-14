@@ -18,6 +18,8 @@ public class ChatResponseCandidate {
 
     private String finishReason;
     
+    private Integer index;
+    
     private List<ChatResponseSafetyRating> safetyRatings;
 
     private GroundingMetadata groundingMetadata;

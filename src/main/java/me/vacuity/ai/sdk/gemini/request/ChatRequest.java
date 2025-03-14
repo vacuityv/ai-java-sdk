@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
+import me.vacuity.ai.sdk.gemini.enums.MediaResolution;
+import me.vacuity.ai.sdk.gemini.enums.Modality;
 
 import java.util.List;
 import java.util.Map;
@@ -57,15 +59,33 @@ public class ChatRequest {
     public static class GenerationConfig {
 
         private List<String> stopSequences;
+        
+        private String responseMimeType;
+        
+        private List<Modality> responseModalities;
+        
+        private Integer candidateCount;
 
-        private float temperature;
+        private Float temperature;
 
         private Integer maxOutputTokens;
 
-        private float topP;
+        private Float topP;
 
-        private float topK;
+        private Float topK;
         
-        private Map<String, Object> thinkingConfig;
+        private Integer seed;
+        
+        private Float presencePenalty;
+        
+        private Float frequencyPenalty;
+        
+        private Boolean responseLogprobs;
+        
+        private Integer logprobs;
+        
+        private Boolean enableEnhancedCivicAnswers;
+        
+        private MediaResolution mediaResolution;
     }
 }

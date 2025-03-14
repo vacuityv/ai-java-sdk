@@ -11,9 +11,11 @@ import me.vacuity.ai.sdk.gemini.api.GeminiApi;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
+import me.vacuity.ai.sdk.gemini.entity.ChatMessageContentPart;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
 import me.vacuity.ai.sdk.gemini.enums.HarmBlockThreshold;
 import me.vacuity.ai.sdk.gemini.enums.HarmCategory;
+import me.vacuity.ai.sdk.gemini.enums.Modality;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.ChatResponseCandidate;
@@ -79,7 +81,6 @@ public class GeminiTest {
         thinkingConfig.put("include_thoughts", Boolean.TRUE);
 
         ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder().build();
-        config.setThinkingConfig(thinkingConfig);
 
         ChatRequest request = ChatRequest.builder()
                 .model("gemini-2.0-flash-thinking-exp-01-21")
@@ -252,18 +253,13 @@ public class GeminiTest {
         List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
         safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
 
-        Map<String, Object> thinkingConfig = new HashMap<>();
-        thinkingConfig.put("include_thoughts", Boolean.TRUE);
 
-        ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder().build();
-        config.setThinkingConfig(thinkingConfig);
 
         ChatRequest request = ChatRequest.builder()
                 .model("gemini-2.0-flash-exp")
                 .contents(messages)
                 .safetySettings(safetySettings)
                 .tools(tools)
-//                .generationConfig(config)
                 .build();
         try {
 
@@ -271,6 +267,58 @@ public class GeminiTest {
 
             ChatResponse response = client.chat(request);
             System.out.println(response);
+        } catch (VacSdkException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    @SneakyThrows
+    @Test
+    public void generateImg() {
+
+        List<Tool> tools = new ArrayList<>();
+        tools.add(Tool.builder()
+                .googleSearch(new HashMap<>())
+                .build()
+        );
+
+        GeminiClient client = new GeminiClient(API_KEY);
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "画一写实的马"));
+
+        List<ChatRequest.SafetySetting> safetySettings = new ArrayList<>();
+        safetySettings.add(new ChatRequest.SafetySetting(HarmCategory.HARM_CATEGORY_HATE_SPEECH.toString(), HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE.toString()));
+
+        List<Modality> responseModalities = new ArrayList<>();
+        responseModalities.add(Modality.TEXT);
+        responseModalities.add(Modality.IMAGE);
+
+        ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder().build();
+        config.setResponseModalities(responseModalities);
+
+        ChatRequest request = ChatRequest.builder()
+                .model("gemini-2.0-flash-exp")
+                .contents(messages)
+                .safetySettings(safetySettings)
+//                .tools(tools)
+                .generationConfig(config)
+                .build();
+        try {
+
+            System.out.println(defaultObjectMapper().writeValueAsString(request));
+
+            ChatResponse response = client.chat(request);
+
+            List<ChatMessageContentPart> parts = response.getCandidates().get(0).getContent().getParts();
+            for (ChatMessageContentPart part : parts) {
+                if (part.getInlineData() != null) {
+                    System.out.println(part.getInlineData().getMimeType());
+                }
+                if (part.getText() != null) {
+                    System.out.println(part.getText());
+                }
+            }
+
         } catch (VacSdkException e) {
             System.out.println(e.getMessage());
         }

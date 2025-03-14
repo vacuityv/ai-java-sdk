@@ -23,7 +23,6 @@ public class ChatMessageContentPart {
 
     private String text;
 
-    @JsonProperty("inline_data")
     private InlineData inlineData;
     
     private ChatFunctionCall functionCall;
@@ -40,7 +39,6 @@ public class ChatMessageContentPart {
     @AllArgsConstructor
     public static class InlineData {
 
-        @JsonProperty("mime_type")
         private String mimeType;
 
         private String data;
