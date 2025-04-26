@@ -529,6 +529,9 @@ public class OpenaiClient {
         if (request.getModel() != null) {
             builder.addFormDataPart("model", request.getModel());
         }
+        if (request.getQuality() != null) {
+            builder.addFormDataPart("quality", request.getQuality());
+        }
         return execute(api.editImage(builder.build()));
     }
 

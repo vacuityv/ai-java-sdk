@@ -16,10 +16,20 @@ import lombok.Data;
 public class CreateImageRequest {
 
     private String prompt;
+    
+    private String background;
 
     private String model;
+    
+    private String moderation;
 
     private Integer n;
+
+    @JsonProperty("output_compression")
+    private Integer outputCompression;
+    
+    @JsonProperty("output_format")
+    private String outputFormat;
 
     private String quality;
 

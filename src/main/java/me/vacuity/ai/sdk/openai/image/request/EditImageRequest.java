@@ -21,6 +21,8 @@ public class EditImageRequest {
 
     private Integer n;
 
+    private String quality;
+
     private String size;
 
     @JsonProperty("response_format")
