@@ -48,10 +48,11 @@ import me.vacuity.ai.sdk.openai.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.openai.entity.SSE;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
-import me.vacuity.ai.sdk.openai.image.entity.Image;
+import me.vacuity.ai.sdk.openai.image.entity.ImageData;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
+import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
 import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
 import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
@@ -75,6 +76,7 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 import java.io.IOException;
 import java.net.Proxy;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -470,11 +472,11 @@ public class OpenaiClient {
         return assistantStream(api.streamSubmitToolOutputs(threadId, runId, submitToolOutputsRequest));
     }
 
-    public List<Image> createImage(CreateImageRequest request) {
-        return execute(api.createImage(request)).data;
+    public ImageResponse createImage(CreateImageRequest request) {
+        return execute(api.createImage(request));
     }
 
-    public List<Image> editImage(EditImageRequest request, String imagePath, String maskPath) {
+    public ImageResponse editImage(EditImageRequest request, String imagePath, String maskPath) {
         java.io.File image = new java.io.File(imagePath);
         java.io.File mask = null;
         if (maskPath != null) {
@@ -482,13 +484,35 @@ public class OpenaiClient {
         }
         return editImage(request, image, mask);
     }
+    public ImageResponse editImage(EditImageRequest request, List<String> imagePaths, String maskPath) {
+        List<java.io.File> images = new ArrayList<>();
+        for (String imagePath : imagePaths) {
+            java.io.File image = new java.io.File(imagePath);
+            images.add(image);
+        }
+        java.io.File maskFile = null;
+        if (maskPath != null) {
+            maskFile = new java.io.File(maskPath);
+        }
+        
+        return editImage(request, maskFile, images);
+    }
 
-    public List<Image> editImage(EditImageRequest request, java.io.File image, java.io.File mask) {
-        RequestBody imageBody = RequestBody.create(MediaType.parse("image"), image);
+    public ImageResponse editImage(EditImageRequest request, java.io.File image, java.io.File mask) {
+        List<java.io.File> images = new ArrayList<>();
+        images.add(image);
+        return editImage(request, mask, images);
+    }
+    
+    public ImageResponse editImage(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MediaType.get("multipart/form-data"))
-                .addFormDataPart("prompt", request.getPrompt())
-                .addFormDataPart("image", "image", imageBody);
+                .addFormDataPart("prompt", request.getPrompt());
+        // 添加多个图像
+        for (java.io.File image : images) {
+            RequestBody imageBody = RequestBody.create(image, MediaType.parse("image/png"));
+            builder.addFormDataPart("image[]", image.getName(), imageBody);
+        }
         if (request.getSize() != null) {
             builder.addFormDataPart("size", request.getSize());
         }
@@ -505,15 +529,15 @@ public class OpenaiClient {
         if (request.getModel() != null) {
             builder.addFormDataPart("model", request.getModel());
         }
-        return execute(api.editImage(builder.build())).data;
+        return execute(api.editImage(builder.build()));
     }
 
-    public List<Image> imageVariation(ImageVariationRequest request, String imagePath) {
+    public ImageResponse imageVariation(ImageVariationRequest request, String imagePath) {
         java.io.File image = new java.io.File(imagePath);
         return imageVariation(request, image);
     }
 
-    public List<Image> imageVariation(ImageVariationRequest request, java.io.File image) {
+    public ImageResponse imageVariation(ImageVariationRequest request, java.io.File image) {
         RequestBody imageBody = RequestBody.create(MediaType.parse("image"), image);
 
         MultipartBody.Builder builder = new MultipartBody.Builder()
@@ -534,7 +558,7 @@ public class OpenaiClient {
         if (request.getUser() != null) {
             builder.addFormDataPart("user", request.getUser());
         }
-        return execute(api.imageVariation(builder.build())).data;
+        return execute(api.imageVariation(builder.build()));
     }
 
 

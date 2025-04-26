@@ -13,7 +13,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class Image {
+public class ImageData {
 
     @JsonProperty("b64_json")
     private String b64Json;

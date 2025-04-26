@@ -1,13 +1,15 @@
 package me.vacuity.ai.sdk.test.openai;
 
 import me.vacuity.ai.sdk.openai.OpenaiClient;
-import me.vacuity.ai.sdk.openai.image.entity.Image;
+import me.vacuity.ai.sdk.openai.image.entity.ImageData;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
+import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -20,27 +22,33 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class OpenaiImageTest {
 
-    OpenaiClient client = new OpenaiClient(OpenaiConstant.API_KEY, Duration.ofSeconds(120));
+
+    public static final String MODEL = "gpt-image-1";
+    
+    OpenaiClient client = new OpenaiClient(OpenaiConstant.API_KEY, Duration.ofSeconds(600));
 
     @Test
     public void createImage() {
         CreateImageRequest request = CreateImageRequest.builder()
                 .prompt("a dog walk in the street, rainy day")
-                .responseFormat("url")
+                .model(MODEL)
                 .build();
-        List<Image> images = client.createImage(request);
-        assertNotNull(images);
-        System.out.println(images);
+        ImageResponse response = client.createImage(request);
+        System.out.println(response);
     }
 
     @Test
     public void editImage() {
-        String path = "/Users/vacuity/Downloads/IntelliJ_Plugin-FutureTest_java.png";
+        String path1 = "/Users/vacuity/Downloads/1916008131035820034.webp";
+        String path2 = "/Users/vacuity/Downloads/WechatIMG2938.jpg";
+        List<String> paths = new ArrayList<>();
+        paths.add(path1);
+        paths.add(path2);
         EditImageRequest request = EditImageRequest.builder()
-                .prompt("change the main color to red")
+                .prompt("put the first image into the second")
+                .model(MODEL)
                 .build();
-        List<Image> images = client.editImage(request, path, null);
-        assertNotNull(images);
+        ImageResponse images = client.editImage(request, paths, null);
         System.out.println(images);
     }
 
@@ -49,8 +57,7 @@ public class OpenaiImageTest {
         String path = "/Users/vacuity/Downloads/IntelliJ_Plugin-FutureTest_java.png";
         ImageVariationRequest request = ImageVariationRequest.builder()
                 .build();
-        List<Image> images = client.imageVariation(request, path);
-        assertNotNull(images);
+        ImageResponse images = client.imageVariation(request, path);
         System.out.println(images);
     }
 }
