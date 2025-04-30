@@ -21,6 +21,8 @@ import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileBatchRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreRequest;
+import me.vacuity.ai.sdk.openai.batch.entity.Batch;
+import me.vacuity.ai.sdk.openai.batch.request.CreateBatchRequest;
 import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
@@ -259,6 +261,18 @@ public interface OpenaiApi {
 
     @POST("v1/realtime/sessions")
     Single<RealtimeSession> createRealtimeSession(@Body CreateRealtimeSessionRequest request);
+
+    @POST("v1/batches")
+    Single<Batch> createBatch(@Body CreateBatchRequest request);
+
+    @GET("v1/batches/{batch_id}")
+    Single<Batch> retrieveBatch(@Path("batch_id") String batchId);
+
+    @POST("v1/batches/{batch_id}/cancel")
+    Single<Batch> cancelBatch(@Path("batch_id") String batchId);
+
+    @GET("v1/batches")
+    Single<ListResponse<Batch>> listBatch(@Query("after") String after, @Query("limit") Integer limit);
 
 }
 

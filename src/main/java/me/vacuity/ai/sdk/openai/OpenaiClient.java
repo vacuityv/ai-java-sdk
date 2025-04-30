@@ -37,6 +37,8 @@ import me.vacuity.ai.sdk.openai.assistant.request.ThreadRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileBatchRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreFileRequest;
 import me.vacuity.ai.sdk.openai.assistant.request.VectorStoreRequest;
+import me.vacuity.ai.sdk.openai.batch.entity.Batch;
+import me.vacuity.ai.sdk.openai.batch.request.CreateBatchRequest;
 import me.vacuity.ai.sdk.openai.entity.ChatFunction;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCallMixIn;
@@ -48,7 +50,6 @@ import me.vacuity.ai.sdk.openai.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.openai.entity.SSE;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
-import me.vacuity.ai.sdk.openai.image.entity.ImageData;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
@@ -484,6 +485,7 @@ public class OpenaiClient {
         }
         return editImage(request, image, mask);
     }
+
     public ImageResponse editImage(EditImageRequest request, List<String> imagePaths, String maskPath) {
         List<java.io.File> images = new ArrayList<>();
         for (String imagePath : imagePaths) {
@@ -494,7 +496,7 @@ public class OpenaiClient {
         if (maskPath != null) {
             maskFile = new java.io.File(maskPath);
         }
-        
+
         return editImage(request, maskFile, images);
     }
 
@@ -503,7 +505,7 @@ public class OpenaiClient {
         images.add(image);
         return editImage(request, mask, images);
     }
-    
+
     public ImageResponse editImage(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MediaType.get("multipart/form-data"))
@@ -623,5 +625,21 @@ public class OpenaiClient {
 
     public RealtimeSession createRealtimeSession(CreateRealtimeSessionRequest request) {
         return execute(api.createRealtimeSession(request));
+    }
+
+    public Batch createBatch(CreateBatchRequest request) {
+        return execute(api.createBatch(request));
+    }
+
+    public Batch retrieveBatch(String batchId) {
+        return execute(api.retrieveBatch(batchId));
+    }
+
+    public Batch cancelBatch(String batchId) {
+        return execute(api.cancelBatch(batchId));
+    }
+
+    public List<Batch> listBatch(String after, Integer limit) {
+        return execute(api.listBatch(after, limit)).getData();
     }
 }
