@@ -506,14 +506,37 @@ public class OpenaiClient {
         return editImage(request, mask, images);
     }
 
+    private String getMediaTypeStr(java.io.File file) {
+        String fileName = file.getName();
+        String mediaTypeStr;
+        if (fileName.endsWith(".png")) {
+            mediaTypeStr = "image/png";
+        } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+            mediaTypeStr = "image/jpeg";
+        } else if (fileName.endsWith(".gif")) {
+            mediaTypeStr = "image/gif";
+        } else if (fileName.endsWith(".webp")) {
+            mediaTypeStr = "image/webp";
+        } else {
+            mediaTypeStr = "application/octet-stream"; // 默认二进制
+        }
+        return mediaTypeStr;
+
+    }
+
     public ImageResponse editImage(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MediaType.get("multipart/form-data"))
                 .addFormDataPart("prompt", request.getPrompt());
         // 添加多个图像
-        for (java.io.File image : images) {
-            RequestBody imageBody = RequestBody.create(image, MediaType.parse("image/png"));
-            builder.addFormDataPart("image[]", image.getName(), imageBody);
+        if (images.size() == 1) {
+            RequestBody imageBody = RequestBody.create(images.get(0), MediaType.parse(getMediaTypeStr(images.get(0))));
+            builder.addFormDataPart("image", images.get(0).getName(), imageBody);
+        } else {
+            for (java.io.File image : images) {
+                RequestBody imageBody = RequestBody.create(image, MediaType.parse(getMediaTypeStr(image)));
+                builder.addFormDataPart("image[]", image.getName(), imageBody);
+            }
         }
         if (request.getSize() != null) {
             builder.addFormDataPart("size", request.getSize());
@@ -525,7 +548,7 @@ public class OpenaiClient {
             builder.addFormDataPart("n", request.getN().toString());
         }
         if (mask != null) {
-            RequestBody maskBody = RequestBody.create(MediaType.parse("image"), mask);
+            RequestBody maskBody = RequestBody.create(mask, MediaType.parse("image/png"));
             builder.addFormDataPart("mask", "mask", maskBody);
         }
         if (request.getModel() != null) {
