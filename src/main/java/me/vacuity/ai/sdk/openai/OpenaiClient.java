@@ -525,7 +525,7 @@ public class OpenaiClient {
             builder.addFormDataPart("n", request.getN().toString());
         }
         if (mask != null) {
-            RequestBody maskBody = RequestBody.create(MediaType.parse("image"), mask);
+            RequestBody maskBody = RequestBody.create(mask, MediaType.parse("image/png"));
             builder.addFormDataPart("mask", "mask", maskBody);
         }
         if (request.getModel() != null) {

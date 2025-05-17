@@ -1,7 +1,6 @@
 package me.vacuity.ai.sdk.test.openai;
 
 import me.vacuity.ai.sdk.openai.OpenaiClient;
-import me.vacuity.ai.sdk.openai.image.entity.ImageData;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
@@ -12,7 +11,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @description:
@@ -24,7 +22,7 @@ public class OpenaiImageTest {
 
 
     public static final String MODEL = "gpt-image-1";
-    
+
     OpenaiClient client = new OpenaiClient(OpenaiConstant.API_KEY, Duration.ofSeconds(600));
 
     @Test
@@ -59,5 +57,23 @@ public class OpenaiImageTest {
                 .build();
         ImageResponse images = client.imageVariation(request, path);
         System.out.println(images);
+    }
+
+    @Test
+    public void editImage2() {
+        Long s1 = System.currentTimeMillis() / 1000;
+        String path1 = "/Users/vacuity/Downloads/1916101639092477954.jpg";
+        String path2 = "/Users/vacuity/Downloads/mask.png";
+        List<String> paths = new ArrayList<>();
+        paths.add(path1);
+        EditImageRequest request = EditImageRequest.builder()
+                .prompt("把这一朵改成紫色")
+                .model(MODEL)
+                .build();
+        ImageResponse images = client.editImage(request, paths, path2);
+        Long s2 = System.currentTimeMillis() / 1000;
+        System.out.println("===============");
+        System.out.println(s2 - s1);
+        String base64 = images.getData().get(0).getB64Json();
     }
 }
