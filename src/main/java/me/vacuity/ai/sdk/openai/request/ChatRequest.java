@@ -6,6 +6,7 @@ import lombok.Data;
 import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.entity.StreamOptions;
+import me.vacuity.ai.sdk.xai.entity.SearchParameters;
 
 import java.util.List;
 import java.util.Map;
@@ -67,4 +68,8 @@ public class ChatRequest {
     private Object toolChoice;
 
     private String user;
+    
+    // XAI specific parameters
+    @JsonProperty("search_parameters")
+    private SearchParameters searchParameters;
 }
