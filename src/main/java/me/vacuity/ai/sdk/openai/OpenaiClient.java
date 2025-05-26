@@ -101,7 +101,6 @@ public class OpenaiClient {
     private final ExecutorService executorService;
 
     public OpenaiClient(final String token) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, DEFAULT_TIMEOUT);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
@@ -110,7 +109,6 @@ public class OpenaiClient {
     }
 
     public OpenaiClient(final String token, final Duration timeout) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
@@ -119,7 +117,6 @@ public class OpenaiClient {
     }
 
     public OpenaiClient(final String token, final Duration timeout, String baseUrl) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
 
@@ -150,7 +147,6 @@ public class OpenaiClient {
                     .header("Proxy-Authorization", credential)
                     .build();
         };
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -162,7 +158,6 @@ public class OpenaiClient {
     }
 
     public OpenaiClient(final String token, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -212,7 +207,7 @@ public class OpenaiClient {
                     throw e;
                 }
                 String errorBody = e.response().errorBody().string();
-                ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
+                ChatResponseError error = mapper.readValue(errorBody, ChatResponseError.class);
                 VacSdkException ve = new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error);
                 throw ve;
             } catch (IOException ex) {
@@ -420,18 +415,16 @@ public class OpenaiClient {
     }
 
     public List<Run> listRuns(String threadId, ListRequest listRequest) {
-        Map<String, String> search = new HashMap<>();
+        Map<String, String> search = new HashMap<>(8);
         if (listRequest != null) {
-            ObjectMapper mapper = defaultObjectMapper();
             search = mapper.convertValue(listRequest, Map.class);
         }
         return execute(api.listRuns(threadId, search)).data;
     }
 
     public List<RunStep> listRunSteps(String threadId, String runId, ListRequest listRequest) {
-        Map<String, Object> search = new HashMap<>();
+        Map<String, Object> search = new HashMap<>(8);
         if (listRequest != null) {
-            ObjectMapper mapper = defaultObjectMapper();
             search = mapper.convertValue(listRequest, Map.class);
         }
         return execute(api.listRunSteps(threadId, runId, search)).data;
@@ -487,7 +480,7 @@ public class OpenaiClient {
     }
 
     public ImageResponse editImage(EditImageRequest request, List<String> imagePaths, String maskPath) {
-        List<java.io.File> images = new ArrayList<>();
+        List<java.io.File> images = new ArrayList<>(imagePaths.size());
         for (String imagePath : imagePaths) {
             java.io.File image = new java.io.File(imagePath);
             images.add(image);
@@ -501,7 +494,7 @@ public class OpenaiClient {
     }
 
     public ImageResponse editImage(EditImageRequest request, java.io.File image, java.io.File mask) {
-        List<java.io.File> images = new ArrayList<>();
+        List<java.io.File> images = new ArrayList<>(1);
         images.add(image);
         return editImage(request, mask, images);
     }

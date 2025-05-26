@@ -18,7 +18,7 @@ import java.util.Optional;
 public class FunctionExecutor {
 
     public static final String FUNCTION_ROLE = "tool";
-    private final Map<String, ChatFunction> FUNCTIONS = new HashMap<>();
+    private final Map<String, ChatFunction> FUNCTIONS = new HashMap<>(16); // Pre-size with reasonable capacity
     private ObjectMapper MAPPER = new ObjectMapper();
 
     public FunctionExecutor(List<ChatFunction> functions) {
@@ -74,7 +74,8 @@ public class FunctionExecutor {
                     throw new RuntimeException("Parsing exception");
                 return objectNode;
             }
-            return MAPPER.readValue(MAPPER.writeValueAsString(execution), JsonNode.class);
+            // Optimize: Use convertValue instead of serialize->deserialize
+            return MAPPER.convertValue(execution, JsonNode.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

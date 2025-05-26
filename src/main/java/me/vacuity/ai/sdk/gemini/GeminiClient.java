@@ -54,7 +54,6 @@ public class GeminiClient {
     private String apiKey;
 
     public GeminiClient(final String apiKey) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(DEFAULT_TIMEOUT);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
@@ -64,7 +63,6 @@ public class GeminiClient {
     }
 
     public GeminiClient(final String apiKey, final Duration timeout) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
@@ -74,7 +72,6 @@ public class GeminiClient {
     }
 
     public GeminiClient(final String apiKey, final Duration timeout, String baseUrl) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
 
@@ -90,7 +87,6 @@ public class GeminiClient {
     }
 
     public GeminiClient(String apiKey, final Duration timeout, Proxy proxy) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -108,7 +104,6 @@ public class GeminiClient {
                     .header("Proxy-Authorization", credential)
                     .build();
         };
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -121,7 +116,6 @@ public class GeminiClient {
     }
 
     public GeminiClient(String apiKey, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -171,7 +165,7 @@ public class GeminiClient {
                     throw e;
                 }
                 String errorBody = e.response().errorBody().string();
-                ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
+                ChatResponseError error = mapper.readValue(errorBody, ChatResponseError.class);
                 VacSdkException ve = new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error);
                 throw ve;
             } catch (IOException ex) {

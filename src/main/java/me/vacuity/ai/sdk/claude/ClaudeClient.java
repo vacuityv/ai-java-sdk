@@ -52,7 +52,6 @@ public class ClaudeClient {
     private final ExecutorService executorService;
 
     public ClaudeClient(final String token) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, DEFAULT_TIMEOUT);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
@@ -61,7 +60,6 @@ public class ClaudeClient {
     }
 
     public ClaudeClient(final String token, final Duration timeout) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
@@ -70,7 +68,6 @@ public class ClaudeClient {
     }
 
     public ClaudeClient(final String token, final Duration timeout, String baseUrl) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, timeout);
         Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
 
@@ -101,7 +98,6 @@ public class ClaudeClient {
                     .header("Proxy-Authorization", credential)
                     .build();
         };
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -113,7 +109,6 @@ public class ClaudeClient {
     }
 
     public ClaudeClient(final String token, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
@@ -163,7 +158,7 @@ public class ClaudeClient {
                     throw e;
                 }
                 String errorBody = e.response().errorBody().string();
-                ChatResponseError error = defaultObjectMapper().readValue(errorBody, ChatResponseError.class);
+                ChatResponseError error = mapper.readValue(errorBody, ChatResponseError.class);
                 VacSdkException ve = new VacSdkException(error.getError().getType(), error.getError().getMessage(), error);
                 throw ve;
             } catch (IOException ex) {

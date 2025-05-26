@@ -33,5 +33,5 @@ public class Tool {
     private GoogleSearchRetrieval googleSearchRetrieval;
 
     @Builder.Default
-    private Map<String, Object> googleSearch = new HashMap<>();
+    private Map<String, Object> googleSearch = new HashMap<>(4);
 }

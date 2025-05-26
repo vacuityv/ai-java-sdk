@@ -20,7 +20,7 @@ import java.util.Optional;
 public class FunctionExecutor {
 
     public static final String FUNCTION_ROLE = "tool";
-    private final Map<String, ChatFunction> FUNCTIONS = new HashMap<>();
+    private final Map<String, ChatFunction> FUNCTIONS = new HashMap<>(16);
     private ObjectMapper MAPPER = new ObjectMapper();
 
     public FunctionExecutor(List<ChatFunction> functions) {
@@ -67,7 +67,7 @@ public class FunctionExecutor {
     }
 
     public ChatMessage executeAndConvertToMessage(List<ChatFunctionCall> calls) {
-        List<ChatMessageContent> contents = new ArrayList<>();
+        List<ChatMessageContent> contents = new ArrayList<>(calls.size());
         for (ChatFunctionCall call : calls) {
             ChatMessageContent content = new ChatMessageContent();
             content.setType("tool_result");
@@ -96,7 +96,7 @@ public class FunctionExecutor {
                     throw new RuntimeException("Parsing exception");
                 return objectNode;
             }
-            return MAPPER.readValue(MAPPER.writeValueAsString(execution), JsonNode.class);
+            return MAPPER.convertValue(execution, JsonNode.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
