@@ -23,8 +23,6 @@ import java.nio.charset.StandardCharsets;
  */
 public class ResponseBodyCallback implements Callback<ResponseBody> {
     private static final ObjectMapper mapper = GeminiClient.defaultObjectMapper();
-    private static final int MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB buffer limit
-    private static final int MAX_LINE_LENGTH = 64 * 1024; // 64KB per line limit
     
     private final FlowableEmitter<SSE> emitter;
     private StringBuilder jsonBuilder;
@@ -66,12 +64,6 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
-                
-                // Check line length limit
-                if (line.length() > MAX_LINE_LENGTH) {
-                    emitter.onError(new IOException("Line too long: " + line.length() + " bytes"));
-                    return;
-                }
                 
                 processLine(line);
             }
@@ -136,12 +128,6 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             if (line.equals(",")) {
                 isFirstObject = false;
                 jsonBuilder = new StringBuilder(1024); // Reset with pre-sized capacity
-                return;
-            }
-            
-            // Check buffer size limit before appending
-            if (jsonBuilder.length() + line.length() > MAX_BUFFER_SIZE) {
-                emitter.onError(new IOException("Buffer overflow: size would exceed " + MAX_BUFFER_SIZE + " bytes"));
                 return;
             }
 

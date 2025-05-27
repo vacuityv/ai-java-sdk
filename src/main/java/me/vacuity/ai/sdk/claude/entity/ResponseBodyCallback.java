@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
  */
 public class ResponseBodyCallback implements Callback<ResponseBody> {
     private static final ObjectMapper mapper = ClaudeClient.defaultObjectMapper();
-    private static final int MAX_LINE_LENGTH = 64 * 1024; // 64KB per line limit
     
     private FlowableEmitter<SSE> emitter;
     private boolean emitDone;
@@ -61,10 +60,6 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
 
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
                 // Check line length limit
-                if (line.length() > MAX_LINE_LENGTH) {
-                    emitter.onError(new IOException("Line too long: " + line.length() + " bytes"));
-                    return;
-                }
                 
                 if (line.startsWith("data:")) {
                     String data = line.substring(5).trim();
