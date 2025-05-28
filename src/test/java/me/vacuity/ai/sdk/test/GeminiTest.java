@@ -47,7 +47,7 @@ import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
 public class GeminiTest {
 
-    public static final String API_KEY = "***";
+    public static final String API_KEY = "*******";
 
 
     @Test
@@ -114,9 +114,9 @@ public class GeminiTest {
 
         List<Tool> tools = new ArrayList<>();
         // ⚠️ YOU CAN NOT USE BOTH FUNCTION AND CODE_EXCUTION
-        tools.add(Tool.builder()
-                .functionDeclarations(functionDeclarations)
-                .build());
+//        tools.add(Tool.builder()
+//                .functionDeclarations(functionDeclarations)
+//                .build());
 //        tools.add(Tool.builder()
 //                .codeExcution(CodeExcution.builder().build())
 //                .build());
@@ -125,14 +125,23 @@ public class GeminiTest {
 //        GeminiClient client = new GeminiClient(API_KEY, Duration.ofMinutes(1), BASE);
 
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "what's the weather of amoy on 2024-08-10"));
+        messages.add(new ChatMessage("user", "hello"));
 //        messages.add(new ChatMessage("user", "你好，用500字详细介绍下你自己"));
+        ChatRequest.ThinkingConfig thinkingConfig = ChatRequest.ThinkingConfig.builder()
+                .includeThoughts(Boolean.TRUE)
+                .build();
+        ChatRequest.GenerationConfig config = ChatRequest.GenerationConfig.builder()
+                .thinkingConfig(thinkingConfig)
+                .build();
         ChatRequest request = ChatRequest.builder()
-//                .model("gemini-2.0-flash-exp")
-                .model("gemini-1.5-pro-latest")
+                .model("gemini-2.5-pro-preview-05-06")
+//                .model("gemini-2.0-flash-preview-image-generation")
                 .tools(tools)
                 .contents(messages)
+                .generationConfig(config)
                 .build();
+        
+        
         System.out.println(defaultObjectMapper().writeValueAsString(request));
         System.out.println("ans:\n\n");
         try {

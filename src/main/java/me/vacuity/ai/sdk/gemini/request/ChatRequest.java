@@ -87,5 +87,18 @@ public class ChatRequest {
         private Boolean enableEnhancedCivicAnswers;
         
         private MediaResolution mediaResolution;
+        
+        private ThinkingConfig thinkingConfig;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ThinkingConfig {
+        
+        private Boolean includeThoughts;
+        
+        private Integer thinkingBudget;
     }
 }
