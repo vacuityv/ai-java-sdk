@@ -22,6 +22,8 @@ public class ChatMessageContent {
 
     @JsonProperty("image_url")
     private ImageUrl imageUrl;
+    
+    private ChatMessageContentFile file;
 
     @Data
     @Builder
@@ -33,5 +35,20 @@ public class ChatMessageContent {
         private String url;
 
         private String detail;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChatMessageContentFile {
+
+        @JsonProperty("file_id")
+        private String fileId;
+
+        private String filename;
+        
+        @JsonProperty("file_data")
+        private String fileData;
     }
 }

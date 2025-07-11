@@ -84,6 +84,9 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                     // do nothing
                 }
             }
+            if (response.body() != null) {
+                response.body().close();
+            }
         }
     }
 

@@ -72,6 +72,10 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
 
         } catch (Throwable t) {
             onFailure(call, t);
+        } finally {
+            if (response.body() != null) {
+                response.body().close();
+            }
         }
     }
 

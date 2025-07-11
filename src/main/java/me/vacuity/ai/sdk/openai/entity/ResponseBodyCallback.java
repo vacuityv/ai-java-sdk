@@ -83,6 +83,9 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
                 } catch (IOException e) {
                 }
             }
+            if (response.body() != null) {
+                response.body().close();
+            }
         }
     }
 
