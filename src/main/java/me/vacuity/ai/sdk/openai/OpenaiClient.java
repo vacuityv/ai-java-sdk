@@ -181,8 +181,10 @@ public class OpenaiClient {
     public static OkHttpClient defaultClient(String apiKey, Duration timeout) {
         return new OkHttpClient.Builder()
                 .addInterceptor(new OpenaiAuthenticationInterceptor(apiKey))
-                .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
+                .connectionPool(new ConnectionPool(5, 5, TimeUnit.MINUTES))
+                .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
+                .writeTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .build();
     }
 

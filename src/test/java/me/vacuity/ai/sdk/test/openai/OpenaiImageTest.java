@@ -23,7 +23,7 @@ public class OpenaiImageTest {
 
     public static final String MODEL = "gpt-image-1";
 
-    OpenaiClient client = new OpenaiClient(OpenaiConstant.API_KEY, Duration.ofSeconds(600));
+    OpenaiClient client = new OpenaiClient(OpenaiConstant.API_KEY, Duration.ofSeconds(1200));
 
     @Test
     public void createImage() {

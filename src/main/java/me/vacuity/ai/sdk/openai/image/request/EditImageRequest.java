@@ -29,4 +29,7 @@ public class EditImageRequest {
     private String responseFormat;
 
     private String user;
+
+    @JsonProperty("input_fidelity")
+    private String inputFidelity;
 }
