@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 /**
  * @description:
  * @author: vacuity
@@ -33,7 +35,7 @@ public class ChatMessageContent {
     @JsonProperty("tool_use_id")
     private String toolUseId;
 
-    private String content;
+    private Object content;
 
     // only in function response
     private String id;

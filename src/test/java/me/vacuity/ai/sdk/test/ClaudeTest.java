@@ -50,17 +50,27 @@ public class ClaudeTest {
     public void chat() {
 
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "introduce yourself pls"));
+        messages.add(new ChatMessage("user", "这个链接主要讲了什么：https://www.xiaohu.ai/c/xiaohu-ai/claude-excel-ppt-pdf"));
         Thinking thinking = Thinking.builder()
                 .type("enabled")
                 .budgetTokens(32000)
                 .build();
+        
+        List<ChatFunction> functions = new ArrayList<>();
+        ChatFunction search = ChatFunction.builder()
+                .type("web_fetch_20250910")
+                .name("web_fetch")
+                .maxUses(5)
+                .build();
+        functions.add(search);
+        
         ChatRequest request = ChatRequest.builder()
                 .model(MODEL)
                 .messages(messages)
                 .thinking(thinking)
-                .maxTokens(128000)
+                .maxTokens(64000)
                 .temperature(1f)
+                .tools(functions)
                 .build();
         try {
             ChatResponse response = client.chat(request);
@@ -73,17 +83,27 @@ public class ClaudeTest {
     @Test
     public void streamChat() {
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "鲁迅为什么打周树人"));
+        messages.add(new ChatMessage("user", "这个链接主要讲了什么：https://www.xiaohu.ai/c/xiaohu-ai/claude-excel-ppt-pdf"));
         Thinking thinking = Thinking.builder()
                 .type("enabled")
                 .budgetTokens(32000)
                 .build();
+
+        List<ChatFunction> functions = new ArrayList<>();
+        ChatFunction search = ChatFunction.builder()
+                .type("web_fetch_20250910")
+                .name("web_fetch")
+                .maxUses(5)
+                .build();
+        functions.add(search);
+        
         ChatRequest request = ChatRequest.builder()
                 .model(MODEL)
                 .messages(messages)
                 .thinking(thinking)
-                .maxTokens(128000)
+                .maxTokens(64000)
                 .temperature(1f)
+                .tools(functions)
                 .build();
         Flowable<StreamChatResponse> response = client.streamChat(request);
         response.doOnNext(s -> {
