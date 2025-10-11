@@ -8,5 +8,5 @@ package me.vacuity.ai.sdk.test.openai;
 
 public class OpenaiConstant {
 
-    public static final String API_KEY = "sk-******";
+    public static final String API_KEY = System.getenv("OPENAI_API_KEY");
 }

@@ -20,7 +20,7 @@ import java.util.List;
 
 public class XaiTest {
 
-    public static final String API_KEY = "xai-*****";
+    public static final String API_KEY = System.getenv("XAI_API_KEY");
     public static final String HOST = "https://api.x.ai/";
 
     @Test

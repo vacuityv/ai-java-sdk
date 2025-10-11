@@ -41,7 +41,7 @@ import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
 
 public class ClaudeTest {
 
-    public static final String API_KEY = "sk-*****";
+    public static final String API_KEY = System.getenv("CLAUDE_API_KEY");
     public static final String MODEL = "claude-3-7-sonnet-20250219";
 
     ClaudeClient client = new ClaudeClient(API_KEY);

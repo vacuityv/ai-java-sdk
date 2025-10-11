@@ -26,7 +26,7 @@ import java.util.List;
 public class GptPdfTest {
 
 
-    public static final String API_KEY = "sk-proj-*******";
+    public static final String API_KEY = System.getenv("OPENAI_API_KEY");
 
 
     OpenaiClient client = new OpenaiClient(API_KEY);

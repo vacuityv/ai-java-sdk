@@ -27,7 +27,7 @@ public class DeepseekTest {
 
     public static final String URL = "https://api.deepseek.com/";
 
-    public static final String API_KEY = "sk-*******";
+    public static final String API_KEY = System.getenv("DEEPSEEK_API_KEY");
 
     public static final OpenaiClient client = new OpenaiClient(API_KEY, Duration.ofMinutes(1), URL);
 
