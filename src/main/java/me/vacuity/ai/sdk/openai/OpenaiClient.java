@@ -55,6 +55,9 @@ import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
 import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
 import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
+import me.vacuity.ai.sdk.openai.video.entity.VideoJob;
+import me.vacuity.ai.sdk.openai.video.request.CreateVideoRequest;
+import me.vacuity.ai.sdk.openai.video.request.RemixVideoRequest;
 import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
 import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
@@ -73,6 +76,7 @@ import retrofit2.HttpException;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
+import retrofit2.http.Query;
 
 import java.io.IOException;
 import java.net.Proxy;
@@ -659,5 +663,52 @@ public class OpenaiClient {
 
     public List<Batch> listBatch(String after, Integer limit) {
         return execute(api.listBatch(after, limit)).getData();
+    }
+
+    public VideoJob createVideo(CreateVideoRequest request, String imagePath) {
+        java.io.File image = new java.io.File(imagePath);
+        return createVideo(request, image);
+    }
+    
+    public VideoJob createVideo(CreateVideoRequest request, java.io.File image) {
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MediaType.get("multipart/form-data"));
+
+        if (image != null) {
+            RequestBody imageBody = RequestBody.create(MediaType.parse("image"), image);
+            builder.addFormDataPart("input_reference", image.getName(), imageBody);
+        }
+
+        builder.addFormDataPart("prompt", request.getPrompt());
+        if (request.getModel() != null) {
+            builder.addFormDataPart("model", request.getModel());
+        }
+        if (request.getSeconds() != null) {
+            builder.addFormDataPart("seconds", request.getSeconds());
+        }
+        if (request.getSize() != null) {
+            builder.addFormDataPart("size", request.getSize());
+        }
+        return execute(api.createVideo(builder.build()));
+    }
+
+    public VideoJob remixVideo(String videoId, RemixVideoRequest request) {
+        return execute(api.remixVideo(videoId, request));
+    }
+
+    public List<VideoJob> listVideos(String after, Integer limit, String order) {
+        return execute(api.listVideos(after, limit, order)).getData();
+    }
+
+    public VideoJob retrieveVideo(String videoId) {
+        return execute(api.retrieveVideo(videoId));
+    }
+
+    public VideoJob deleteVideo(String videoId) {
+        return execute(api.deleteVideo(videoId));
+    }
+
+    public ResponseBody retrieveVideoContent(String videoId, String variant) {
+        return execute(api.retrieveVideoContent(videoId, variant));
     }
 }

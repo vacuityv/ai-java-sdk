@@ -33,6 +33,8 @@ import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.ListResponse;
+import me.vacuity.ai.sdk.openai.video.entity.VideoJob;
+import me.vacuity.ai.sdk.openai.video.request.RemixVideoRequest;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -274,5 +276,23 @@ public interface OpenaiApi {
     @GET("v1/batches")
     Single<ListResponse<Batch>> listBatch(@Query("after") String after, @Query("limit") Integer limit);
 
+    @POST("v1/videos")
+    Single<VideoJob> createVideo(@Body RequestBody requestBody);
+
+    @POST("v1/videos/{video_id}/remix")
+    Single<VideoJob> remixVideo(@Path("video_id") String videoId, @Body RemixVideoRequest request);
+
+    @GET("v1/videos")
+    Single<ListResponse<VideoJob>> listVideos(@Query("after") String after, @Query("limit") Integer limit, @Query("order") String order);
+
+    @GET("v1/videos/{video_id}")
+    Single<VideoJob> retrieveVideo(@Path("video_id") String videoId);
+
+    @DELETE("v1/videos/{video_id}")
+    Single<VideoJob> deleteVideo(@Path("video_id") String videoId);
+
+    @Streaming
+    @GET("v1/videos/{video_id}/content")
+    Single<ResponseBody> retrieveVideoContent(@Path("video_id") String videoId, @Query("variant") String variant);
 }
 

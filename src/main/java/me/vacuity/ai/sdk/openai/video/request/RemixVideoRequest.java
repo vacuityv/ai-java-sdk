@@ -1,0 +1,21 @@
+package me.vacuity.ai.sdk.openai.video.request;
+
+import lombok.Builder;
+import lombok.Data;
+
+/**
+ * @description: Request for remixing a video with Sora API
+ * @author: vacuity
+ * @create: 2025-10-11
+ **/
+
+@Data
+@Builder
+public class RemixVideoRequest {
+
+    /**
+     * Updated text prompt that directs the remix generation.
+     * Required.
+     */
+    private String prompt;
+}
