@@ -1,15 +1,9 @@
-package me.vacuity.ai.sdk.test;
+package me.vacuity.ai.sdk.test.gemini;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import me.vacuity.ai.sdk.common.VacSdkException;
 import me.vacuity.ai.sdk.gemini.GeminiClient;
-import me.vacuity.ai.sdk.gemini.api.GeminiApi;
-import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
-import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessageContentPart;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
@@ -18,36 +12,22 @@ import me.vacuity.ai.sdk.gemini.enums.HarmCategory;
 import me.vacuity.ai.sdk.gemini.enums.Modality;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
-import me.vacuity.ai.sdk.gemini.response.ChatResponseCandidate;
 import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
-import me.vacuity.ai.sdk.gemini.service.FunctionExecutor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Response;
 import org.junit.jupiter.api.Test;
-import retrofit2.Retrofit;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultClient;
 import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultObjectMapper;
-import static me.vacuity.ai.sdk.gemini.GeminiClient.defaultRetrofit;
 
 /**
  * @description:
@@ -168,9 +148,6 @@ public class GeminiTest {
         ChatResponse response = client.chat(request);
 
         System.out.println(response);
-
-
-
     }
 
     @Test

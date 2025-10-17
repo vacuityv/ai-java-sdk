@@ -19,6 +19,9 @@ import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
+import me.vacuity.ai.sdk.gemini.video.request.VeoVideoFetchRequest;
+import me.vacuity.ai.sdk.gemini.video.request.VeoVideoRequest;
+import me.vacuity.ai.sdk.gemini.video.response.VeoVideoResponse;
 import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
@@ -54,7 +57,7 @@ public class GeminiClient {
     private String apiKey;
 
     public GeminiClient(final String apiKey) {
-        OkHttpClient client = defaultClient(DEFAULT_TIMEOUT);
+        OkHttpClient client = defaultClient(DEFAULT_TIMEOUT, apiKey);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
         this.apiKey = apiKey;
@@ -63,7 +66,7 @@ public class GeminiClient {
     }
 
     public GeminiClient(final String apiKey, final Duration timeout) {
-        OkHttpClient client = defaultClient(timeout);
+        OkHttpClient client = defaultClient(timeout, apiKey);
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
         this.apiKey = apiKey;
@@ -72,7 +75,7 @@ public class GeminiClient {
     }
 
     public GeminiClient(final String apiKey, final Duration timeout, String baseUrl) {
-        OkHttpClient client = defaultClient(timeout);
+        OkHttpClient client = defaultClient(timeout, apiKey);
         Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
 
         this.apiKey = apiKey;
@@ -87,7 +90,7 @@ public class GeminiClient {
     }
 
     public GeminiClient(String apiKey, final Duration timeout, Proxy proxy) {
-        OkHttpClient httpClient = defaultClient(timeout)
+        OkHttpClient httpClient = defaultClient(timeout, apiKey)
                 .newBuilder()
                 .proxy(proxy)
                 .build();
@@ -104,7 +107,7 @@ public class GeminiClient {
                     .header("Proxy-Authorization", credential)
                     .build();
         };
-        OkHttpClient httpClient = defaultClient(timeout)
+        OkHttpClient httpClient = defaultClient(timeout, apiKey)
                 .newBuilder()
                 .proxy(proxy)
                 .proxyAuthenticator(proxyAuthenticator)
@@ -116,7 +119,7 @@ public class GeminiClient {
     }
 
     public GeminiClient(String apiKey, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
-        OkHttpClient httpClient = defaultClient(timeout)
+        OkHttpClient httpClient = defaultClient(timeout, apiKey)
                 .newBuilder()
                 .proxy(proxy)
                 .proxyAuthenticator(proxyAuthenticator)
@@ -136,9 +139,9 @@ public class GeminiClient {
         return mapper;
     }
 
-    public static OkHttpClient defaultClient(Duration timeout) {
+    public static OkHttpClient defaultClient(Duration timeout, String apiKey) {
         return new OkHttpClient.Builder()
-                .addInterceptor(new GeminiAuthenticationInterceptor())
+                .addInterceptor(new GeminiAuthenticationInterceptor(apiKey))
                 .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
                 .readTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .build();
@@ -194,11 +197,24 @@ public class GeminiClient {
     }
 
     public ChatResponse chat(ChatRequest request) {
-        return execute(api.chat(request.getModel(), this.apiKey, request));
+        return execute(api.chat(request.getModel(), request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
-        return stream(api.streamChat(request.getModel(), this.apiKey, request), StreamChatResponse.class);
+        return stream(api.streamChat(request.getModel(), request), StreamChatResponse.class);
+    }
+
+    
+    public VeoVideoResponse generateVideo(String model, VeoVideoRequest request) {
+        return execute(api.generateVideo(model, request));
+    }
+
+    public VeoVideoResponse fetchVideoOperation(String operationName) {
+        return execute(api.fetchVideoOperation(operationName));
+    }
+    
+    public ResponseBody downloadVeoVideo(String videoUrl) {
+        return execute(api.downloadVeoVideo(videoUrl));
     }
 
 }
