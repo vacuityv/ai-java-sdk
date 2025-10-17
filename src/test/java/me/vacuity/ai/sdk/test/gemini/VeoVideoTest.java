@@ -14,8 +14,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,7 +29,8 @@ import static org.junit.jupiter.api.Assertions.*;
  **/
 public class VeoVideoTest {
 
-    public static final String MODEL = "veo-3.1-fast-generate-preview";
+//    public static final String MODEL = "veo-3.1-fast-generate-preview";
+    public static final String MODEL = "veo-3.1-generate-preview";
 
     private static final String API_KEY = System.getenv("GEMINI_API_KEY");
     private GeminiClient client;
@@ -221,14 +225,57 @@ public class VeoVideoTest {
     public void testPollVideoCompletion() throws InterruptedException, IOException {
         System.out.println("========== Test 5: Poll for Video Completion ==========");
 
+        String imagePath = "/Users/vacuity/Downloads/720.jpg";
+        byte[] imageBytes;
+        try {
+            imageBytes = Files.readAllBytes(Paths.get(imagePath));
+        } catch (IOException e) {
+            System.out.println("Reference image not found, skipping test: " + e.getMessage());
+            return;
+        }
+
+
+        String base64RefImage = Base64.getEncoder().encodeToString(imageBytes);
+        VeoVideoRequest.Media image = VeoVideoRequest.Media.builder()
+                .bytesBase64Encoded(base64RefImage)
+                .mimeType("image/jpeg")
+                .build();
+
+        
+        List<String> paths = Arrays.asList("/Users/vacuity/Downloads/1.jpg", "/Users/vacuity/Downloads/3.jpg", "/Users/vacuity/Downloads/3.jpg");
+        List<VeoVideoRequest.ReferenceImage> referenceImages = new ArrayList<>();
+        for (int i = 0; i < paths.size(); i++) {
+            byte[] imageBytes2;
+            try {
+                imageBytes2 = Files.readAllBytes(Paths.get(paths.get(i)));
+            } catch (IOException e) {
+                System.out.println("Reference image not found, skipping test: " + e.getMessage());
+                return;
+            }
+
+
+            String base64RefImage2 = Base64.getEncoder().encodeToString(imageBytes2);
+            VeoVideoRequest.Media image2 = VeoVideoRequest.Media.builder()
+                    .bytesBase64Encoded(base64RefImage2)
+                    .mimeType("image/jpeg")
+                    .build();
+            VeoVideoRequest.ReferenceImage referenceImage = VeoVideoRequest.ReferenceImage.builder()
+                    .image(image2)
+                    .referenceType("asset")
+                    .build();
+            referenceImages.add(referenceImage);
+        }
+
         // Create video generation request
         VeoVideoRequest.Instance instance = VeoVideoRequest.Instance.builder()
-                .prompt("一批白色的马奔跑在沙滩上")
+                .prompt("根据图片生成一段影视片段，要求电影级的效果")
+                .image(image)
+                .referenceImages(referenceImages)
                 .build();
 
         VeoVideoRequest.Parameters parameters = VeoVideoRequest.Parameters.builder()
                 .aspectRatio(VeoVideoConstant.AspectRatio.RATIO_16_9)
-                .durationSeconds(4)
+                .durationSeconds(8)
                 .sampleCount(1)
                 .build();
 
@@ -244,7 +291,7 @@ public class VeoVideoTest {
         System.out.println("Started video generation: " + operationName);
 
         // Poll for completion (max 5 attempts with 10 second intervals)
-        int maxAttempts = 10;
+        int maxAttempts = 20;
         int pollIntervalSeconds = 10;
         boolean completed = false;
 
