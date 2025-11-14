@@ -68,6 +68,12 @@ public class ChatRequest {
     private Object toolChoice;
 
     private String user;
+
+    @JsonProperty("reasoning_effort")
+    private String reasoningEffort;
+    
+    @JsonProperty("verbosity")
+    private String verbosity;
     
     // XAI specific parameters
     @JsonProperty("search_parameters")

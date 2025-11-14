@@ -321,4 +321,25 @@ public class OpenaiTest {
             this.value = value;
         }
     }
+
+    @Test
+    public void simpleChat() {
+
+        OpenaiClient client = new OpenaiClient(API_KEY);
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("user", "hello"));
+        ChatRequest request = ChatRequest.builder()
+                .model("gpt-5.1")
+                .messages(messages)
+                .reasoningEffort("medium")
+                .build();
+        try {
+            ChatResponse response = client.chat(request);
+            System.out.println(response.getChoices().get(0).getMessage().getReasoningContent());
+            System.out.println(response.getSingleContent());
+            System.out.println(response.getUsage());
+        } catch (VacSdkException e) {
+            System.out.println(e);
+        }
+    }
 }
