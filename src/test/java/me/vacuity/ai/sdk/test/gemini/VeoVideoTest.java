@@ -497,4 +497,89 @@ public class VeoVideoTest {
             System.out.println("Saved to: " + outputPath);
         }
     }
+    
+    private VeoVideoRequest.Media initMedia(String imagePath) throws IOException {
+        byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
+        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+        return VeoVideoRequest.Media.builder()
+                .bytesBase64Encoded(base64Image)
+                .mimeType("image/jpeg")
+                .build();
+    }
+
+    @Test
+    public void testVvvvvv() throws InterruptedException, IOException {
+
+        VeoVideoRequest.Media image = initMedia("/Users/vacuity/Downloads/1.jpeg");
+        VeoVideoRequest.Media lastFrame = initMedia("/Users/vacuity/Downloads/2.jpeg");
+        
+
+        // Create video generation request
+        VeoVideoRequest.Instance instance = VeoVideoRequest.Instance.builder()
+                .prompt("The race begins. The white rabbit with pink inner ears, blue eyes, pink nose, wearing red vest with white number \"1\" explosively launches from the starting line. Rabbit transitions from standing ready pose to powerful jumping motion, legs extending and compressing rhythmically, arms pumping, ears bouncing with each leap. Rabbit rapidly accelerates forward down the forest path, creating dramatic dust clouds trailing behind. The green turtle with yellow-green shell, yellow headband with number \"2\" starts slowly, lowering body into crawling position, taking tiny steady steps, remaining very close to the starting area. Camera perspective stays fixed showing the widening gap between them. By the end, rabbit is mid-leap in the foreground with visible pink paw pads, while turtle becomes small in the background near the yellow \"2\" marker post. Morning sunlight streams through trees, dynamic motion, speed lines emphasizing rabbit's velocity. 3D cartoon animation style, 8 seconds.")
+                .image(image)
+                .lastFrame(lastFrame)
+                .build();
+
+        VeoVideoRequest.Parameters parameters = VeoVideoRequest.Parameters.builder()
+                .aspectRatio(VeoVideoConstant.AspectRatio.RATIO_16_9)
+                .durationSeconds(8)
+                .sampleCount(1)
+                .build();
+
+        VeoVideoRequest request = VeoVideoRequest.builder()
+                .instances(Collections.singletonList(instance))
+                .parameters(parameters)
+                .build();
+
+        // Generate video
+        VeoVideoResponse initialResponse = client.generateVideo(MODEL, request);
+        String operationName = initialResponse.getName();
+
+        System.out.println("Started video generation: " + operationName);
+
+        // Poll for completion (max 5 attempts with 10 second intervals)
+        int maxAttempts = 20;
+        int pollIntervalSeconds = 10;
+        boolean completed = false;
+
+        for (int i = 0; i < maxAttempts; i++) {
+            System.out.println("Polling attempt " + (i + 1) + "/" + maxAttempts);
+
+            VeoVideoResponse statusResponse = client.fetchVideoOperation(operationName);
+
+            if (statusResponse.getDone() != null && statusResponse.getDone()) {
+                completed = true;
+                System.out.println("Video generation completed!");
+
+                if (statusResponse.getResponse() != null &&
+                        statusResponse.getResponse().getGenerateVideoResponse() != null &&
+                        statusResponse.getResponse().getGenerateVideoResponse().getGeneratedSamples() != null) {
+                    int videoCount = statusResponse.getResponse().getGenerateVideoResponse().getGeneratedSamples().size();
+                    System.out.println("Successfully generated " + videoCount + " video(s)");
+
+                    // Print video URIs and download
+                    for (int j = 0; j < videoCount; j++) {
+                        String videoUri = statusResponse.getResponse().getGenerateVideoResponse()
+                                .getGeneratedSamples().get(j).getVideo().getUri();
+                        System.out.println("Video " + (j + 1) + " URI: " + videoUri);
+
+                        // Download the video
+                        download(videoUri);
+                    }
+                }
+                break;
+            } else {
+                System.out.println("Still processing... waiting " + pollIntervalSeconds + " seconds");
+                if (i < maxAttempts - 1) {
+                    Thread.sleep(pollIntervalSeconds * 1000L);
+                }
+            }
+        }
+
+        if (!completed) {
+            System.out.println("Video generation did not complete within polling window");
+            System.out.println("Note: This is normal for video generation which can take several minutes");
+        }
+    }
 }

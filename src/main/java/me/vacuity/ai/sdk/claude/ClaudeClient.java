@@ -81,7 +81,6 @@ public class ClaudeClient {
     }
 
     public ClaudeClient(final String token, final Duration timeout, Proxy proxy) {
-        ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient httpClient = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)

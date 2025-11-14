@@ -2,6 +2,7 @@ package me.vacuity.ai.sdk.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.reactivex.Flowable;
+import lombok.extern.slf4j.Slf4j;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
 import me.vacuity.ai.sdk.claude.constant.ResponseTypeConstant;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
@@ -39,10 +40,11 @@ import static me.vacuity.ai.sdk.claude.ClaudeClient.defaultObjectMapper;
  * @create: 2024-03-06 11:14
  **/
 
+@Slf4j
 public class ClaudeTest {
 
     public static final String API_KEY = System.getenv("CLAUDE_API_KEY");
-    public static final String MODEL = "claude-3-7-sonnet-20250219";
+    public static final String MODEL = "claude-sonnet-4-5-20250929";
 
     ClaudeClient client = new ClaudeClient(API_KEY);
 
@@ -50,7 +52,7 @@ public class ClaudeTest {
     public void chat() {
 
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("user", "这个链接主要讲了什么：https://www.xiaohu.ai/c/xiaohu-ai/claude-excel-ppt-pdf"));
+        messages.add(new ChatMessage("user", "hi"));
         Thinking thinking = Thinking.builder()
                 .type("enabled")
                 .budgetTokens(32000)
@@ -76,6 +78,7 @@ public class ClaudeTest {
             ChatResponse response = client.chat(request);
             System.out.println(response);
         } catch (VacSdkException e) {
+            log.error("Exception occurred during chat", e);
             System.out.println(e.getMessage());
         }
     }
