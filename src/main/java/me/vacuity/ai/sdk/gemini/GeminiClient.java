@@ -143,7 +143,9 @@ public class GeminiClient {
         return new OkHttpClient.Builder()
                 .addInterceptor(new GeminiAuthenticationInterceptor(apiKey))
                 .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
+                .connectTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .readTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
+                .writeTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .build();
     }
 
