@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class ResponseBodyCallback implements Callback<ResponseBody> {
     private static final ObjectMapper mapper = GeminiClient.defaultObjectMapper();
-    
+
     private final FlowableEmitter<SSE> emitter;
     private StringBuilder jsonBuilder;
     private int squareBracketCount = 0;  // 方括号计数
@@ -64,7 +64,7 @@ public class ResponseBodyCallback implements Callback<ResponseBody> {
             while (!emitter.isCancelled() && (line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
-                
+
                 processLine(line);
             }
 

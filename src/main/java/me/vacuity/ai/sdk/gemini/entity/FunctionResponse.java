@@ -19,6 +19,6 @@ import lombok.NoArgsConstructor;
 public class FunctionResponse {
 
     private String name;
-    
+
     private JsonNode response;
 }

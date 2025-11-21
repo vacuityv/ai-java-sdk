@@ -19,7 +19,6 @@ import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
-import me.vacuity.ai.sdk.gemini.video.request.VeoVideoFetchRequest;
 import me.vacuity.ai.sdk.gemini.video.request.VeoVideoRequest;
 import me.vacuity.ai.sdk.gemini.video.response.VeoVideoResponse;
 import okhttp3.Authenticator;
@@ -36,7 +35,6 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 import java.io.IOException;
 import java.net.Proxy;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -54,7 +52,7 @@ public class GeminiClient {
     private static final ObjectMapper mapper = defaultObjectMapper();
     private final GeminiApi api;
     private final ExecutorService executorService;
-    private String apiKey;
+    private final String apiKey;
 
     public GeminiClient(final String apiKey) {
         OkHttpClient client = defaultClient(DEFAULT_TIMEOUT, apiKey);
@@ -206,7 +204,7 @@ public class GeminiClient {
         return stream(api.streamChat(request.getModel(), request), StreamChatResponse.class);
     }
 
-    
+
     public VeoVideoResponse generateVideo(String model, VeoVideoRequest request) {
         return execute(api.generateVideo(model, request));
     }
@@ -214,7 +212,7 @@ public class GeminiClient {
     public VeoVideoResponse fetchVideoOperation(String operationName) {
         return execute(api.fetchVideoOperation(operationName));
     }
-    
+
     public ResponseBody downloadVeoVideo(String videoUrl) {
         return execute(api.downloadVeoVideo(videoUrl));
     }

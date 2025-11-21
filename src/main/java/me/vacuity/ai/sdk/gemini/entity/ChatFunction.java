@@ -2,6 +2,7 @@ package me.vacuity.ai.sdk.gemini.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class ChatFunction {
     private String description;
 
     @JsonProperty("parameters")
+    @JsonSerialize(using = ChatFunctionParametersSerializerAndDeserializer.Serializer.class)
     private Class<?> parametersClass;
 
     @JsonIgnore

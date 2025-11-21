@@ -1,7 +1,6 @@
 package me.vacuity.ai.sdk.gemini.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +11,6 @@ import me.vacuity.ai.sdk.gemini.enums.MediaResolution;
 import me.vacuity.ai.sdk.gemini.enums.Modality;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @description:
@@ -35,7 +33,7 @@ public class ChatRequest {
     private List<SafetySetting> safetySettings;
 
     private GenerationConfig generationConfig;
-    
+
     private ChatMessage systemInstruction;
 
     private List<Tool> tools;
@@ -59,11 +57,11 @@ public class ChatRequest {
     public static class GenerationConfig {
 
         private List<String> stopSequences;
-        
+
         private String responseMimeType;
-        
+
         private List<Modality> responseModalities;
-        
+
         private Integer candidateCount;
 
         private Float temperature;
@@ -73,21 +71,21 @@ public class ChatRequest {
         private Float topP;
 
         private Float topK;
-        
+
         private Integer seed;
-        
+
         private Float presencePenalty;
-        
+
         private Float frequencyPenalty;
-        
+
         private Boolean responseLogprobs;
-        
+
         private Integer logprobs;
-        
+
         private Boolean enableEnhancedCivicAnswers;
-        
+
         private MediaResolution mediaResolution;
-        
+
         private ThinkingConfig thinkingConfig;
     }
 
@@ -96,9 +94,9 @@ public class ChatRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ThinkingConfig {
-        
+
         private Boolean includeThoughts;
-        
+
         private Integer thinkingBudget;
     }
 }

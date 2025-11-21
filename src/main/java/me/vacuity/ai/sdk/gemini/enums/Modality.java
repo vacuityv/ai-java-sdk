@@ -7,7 +7,7 @@ package me.vacuity.ai.sdk.gemini.enums;
  **/
 
 public enum Modality {
-    
+
     MODALITY_UNSPECIFIED,
     TEXT,
     IMAGE,

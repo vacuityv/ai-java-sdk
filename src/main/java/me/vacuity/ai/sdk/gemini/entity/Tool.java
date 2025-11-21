@@ -1,8 +1,7 @@
 package me.vacuity.ai.sdk.gemini.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,11 +26,13 @@ public class Tool {
     @JsonProperty("code_execution")
     private CodeExcution codeExcution;
 
+    @JsonProperty("functionDeclarations")
     private List<ChatFunction> functionDeclarations;
 
     @JsonProperty("google_search_retrieval")
     private GoogleSearchRetrieval googleSearchRetrieval;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Builder.Default
-    private Map<String, Object> googleSearch = new HashMap<>(4);
+    private Map<String, Object> googleSearch = new HashMap<>();
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import me.vacuity.ai.sdk.gemini.GeminiClient;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunction;
 import me.vacuity.ai.sdk.gemini.entity.ChatFunctionCall;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
@@ -13,6 +14,7 @@ import me.vacuity.ai.sdk.gemini.entity.FunctionResponse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +24,7 @@ public class FunctionExecutor {
 
     public static final String FUNCTION_ROLE = "user";
     private final Map<String, ChatFunction> FUNCTIONS = new HashMap<>(16);
-    private ObjectMapper MAPPER = new ObjectMapper();
+    private ObjectMapper MAPPER = GeminiClient.defaultObjectMapper();
 
     public FunctionExecutor(List<ChatFunction> functions) {
         setFunctions(functions);
@@ -49,7 +51,7 @@ public class FunctionExecutor {
                 .response(errorNode)
                 .build();
         ChatMessageContentPart chatMessageContent = ChatMessageContentPart.builder().functionResponse(functionResponse).build();
-        List<ChatMessageContentPart> parts = Arrays.asList(chatMessageContent);
+        List<ChatMessageContentPart> parts = Collections.singletonList(chatMessageContent);
         return new ChatMessage(FUNCTION_ROLE, parts);
     }
 
@@ -59,7 +61,7 @@ public class FunctionExecutor {
                 .response(executeAndConvertToJson(call))
                 .build();
         ChatMessageContentPart chatMessageContent = ChatMessageContentPart.builder().functionResponse(functionResponse).build();
-        List<ChatMessageContentPart> parts = Arrays.asList(chatMessageContent);
+        List<ChatMessageContentPart> parts = Collections.singletonList(chatMessageContent);
         return new ChatMessage(FUNCTION_ROLE, parts);
     }
 

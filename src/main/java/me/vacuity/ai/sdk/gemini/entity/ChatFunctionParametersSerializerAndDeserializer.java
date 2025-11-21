@@ -8,11 +8,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.kjetland.jackson.jsonSchema.JsonSchemaConfig;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 public class ChatFunctionParametersSerializerAndDeserializer {
 
@@ -37,11 +39,25 @@ public class ChatFunctionParametersSerializerAndDeserializer {
             } else {
                 try {
                     JsonNode schema = jsonSchemaGenerator.generateJsonSchema(value);
-                    ((ObjectNode)schema).remove("$schema");
-                    ((ObjectNode)schema).remove("title");
-                    ((ObjectNode)schema).remove("additionalProperties");
-                    ((ObjectNode)schema).remove("required");
-                    gen.writeObject(schema);
+                    ObjectNode objectNode = (ObjectNode) schema;
+                    objectNode.remove("$schema");
+                    objectNode.remove("title");
+                    objectNode.remove("additionalProperties");
+
+                    // 如果没有required字段，从properties中提取所有字段名作为required
+                    if (!objectNode.has("required") && objectNode.has("properties")) {
+                        ArrayNode requiredArray = MAPPER.createArrayNode();
+                        JsonNode properties = objectNode.get("properties");
+                        if (properties.isObject()) {
+                            Iterator<String> fieldNames = properties.fieldNames();
+                            while (fieldNames.hasNext()) {
+                                requiredArray.add(fieldNames.next());
+                            }
+                        }
+                        objectNode.set("required", requiredArray);
+                    }
+
+                    gen.writeObject(objectNode);
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to generate JSON Schema", e);
                 }

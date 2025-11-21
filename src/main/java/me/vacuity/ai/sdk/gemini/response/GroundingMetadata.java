@@ -54,10 +54,10 @@ public class GroundingMetadata {
     public static class Web {
 
         private String uri;
-        
+
         private String title;
     }
-    
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -65,12 +65,12 @@ public class GroundingMetadata {
     public static class GroundingSupport {
 
         private Segment segment;
-        
+
         private List<Integer> groundingChunkIndices;
-        
+
         private List<BigDecimal> confidenceScores;
     }
-    
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -78,9 +78,9 @@ public class GroundingMetadata {
     public static class Segment {
 
         private Integer startIndex;
-        
+
         private Integer endIndex;
-        
+
         private String text;
     }
 }

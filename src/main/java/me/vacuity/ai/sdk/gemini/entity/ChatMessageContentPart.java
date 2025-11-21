@@ -24,7 +24,7 @@ public class ChatMessageContentPart {
     private String text;
 
     private InlineData inlineData;
-    
+
     private ChatFunctionCall functionCall;
 
     private FunctionResponse functionResponse;
@@ -32,6 +32,9 @@ public class ChatMessageContentPart {
     private ExecutableCode executableCode;
 
     private CodeExecutionResult codeExecutionResult;
+
+    @JsonProperty("thoughtSignature")
+    private String thoughtSignature;
 
     @Data
     @Builder

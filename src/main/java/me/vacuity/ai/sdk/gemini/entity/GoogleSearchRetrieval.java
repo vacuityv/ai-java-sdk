@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GoogleSearchRetrieval {
-    
+
     @JsonProperty("dynamic_retrieval_config")
     private DynamicRetrievalConfig dynamicRetrievalConfig;
 }

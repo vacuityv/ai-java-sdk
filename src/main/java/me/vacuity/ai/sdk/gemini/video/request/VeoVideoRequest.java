@@ -43,7 +43,7 @@ public class VeoVideoRequest {
         private Media image;
 
         private Media lastFrame;
-        
+
         private Media video;
 
         /**
@@ -95,12 +95,12 @@ public class VeoVideoRequest {
          * Aspect ratio: "16:9" or "9:16"
          */
         private String aspectRatio;
-        
+
         /**
          * 'optimized' or 'lossless'
          */
         private String compressionQuality;
-        
+
         /**
          * Duration of the generated video in seconds (4-8 seconds, varies by model)
          */
@@ -110,16 +110,16 @@ public class VeoVideoRequest {
          * 可选。使用 Gemini 优化提示。接受的值包括 true 或 false。默认值为 true。
          */
         private Boolean enhancePrompt;
-        
+
         /**
          * Veo 3 模型必须具有此参数。为视频生成音频。接受的值包括 true 或 false。
-         *
+         * <p>
          * generateAudio 不受 veo-2.0-generate-001 或 veo-2.0-generate-exp 支持。
          */
         private Boolean generateAudio;
 
         private String negativePrompt;
-        
+
         private String personGeneration;
 
         /**
@@ -131,13 +131,13 @@ public class VeoVideoRequest {
          * Number of video outputs to generate (1-4)
          */
         private Integer sampleCount;
-        
+
 
         /**
          * Seed for deterministic video generation
          */
         private Integer seed;
-        
+
 
         /**
          * 可选。用于存储输出视频的 Cloud Storage 存储桶 URI，格式为 gs://BUCKET_NAME/SUBDIRECTORY。如果未提供 Cloud Storage 存储桶，则回答中会返回以 base64 编码的视频字节。

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,13 +27,13 @@ public class ChatMessage {
     public ChatMessage(String role, String content) {
         this.role = role;
         ChatMessageContentPart chatMessageContent = ChatMessageContentPart.builder().text(content).build();
-        List<ChatMessageContentPart> parts = Arrays.asList(chatMessageContent);
+        List<ChatMessageContentPart> parts = Collections.singletonList(chatMessageContent);
         this.parts = parts;
     }
 
     public ChatMessage(String content) {
         ChatMessageContentPart chatMessageContent = ChatMessageContentPart.builder().text(content).build();
-        List<ChatMessageContentPart> parts = Arrays.asList(chatMessageContent);
+        List<ChatMessageContentPart> parts = Collections.singletonList(chatMessageContent);
         this.parts = parts;
     }
 }

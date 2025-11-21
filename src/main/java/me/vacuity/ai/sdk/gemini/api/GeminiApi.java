@@ -3,7 +3,6 @@ package me.vacuity.ai.sdk.gemini.api;
 import io.reactivex.Single;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
-import me.vacuity.ai.sdk.gemini.video.request.VeoVideoFetchRequest;
 import me.vacuity.ai.sdk.gemini.video.request.VeoVideoRequest;
 import me.vacuity.ai.sdk.gemini.video.response.VeoVideoResponse;
 import okhttp3.ResponseBody;
@@ -12,7 +11,6 @@ import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 import retrofit2.http.Url;
 
@@ -41,6 +39,7 @@ public interface GeminiApi {
 
     /**
      * Download video from Veo generation
+     *
      * @param videoUrl The full video URL from VeoVideo.getUri()
      * @return ResponseBody containing the video file
      */
