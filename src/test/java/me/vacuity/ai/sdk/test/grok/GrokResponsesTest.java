@@ -268,10 +268,18 @@ public class GrokResponsesTest {
                         // API uses "item" field for output items
                         ResponseOutputItem item = event.getItem();
                         if (item != null && "function_call".equals(item.getType())) {
-                            System.out.println("Function call detected: " + item.getName());
+                            System.out.println("  Item type: " + item.getType() + ", name: " + item.getName());
+                            functionName.setLength(0);
                             functionName.append(item.getName());
                             if (item.getCallId() != null) {
+                                callId.setLength(0);
                                 callId.append(item.getCallId());
+                            }
+                            // Grok returns arguments directly in output_item.added event
+                            if (item.getArguments() != null && !item.getArguments().isEmpty()) {
+                                functionArguments.setLength(0);
+                                functionArguments.append(item.getArguments());
+                                System.out.println("  Arguments (from item): " + item.getArguments());
                             }
                         }
                         break;
