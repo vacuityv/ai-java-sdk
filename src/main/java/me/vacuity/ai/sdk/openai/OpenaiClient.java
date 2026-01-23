@@ -46,8 +46,6 @@ import me.vacuity.ai.sdk.openai.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.ListRequest;
 import me.vacuity.ai.sdk.openai.entity.Model;
-import me.vacuity.ai.sdk.openai.entity.ResponseBodyCallback;
-import me.vacuity.ai.sdk.openai.entity.SSE;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
@@ -62,6 +60,9 @@ import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
 import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
 import me.vacuity.ai.sdk.openai.request.ChatRequest;
 import me.vacuity.ai.sdk.openai.response.ChatResponse;
+import me.vacuity.ai.sdk.openai.responses.entity.Response;
+import me.vacuity.ai.sdk.openai.responses.entity.ResponseStreamEvent;
+import me.vacuity.ai.sdk.openai.responses.request.ResponseRequest;
 import me.vacuity.ai.sdk.openai.response.StreamChatResponse;
 import okhttp3.Authenticator;
 import okhttp3.ConnectionPool;
@@ -69,14 +70,17 @@ import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
+import okhttp3.sse.EventSource;
+import okhttp3.sse.EventSourceListener;
+import okhttp3.sse.EventSources;
 import retrofit2.Call;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
-import retrofit2.http.Query;
 
 import java.io.IOException;
 import java.net.Proxy;
@@ -102,6 +106,7 @@ public class OpenaiClient {
 
 
     private final OpenaiApi api;
+    private final OkHttpClient httpClient;
     private final ExecutorService executorService;
 
     public OpenaiClient(final String token) {
@@ -109,6 +114,7 @@ public class OpenaiClient {
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
         this.api = retrofit.create(OpenaiApi.class);
+        this.httpClient = client;
         this.executorService = client.dispatcher().executorService();
     }
 
@@ -117,6 +123,7 @@ public class OpenaiClient {
         Retrofit retrofit = defaultRetrofit(client, mapper, null);
 
         this.api = retrofit.create(OpenaiApi.class);
+        this.httpClient = client;
         this.executorService = client.dispatcher().executorService();
     }
 
@@ -125,22 +132,25 @@ public class OpenaiClient {
         Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
 
         this.api = retrofit.create(OpenaiApi.class);
+        this.httpClient = client;
         this.executorService = client.dispatcher().executorService();
     }
 
     public OpenaiClient(OpenaiApi api) {
         this.api = api;
+        this.httpClient = null;
         this.executorService = null;
     }
 
     public OpenaiClient(final String token, final Duration timeout, Proxy proxy) {
-        OkHttpClient httpClient = defaultClient(token, timeout)
+        OkHttpClient client = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
                 .build();
-        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        Retrofit retrofit = defaultRetrofit(client, mapper, null);
         this.api = retrofit.create(OpenaiApi.class);
-        this.executorService = httpClient.dispatcher().executorService();
+        this.httpClient = client;
+        this.executorService = client.dispatcher().executorService();
     }
 
     public OpenaiClient(final String token, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
@@ -150,25 +160,27 @@ public class OpenaiClient {
                     .header("Proxy-Authorization", credential)
                     .build();
         };
-        OkHttpClient httpClient = defaultClient(token, timeout)
+        OkHttpClient client = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
                 .proxyAuthenticator(proxyAuthenticator)
                 .build();
-        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        Retrofit retrofit = defaultRetrofit(client, mapper, null);
         this.api = retrofit.create(OpenaiApi.class);
-        this.executorService = httpClient.dispatcher().executorService();
+        this.httpClient = client;
+        this.executorService = client.dispatcher().executorService();
     }
 
     public OpenaiClient(final String token, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
-        OkHttpClient httpClient = defaultClient(token, timeout)
+        OkHttpClient client = defaultClient(token, timeout)
                 .newBuilder()
                 .proxy(proxy)
                 .proxyAuthenticator(proxyAuthenticator)
                 .build();
-        Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
+        Retrofit retrofit = defaultRetrofit(client, mapper, null);
         this.api = retrofit.create(OpenaiApi.class);
-        this.executorService = httpClient.dispatcher().executorService();
+        this.httpClient = client;
+        this.executorService = client.dispatcher().executorService();
     }
 
     public static ObjectMapper defaultObjectMapper() {
@@ -220,25 +232,6 @@ public class OpenaiClient {
                 throw e;
             }
         }
-    }
-
-
-    public static <T> Flowable<T> stream(Call<ResponseBody> apiCall, Class<T> cl) {
-        return stream(apiCall).map(sse -> {
-            if (sse.getData() == null || "".equals(sse.getData())) {
-                return null;
-            } else {
-                return mapper.readValue(sse.getData(), cl);
-            }
-        });
-    }
-
-    public static Flowable<SSE> stream(Call<ResponseBody> apiCall) {
-        return stream(apiCall, false);
-    }
-
-    public static Flowable<SSE> stream(Call<ResponseBody> apiCall, boolean emitDone) {
-        return Flowable.create(emitter -> apiCall.enqueue(new ResponseBodyCallback(emitter, emitDone)), BackpressureStrategy.BUFFER);
     }
 
 
@@ -317,7 +310,7 @@ public class OpenaiClient {
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
         request.setStream(true);
-        return stream(api.streamChat(request), StreamChatResponse.class);
+        return eventSourceStream(api.streamChat(request), StreamChatResponse.class);
     }
 
     public List<Model> listModels() {
@@ -709,5 +702,165 @@ public class OpenaiClient {
 
     public ResponseBody retrieveVideoContent(String videoId, String variant) {
         return execute(api.retrieveVideoContent(videoId, variant));
+    }
+
+    // Responses API methods
+
+    /**
+     * Create a response using the Responses API.
+     *
+     * @param request The response request
+     * @return The response object
+     */
+    public Response createResponse(ResponseRequest request) {
+        request.setStream(false);
+        return execute(api.createResponse(request));
+    }
+
+    /**
+     * Generic EventSource-based SSE streaming method.
+     * Uses OkHttp's native EventSource for robust SSE handling.
+     *
+     * @param apiCall The Retrofit Call object
+     * @param cl      The class to deserialize each event to
+     * @param <T>     The type of events
+     * @return A Flowable of streaming events
+     */
+    public <T> Flowable<T> eventSourceStream(Call<ResponseBody> apiCall, Class<T> cl) {
+        if (httpClient == null) {
+            throw new IllegalStateException("Cannot use EventSource streaming with OpenaiApi-only constructor. Use a constructor that creates an OkHttpClient.");
+        }
+
+        return Flowable.create(emitter -> {
+            try {
+                // Get the request from Retrofit Call and clone it
+                Request httpRequest = apiCall.request();
+
+                // Create EventSource factory and listener
+                EventSource.Factory factory = EventSources.createFactory(httpClient);
+
+                EventSourceListener listener = new EventSourceListener() {
+                    @Override
+                    public void onOpen(EventSource eventSource, okhttp3.Response response) {
+                        // Connection opened
+                    }
+
+                    @Override
+                    public void onEvent(EventSource eventSource, String id, String type, String data) {
+                        if (emitter.isCancelled()) {
+                            eventSource.cancel();
+                            return;
+                        }
+
+                        // Skip [DONE] marker
+                        if ("[DONE]".equals(data)) {
+                            return;
+                        }
+
+                        try {
+                            T event = mapper.readValue(data, cl);
+                            emitter.onNext(event);
+                        } catch (Exception e) {
+                            emitter.onError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onClosed(EventSource eventSource) {
+                        if (!emitter.isCancelled()) {
+                            emitter.onComplete();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(EventSource eventSource, Throwable t, okhttp3.Response response) {
+                        if (!emitter.isCancelled()) {
+                            if (t != null) {
+                                emitter.onError(t);
+                            } else if (response != null) {
+                                // Try to parse error body
+                                try {
+                                    ResponseBody errorBody = response.body();
+                                    if (errorBody != null) {
+                                        String errorStr = errorBody.string();
+                                        ChatResponseError error = mapper.readValue(errorStr, ChatResponseError.class);
+                                        emitter.onError(new VacSdkException(error.getError().getCode(), error.getError().getMessage(), error));
+                                    } else {
+                                        emitter.onError(new RuntimeException("SSE connection failed: " + response.code() + " " + response.message()));
+                                    }
+                                } catch (Exception e) {
+                                    emitter.onError(new RuntimeException("SSE connection failed: " + response.code() + " " + response.message()));
+                                }
+                            } else {
+                                emitter.onError(new RuntimeException("SSE connection failed: unknown error"));
+                            }
+                        }
+                    }
+                };
+
+                // Create and start the EventSource
+                EventSource eventSource = factory.newEventSource(httpRequest, listener);
+
+                // Set up cancellation
+                emitter.setCancellable(eventSource::cancel);
+
+            } catch (Exception e) {
+                emitter.onError(e);
+            }
+        }, BackpressureStrategy.BUFFER);
+    }
+
+    /**
+     * Create a streaming response using the Responses API.
+     * Uses OkHttp's native EventSource for robust SSE handling.
+     *
+     * @param request The response request
+     * @return A Flowable of streaming events
+     */
+    public Flowable<ResponseStreamEvent> streamCreateResponse(ResponseRequest request) {
+        request.setStream(true);
+        return eventSourceStream(api.streamCreateResponse(request), ResponseStreamEvent.class);
+    }
+
+    /**
+     * Retrieve a response by ID.
+     *
+     * @param responseId The response ID
+     * @return The response object
+     */
+    public Response retrieveResponse(String responseId) {
+        return execute(api.retrieveResponse(responseId));
+    }
+
+    /**
+     * Delete a response by ID.
+     *
+     * @param responseId The response ID
+     * @return The deleted response object
+     */
+    public Response deleteResponse(String responseId) {
+        return execute(api.deleteResponse(responseId));
+    }
+
+    /**
+     * List responses.
+     *
+     * @param after  Cursor for pagination
+     * @param limit  Maximum number of responses to return
+     * @param order  Sort order ("asc" or "desc")
+     * @return List of responses
+     */
+    public List<Response> listResponses(String after, Integer limit, String order) {
+        return execute(api.listResponses(after, limit, order)).getData();
+    }
+
+    /**
+     * Cancel a response that is in progress.
+     *
+     * @param responseId The response ID
+     * @return The cancelled response object
+     */
+    public Response cancelResponse(String responseId) {
+        return execute(api.cancelResponse(responseId));
     }
 }

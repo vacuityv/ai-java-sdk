@@ -9,4 +9,6 @@ package me.vacuity.ai.sdk.test.openai;
 public class OpenaiConstant {
 
     public static final String API_KEY = System.getenv("OPENAI_API_KEY");
+    public static final String BASE_URL = System.getenv("OPENAI_BASE_URL");
+    
 }

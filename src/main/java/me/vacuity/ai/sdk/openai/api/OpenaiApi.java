@@ -35,6 +35,8 @@ import me.vacuity.ai.sdk.openai.response.ChatResponse;
 import me.vacuity.ai.sdk.openai.response.ListResponse;
 import me.vacuity.ai.sdk.openai.video.entity.VideoJob;
 import me.vacuity.ai.sdk.openai.video.request.RemixVideoRequest;
+import me.vacuity.ai.sdk.openai.responses.entity.Response;
+import me.vacuity.ai.sdk.openai.responses.request.ResponseRequest;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -294,5 +296,26 @@ public interface OpenaiApi {
     @Streaming
     @GET("v1/videos/{video_id}/content")
     Single<ResponseBody> retrieveVideoContent(@Path("video_id") String videoId, @Query("variant") String variant);
+
+    // Responses API
+
+    @POST("v1/responses")
+    Single<Response> createResponse(@Body ResponseRequest request);
+
+    @Streaming
+    @POST("v1/responses")
+    Call<ResponseBody> streamCreateResponse(@Body ResponseRequest request);
+
+    @GET("v1/responses/{response_id}")
+    Single<Response> retrieveResponse(@Path("response_id") String responseId);
+
+    @DELETE("v1/responses/{response_id}")
+    Single<Response> deleteResponse(@Path("response_id") String responseId);
+
+    @GET("v1/responses")
+    Single<ListResponse<Response>> listResponses(@Query("after") String after, @Query("limit") Integer limit, @Query("order") String order);
+
+    @POST("v1/responses/{response_id}/cancel")
+    Single<Response> cancelResponse(@Path("response_id") String responseId);
 }
 
