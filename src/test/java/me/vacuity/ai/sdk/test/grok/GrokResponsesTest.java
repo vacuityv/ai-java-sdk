@@ -41,7 +41,7 @@ public class GrokResponsesTest {
 
     ObjectMapper mapper = defaultObjectMapper();
 
-    public static final String MODEL = "grok-3-latest";
+    public static final String MODEL = "grok-4";
 
     public static final String API_KEY = System.getenv("GROK_API_KEY");
     public static final String BASE_URL = System.getenv("GROK_BASE_URL");
@@ -446,11 +446,10 @@ public class GrokResponsesTest {
      */
     @Test
     public void webSearchTool() {
-        OpenaiClient client = new OpenaiClient(API_KEY, Duration.ofSeconds(120));
 
         ResponseRequest request = ResponseRequest.builder()
                 .model(MODEL)
-                .input("What are the latest news about Java 23?")
+                .input("What's the weather in Xiamen on 2026.1.26?")
                 .tools(Arrays.asList(ResponseTool.webSearch()))
                 .build();
 
@@ -471,6 +470,81 @@ public class GrokResponsesTest {
                     }
                 });
             }
+
+        } catch (VacSdkException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test streaming with web search tool.
+     * Demonstrates how to handle web search results in streaming mode.
+     */
+    @Test
+    public void streamWebSearchTool() {
+        OpenaiClient client = new OpenaiClient(API_KEY, Duration.ofSeconds(120), BASE_URL);
+
+        ResponseRequest request = ResponseRequest.builder()
+                .model(MODEL)
+                .input("What are the latest news about Java 23?")
+                .tools(Arrays.asList(ResponseTool.webSearch()))
+                .build();
+
+        try {
+            Flowable<ResponseStreamEvent> stream = client.streamCreateResponse(request);
+            StringBuilder content = new StringBuilder();
+
+            stream.doOnNext(event -> {
+                if (event == null || event.getType() == null) return;
+
+                String type = event.getType();
+                System.out.println("Event: " + type);
+
+                switch (type) {
+                    case "response.created":
+                        if (event.getResponse() != null) {
+                            System.out.println("Response ID: " + event.getResponse().getId());
+                        }
+                        break;
+
+                    case "response.output_item.added":
+                        ResponseOutputItem item = event.getItem();
+                        if (item != null) {
+                            System.out.println("  Item type: " + item.getType());
+                            if ("web_search_call".equals(item.getType())) {
+                                System.out.println("  Web search initiated, status: " + item.getStatus());
+                            }
+                        }
+                        break;
+
+                    case "response.output_item.done":
+                        ResponseOutputItem doneItem = event.getItem();
+                        if (doneItem != null && "web_search_call".equals(doneItem.getType())) {
+                            System.out.println("  Web search completed, status: " + doneItem.getStatus());
+                        }
+                        break;
+
+                    case "response.output_text.delta":
+                        if (event.getDelta() != null) {
+                            System.out.print(event.getDelta());
+                            content.append(event.getDelta());
+                        }
+                        break;
+
+                    case "response.completed":
+                        System.out.println("\n--- Stream completed ---");
+                        if (event.getResponse() != null && event.getResponse().getOutput() != null) {
+                            event.getResponse().getOutput().forEach(outputItem -> {
+                                if ("web_search_call".equals(outputItem.getType())) {
+                                    System.out.println("Web search performed");
+                                }
+                            });
+                        }
+                        break;
+                }
+            }).blockingSubscribe();
+
+            System.out.println("\n\nFull content: " + content.toString());
 
         } catch (VacSdkException e) {
             System.out.println("Error: " + e.getMessage());

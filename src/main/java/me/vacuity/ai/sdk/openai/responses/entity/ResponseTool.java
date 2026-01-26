@@ -31,7 +31,7 @@ public class ResponseTool {
 
     /**
      * The type of the tool.
-     * Can be "function", "web_search_preview", "file_search", "code_interpreter", "mcp", etc.
+     * Can be "function", "web_search", "file_search", "code_interpreter", "mcp", etc.
      */
     private String type;
 
@@ -233,7 +233,7 @@ public class ResponseTool {
      */
     public static ResponseTool webSearch() {
         return ResponseTool.builder()
-                .type("web_search_preview")
+                .type("web_search")
                 .build();
     }
 
@@ -242,7 +242,7 @@ public class ResponseTool {
      */
     public static ResponseTool webSearch(String searchContextSize) {
         return ResponseTool.builder()
-                .type("web_search_preview")
+                .type("web_search")
                 .searchContextSize(searchContextSize)
                 .build();
     }
@@ -252,7 +252,7 @@ public class ResponseTool {
      */
     public static ResponseTool webSearch(String searchContextSize, UserLocation userLocation) {
         return ResponseTool.builder()
-                .type("web_search_preview")
+                .type("web_search")
                 .searchContextSize(searchContextSize)
                 .userLocation(userLocation)
                 .build();
@@ -307,6 +307,213 @@ public class ResponseTool {
         return ResponseTool.builder()
                 .type("mcp")
                 .connectorId(connectorId)
+                .build();
+    }
+    
+    // the follow methods only works in grok
+
+    // Grok web_search tool properties
+
+    /**
+     * Restrict web searches to specified domains only (max 5).
+     * Only works with Grok's web_search tool.
+     */
+    @JsonProperty("allowed_domains")
+    private List<String> allowedDomains;
+
+    /**
+     * Prevent web searches on specified domains (max 5).
+     * Only works with Grok's web_search tool.
+     */
+    @JsonProperty("excluded_domains")
+    private List<String> excludedDomains;
+
+    /**
+     * Enable image understanding for web_search or x_search.
+     * Grants access to view_image tool for analyzing images.
+     * Only works with Grok.
+     */
+    @JsonProperty("enable_image_understanding")
+    private Boolean enableImageUnderstanding;
+
+    // Grok x_search tool properties
+
+    /**
+     * Consider posts only from specified X handles (max 10).
+     * Only works with Grok's x_search tool.
+     */
+    @JsonProperty("allowed_x_handles")
+    private List<String> allowedXHandles;
+
+    /**
+     * Exclude posts from specified X handles (max 10).
+     * Only works with Grok's x_search tool.
+     */
+    @JsonProperty("excluded_x_handles")
+    private List<String> excludedXHandles;
+
+    /**
+     * Start date for X search results (ISO8601 format).
+     * Only works with Grok's x_search tool.
+     */
+    @JsonProperty("from_date")
+    private String fromDate;
+
+    /**
+     * End date for X search results (ISO8601 format).
+     * Only works with Grok's x_search tool.
+     */
+    @JsonProperty("to_date")
+    private String toDate;
+
+    /**
+     * Enable video understanding for x_search.
+     * Grants access to view_x_video tool for analyzing video content.
+     * Only works with Grok's x_search tool.
+     */
+    @JsonProperty("enable_video_understanding")
+    private Boolean enableVideoUnderstanding;
+
+    /**
+     * Create a Grok web search tool.
+     * Allows the agent to search the web and browse pages.
+     * Only works with Grok.
+     */
+    public static ResponseTool grokWebSearch() {
+        return ResponseTool.builder()
+                .type("web_search")
+                .build();
+    }
+
+    /**
+     * Create a Grok web search tool with domain restrictions.
+     * Only works with Grok.
+     *
+     * @param allowedDomains restrict searches to these domains only (max 5)
+     * @param excludedDomains prevent searches on these domains (max 5)
+     */
+    public static ResponseTool grokWebSearch(List<String> allowedDomains, List<String> excludedDomains) {
+        return ResponseTool.builder()
+                .type("web_search")
+                .allowedDomains(allowedDomains)
+                .excludedDomains(excludedDomains)
+                .build();
+    }
+
+    /**
+     * Create a Grok web search tool with full configuration.
+     * Only works with Grok.
+     *
+     * @param allowedDomains restrict searches to these domains only (max 5)
+     * @param excludedDomains prevent searches on these domains (max 5)
+     * @param enableImageUnderstanding enable image analysis during search
+     */
+    public static ResponseTool grokWebSearch(List<String> allowedDomains, List<String> excludedDomains,
+                                              boolean enableImageUnderstanding) {
+        return ResponseTool.builder()
+                .type("web_search")
+                .allowedDomains(allowedDomains)
+                .excludedDomains(excludedDomains)
+                .enableImageUnderstanding(enableImageUnderstanding)
+                .build();
+    }
+
+    /**
+     * Create a Grok X search tool.
+     * Allows the agent to perform keyword search, semantic search, user search, and thread fetch on X.
+     * Only works with Grok.
+     */
+    public static ResponseTool grokXSearch() {
+        return ResponseTool.builder()
+                .type("x_search")
+                .build();
+    }
+
+    /**
+     * Create a Grok X search tool with handle restrictions.
+     * Only works with Grok.
+     *
+     * @param allowedXHandles consider posts only from these X handles (max 10)
+     * @param excludedXHandles exclude posts from these X handles (max 10)
+     */
+    public static ResponseTool grokXSearch(List<String> allowedXHandles, List<String> excludedXHandles) {
+        return ResponseTool.builder()
+                .type("x_search")
+                .allowedXHandles(allowedXHandles)
+                .excludedXHandles(excludedXHandles)
+                .build();
+    }
+
+    /**
+     * Create a Grok X search tool with date range.
+     * Only works with Grok.
+     *
+     * @param fromDate start date for search results (ISO8601 format)
+     * @param toDate end date for search results (ISO8601 format)
+     */
+    public static ResponseTool grokXSearchWithDateRange(String fromDate, String toDate) {
+        return ResponseTool.builder()
+                .type("x_search")
+                .fromDate(fromDate)
+                .toDate(toDate)
+                .build();
+    }
+
+    /**
+     * Create a Grok X search tool with full configuration.
+     * Only works with Grok.
+     *
+     * @param allowedXHandles consider posts only from these X handles (max 10)
+     * @param excludedXHandles exclude posts from these X handles (max 10)
+     * @param fromDate start date for search results (ISO8601 format)
+     * @param toDate end date for search results (ISO8601 format)
+     * @param enableImageUnderstanding enable image analysis
+     * @param enableVideoUnderstanding enable video analysis
+     */
+    public static ResponseTool grokXSearch(List<String> allowedXHandles, List<String> excludedXHandles,
+                                            String fromDate, String toDate,
+                                            Boolean enableImageUnderstanding, Boolean enableVideoUnderstanding) {
+        return ResponseTool.builder()
+                .type("x_search")
+                .allowedXHandles(allowedXHandles)
+                .excludedXHandles(excludedXHandles)
+                .fromDate(fromDate)
+                .toDate(toDate)
+                .enableImageUnderstanding(enableImageUnderstanding)
+                .enableVideoUnderstanding(enableVideoUnderstanding)
+                .build();
+    }
+
+    /**
+     * Create a Grok code execution tool.
+     * The model can write and execute Python code for calculations, data analysis, and complex computations.
+     * Only works with Grok.
+     */
+    public static ResponseTool grokCodeExecution() {
+        return ResponseTool.builder()
+                .type("code_execution")
+                .build();
+    }
+
+    /**
+     * Create a Grok collections search tool.
+     * The model can search through uploaded knowledge bases and collections to retrieve relevant information.
+     * Only works with Grok.
+     */
+    public static ResponseTool grokCollectionsSearch() {
+        return ResponseTool.builder()
+                .type("collections_search")
+                .build();
+    }
+
+    /**
+     * Create a Grok attachment search tool.
+     * Allows intelligent document search through uploaded files.
+     * Only works with Grok.
+     */
+    public static ResponseTool grokAttachmentSearch() {
+        return ResponseTool.builder()
+                .type("attachment_search")
                 .build();
     }
 }
