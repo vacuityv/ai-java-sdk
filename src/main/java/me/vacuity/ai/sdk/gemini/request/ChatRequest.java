@@ -98,5 +98,7 @@ public class ChatRequest {
         private Boolean includeThoughts;
 
         private Integer thinkingBudget;
+        
+        private String thinkingLevel;
     }
 }
