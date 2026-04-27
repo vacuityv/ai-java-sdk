@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NonNull;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
+import me.vacuity.ai.sdk.claude.entity.OutputConfig;
 import me.vacuity.ai.sdk.claude.entity.Thinking;
 
 import java.util.List;
@@ -50,4 +51,7 @@ public class ChatRequest {
     private List<ChatFunction> tools;
 
     private Thinking thinking;
+
+    @JsonProperty("output_config")
+    private OutputConfig outputConfig;
 }
