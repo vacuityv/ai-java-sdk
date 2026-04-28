@@ -32,4 +32,9 @@ public class EditImageRequest {
 
     @JsonProperty("input_fidelity")
     private String inputFidelity;
+
+    /**
+     * "low" 放宽过滤；"auto" 为默认。仅 gpt-image 系列生效。
+     */
+    private String moderation;
 }
