@@ -1,11 +1,14 @@
 package me.vacuity.ai.sdk.openai.responses.entity;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -142,6 +145,21 @@ public class ResponseOutputItem {
         private String url;
         private String title;
         private String snippet;
+
+        /** 兜底捕获 OpenAI 实际返回但 SDK 没声明的字段（用于排查字段名差异）。 */
+        @lombok.Builder.Default
+        private Map<String, Object> extra = new HashMap<>();
+
+        @JsonAnySetter
+        public void putExtra(String key, Object value) {
+            if (extra == null) extra = new HashMap<>();
+            extra.put(key, value);
+        }
+
+        @JsonAnyGetter
+        public Map<String, Object> getExtra() {
+            return extra;
+        }
     }
 
     @Data
