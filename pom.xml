@@ -6,7 +6,7 @@
 
     <groupId>me.vacuity.ai.sdk</groupId>
     <artifactId>ai-java-sdk</artifactId>
-    <version>1.9.18</version>
+    <version>1.10.0</version>
 
     <name>ai-java-sdk</name>
     <description>a java sdk for ai apis.</description>
@@ -40,6 +40,7 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.46</lombok.version>
     </properties>
 
 
@@ -47,7 +48,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.22</version>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -96,6 +98,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.kjetland</groupId>
             <artifactId>mbknor-jackson-jsonschema_2.12</artifactId>
             <version>1.0.34</version>
@@ -104,6 +112,40 @@
 
     <build>
         <plugins>
+            <!--
+                JDK 21+ no longer discovers annotation processors implicitly, so Lombok
+                must be declared on the processor path explicitly or no getters/setters
+                are generated.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <!--
+                Only the tests under src/test/java/**/unit/ run automatically —
+                every other test class in this project calls a live vendor API
+                and needs a real key, so they stay manual-run only.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <includes>
+                        <include>**/unit/*Test.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>

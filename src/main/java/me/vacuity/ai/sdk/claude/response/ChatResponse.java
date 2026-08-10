@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
+import me.vacuity.ai.sdk.claude.entity.StopDetails;
 import me.vacuity.ai.sdk.claude.entity.Usage;
 
 import java.util.List;
@@ -38,6 +39,14 @@ public class ChatResponse {
 
     @JsonProperty("stop_sequence")
     private String stopSequence;
+
+    /**
+     * Populated only when stopReason is "refusal" — carries the policy
+     * category that declined the request. Null for every other stop reason,
+     * so always check stopReason before reading it.
+     */
+    @JsonProperty("stop_details")
+    private StopDetails stopDetails;
 
     private Usage usage;
 }

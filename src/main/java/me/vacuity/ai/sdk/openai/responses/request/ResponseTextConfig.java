@@ -1,5 +1,6 @@
 package me.vacuity.ai.sdk.openai.responses.request;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseTextConfig {
 
     /**
@@ -22,10 +24,17 @@ public class ResponseTextConfig {
      */
     private ResponseFormat format;
 
+    /**
+     * Constrains the verbosity of the model's response.
+     * Possible values: "low", "medium", "high". Defaults to "medium".
+     */
+    private String verbosity;
+
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ResponseFormat {
         /**
          * The type of response format. Can be "text", "json_object", or "json_schema".

@@ -32,6 +32,7 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 import java.io.IOException;
 import java.net.Proxy;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -186,12 +187,27 @@ public class ClaudeClient {
     }
 
     public ChatResponse chat(ChatRequest request) {
-        return execute(api.chat(request));
+        String betas = betaHeader(request);
+        return betas == null ? execute(api.chat(request)) : execute(api.chat(betas, request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
         request.setStream(true);
-        return stream(api.streamChat(request), StreamChatResponse.class);
+        String betas = betaHeader(request);
+        Call<ResponseBody> call = betas == null ? api.streamChat(request) : api.streamChat(betas, request);
+        return stream(call, StreamChatResponse.class);
+    }
+
+    /**
+     * Builds the anthropic-beta header from the request, or returns null to
+     * fall back to the legacy default header.
+     */
+    private static String betaHeader(ChatRequest request) {
+        List<String> betas = request.getBetas();
+        if (betas == null || betas.isEmpty()) {
+            return null;
+        }
+        return String.join(",", betas);
     }
 
 }

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import me.vacuity.ai.sdk.openai.responses.request.ResponseReasoning;
+import me.vacuity.ai.sdk.openai.responses.request.ResponseTextConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -135,6 +137,55 @@ public class Response {
      */
     @JsonProperty("service_tier")
     private String serviceTier;
+
+    /**
+     * Whether the response was run in the background.
+     */
+    private Boolean background;
+
+    /**
+     * Whether the response was stored for later retrieval.
+     */
+    private Boolean store;
+
+    /**
+     * The conversation this response belongs to.
+     */
+    private Object conversation;
+
+    /**
+     * Configuration options used for the text response.
+     */
+    private ResponseTextConfig text;
+
+    /**
+     * Configuration options used for reasoning.
+     */
+    private ResponseReasoning reasoning;
+
+    /**
+     * The maximum number of total calls to built-in tools for this response.
+     */
+    @JsonProperty("max_tool_calls")
+    private Integer maxToolCalls;
+
+    /**
+     * The number of most likely tokens returned per output token position.
+     */
+    @JsonProperty("top_logprobs")
+    private Integer topLogprobs;
+
+    /**
+     * The prompt cache key provided in the request.
+     */
+    @JsonProperty("prompt_cache_key")
+    private String promptCacheKey;
+
+    /**
+     * The safety identifier provided in the request.
+     */
+    @JsonProperty("safety_identifier")
+    private String safetyIdentifier;
 
     /**
      * Get the text content from the first output message.

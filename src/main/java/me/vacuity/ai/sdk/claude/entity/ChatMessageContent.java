@@ -47,6 +47,13 @@ public class ChatMessageContent {
     @JsonProperty("partial_json")
     private String partialJson;
 
+    /**
+     * Cache breakpoint. Everything rendered before this block
+     * (tools -> system -> messages) is cached.
+     */
+    @JsonProperty("cache_control")
+    private CacheControl cacheControl;
+
     @Data
     @Builder
     @NoArgsConstructor

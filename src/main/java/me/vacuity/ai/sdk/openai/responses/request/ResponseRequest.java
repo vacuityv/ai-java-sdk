@@ -97,8 +97,68 @@ public class ResponseRequest {
 
     /**
      * A stable identifier for your end-users.
+     *
+     * @deprecated Use {@link #safetyIdentifier} and {@link #promptCacheKey} instead.
      */
+    @Deprecated
     private String user;
+
+    /**
+     * A stable identifier used to help detect users that may be violating OpenAI's
+     * usage policies. Replaces the deprecated `user` field.
+     */
+    @JsonProperty("safety_identifier")
+    private String safetyIdentifier;
+
+    /**
+     * Used by OpenAI to cache responses for similar requests to optimize your cache
+     * hit rates. Replaces the deprecated `user` field for caching purposes.
+     */
+    @JsonProperty("prompt_cache_key")
+    private String promptCacheKey;
+
+    /**
+     * Options for prompt caching, such as the cache breakpoint mode and TTL.
+     */
+    @JsonProperty("prompt_cache_options")
+    private PromptCacheOptions promptCacheOptions;
+
+    /**
+     * The retention policy for the prompt cache.
+     * Possible values: "in_memory", "24h".
+     */
+    @JsonProperty("prompt_cache_retention")
+    private String promptCacheRetention;
+
+    /**
+     * The conversation this response belongs to.
+     * Either a conversation ID string, or an object containing the conversation id.
+     * Cannot be used together with `previous_response_id`.
+     */
+    private Object conversation;
+
+    /**
+     * Reference to a prompt template and its variables.
+     */
+    private ResponsePrompt prompt;
+
+    /**
+     * Configuration for context compaction, applied when the conversation
+     * approaches the model's context limit.
+     */
+    @JsonProperty("context_management")
+    private List<ContextManagement> contextManagement;
+
+    /**
+     * Configuration for running moderation on the input and output of this response.
+     */
+    private ResponseModeration moderation;
+
+    /**
+     * Options for streaming responses. Only set this when `stream` is true.
+     */
+    @JsonProperty("stream_options")
+    private ResponseStreamOptions streamOptions;
 
     /**
      * Whether to store the generated model response for later retrieval via API.
