@@ -18,6 +18,8 @@ import java.util.Map;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ToolResources {
 
     @JsonProperty("code_interpreter")

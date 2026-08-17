@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.video.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @description: Video data from Sora API response
@@ -12,6 +14,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class VideoJob {
 
     @JsonProperty("completedAt")

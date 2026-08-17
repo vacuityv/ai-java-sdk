@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.TruncationStrategy;
 import me.vacuity.ai.sdk.openai.entity.ChatFunctionCall;
@@ -21,6 +23,8 @@ import java.util.Map;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Run {
 
     private String id;
@@ -92,6 +96,8 @@ public class Run {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class RequiredAction {
 
         private String type;
@@ -102,6 +108,8 @@ public class Run {
 
         @Data
         @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
         public static class SubmitToolOutputs {
 
             @JsonProperty("tool_calls")

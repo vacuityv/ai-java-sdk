@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.video.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @description: Request for creating a video with Sora API
@@ -12,6 +14,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateVideoRequest {
 
     

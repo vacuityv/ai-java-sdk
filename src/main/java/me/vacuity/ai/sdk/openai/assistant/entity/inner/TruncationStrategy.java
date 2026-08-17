@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.assistant.entity.inner;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @description:
@@ -13,6 +15,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TruncationStrategy {
 
     private String type;

@@ -1,7 +1,9 @@
 package me.vacuity.ai.sdk.openai.video.request;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @description: Request for remixing a video with Sora API
@@ -11,6 +13,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class RemixVideoRequest {
 
     /**

@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.Attachment;
 
 import java.util.List;
@@ -16,6 +18,8 @@ import java.util.Map;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AssistantMessage {
 
     private String id;
@@ -56,6 +60,8 @@ public class AssistantMessage {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class IncompleteDetails {
         private String reason;
     }

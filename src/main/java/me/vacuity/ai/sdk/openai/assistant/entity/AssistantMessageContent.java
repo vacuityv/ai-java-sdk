@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -15,6 +17,8 @@ import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AssistantMessageContent {
 
     private Integer index;
@@ -29,6 +33,8 @@ public class AssistantMessageContent {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class FileObject {
 
         @JsonProperty("file_id")
@@ -39,6 +45,8 @@ public class AssistantMessageContent {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TextObject {
 
         private String value;
@@ -47,6 +55,8 @@ public class AssistantMessageContent {
 
         @Data
         @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
         public static class TextAnnotation {
 
             private Integer index;
@@ -69,6 +79,8 @@ public class AssistantMessageContent {
 
             @Data
             @Builder
+            @NoArgsConstructor
+            @AllArgsConstructor
             public static class FileCitation {
 
                 @JsonProperty("file_id")

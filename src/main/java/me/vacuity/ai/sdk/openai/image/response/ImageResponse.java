@@ -1,7 +1,9 @@
 package me.vacuity.ai.sdk.openai.image.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.image.entity.ImageData;
 import me.vacuity.ai.sdk.openai.image.entity.ImageUsage;
 
@@ -15,6 +17,8 @@ import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ImageResponse {
 
     private Integer created;

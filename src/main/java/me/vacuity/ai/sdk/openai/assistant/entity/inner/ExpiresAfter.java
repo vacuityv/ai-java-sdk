@@ -1,7 +1,9 @@
 package me.vacuity.ai.sdk.openai.assistant.entity.inner;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @description:
@@ -12,6 +14,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExpiresAfter {
 
     private String anchor;

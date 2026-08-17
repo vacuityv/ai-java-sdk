@@ -17,6 +17,7 @@ import java.io.Serializable;
 @Builder
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
+// 无字段类：@AllArgsConstructor 生成的即为无参构造器，再加 @NoArgsConstructor 会冲突
 public class CodeExcution implements Serializable {
 
 }

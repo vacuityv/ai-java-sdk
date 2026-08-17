@@ -1,6 +1,7 @@
 package me.vacuity.ai.sdk.common;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.error.ChatResponseError;
 
 import java.io.Serializable;
@@ -13,6 +14,7 @@ import java.io.Serializable;
 
 
 @Data
+@NoArgsConstructor
 public class VacSdkException extends RuntimeException implements Serializable {
 
     private String code;

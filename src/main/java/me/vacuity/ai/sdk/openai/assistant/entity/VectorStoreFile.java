@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
 
 /**
@@ -14,6 +16,8 @@ import me.vacuity.ai.sdk.openai.assistant.entity.inner.LastError;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class VectorStoreFile {
 
     private String id;

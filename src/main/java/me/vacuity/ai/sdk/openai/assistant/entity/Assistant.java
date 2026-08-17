@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.assistant.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.assistant.entity.inner.ToolResources;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 
@@ -18,6 +20,8 @@ import java.util.Map;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Assistant {
 
     private String id;

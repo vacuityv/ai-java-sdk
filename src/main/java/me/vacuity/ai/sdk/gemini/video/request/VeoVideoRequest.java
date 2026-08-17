@@ -2,8 +2,10 @@ package me.vacuity.ai.sdk.gemini.video.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -16,6 +18,8 @@ import java.util.List;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@NoArgsConstructor
+@AllArgsConstructor
 public class VeoVideoRequest {
 
     /**
@@ -31,6 +35,8 @@ public class VeoVideoRequest {
     @Data
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Instance {
         /**
          * Text prompt describing the desired video
@@ -55,6 +61,8 @@ public class VeoVideoRequest {
     @Data
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Media {
         /**
          * Base64 encoded image bytes
@@ -74,6 +82,8 @@ public class VeoVideoRequest {
     @Data
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ReferenceImage {
         /**
          * Reference image data
@@ -89,6 +99,8 @@ public class VeoVideoRequest {
     @Data
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Parameters {
 
         /**

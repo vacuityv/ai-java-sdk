@@ -1,8 +1,10 @@
 package me.vacuity.ai.sdk.openai.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
 import me.vacuity.ai.sdk.openai.entity.StreamOptions;
@@ -19,6 +21,8 @@ import java.util.Map;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatRequest {
 
 

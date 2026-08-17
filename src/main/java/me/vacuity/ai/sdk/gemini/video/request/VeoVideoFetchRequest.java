@@ -1,7 +1,9 @@
 package me.vacuity.ai.sdk.gemini.video.request;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @description:
@@ -11,6 +13,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class VeoVideoFetchRequest {
 
     private String operationName;
