@@ -85,4 +85,39 @@ public class ClaudeResponseParsingTest {
 
         assertEquals("msg_1", response.getId());
     }
+
+    @Test
+    public void parsesThinkingTokenBreakdown() throws Exception {
+        String body = "{\"id\":\"msg_1\",\"stop_reason\":\"end_turn\","
+                + "\"usage\":{\"input_tokens\":25,\"output_tokens\":348,"
+                + "\"output_tokens_details\":{\"thinking_tokens\":312}}}";
+
+        ChatResponse response = MAPPER.readValue(body, ChatResponse.class);
+
+        assertNotNull(response.getUsage().getOutputTokensDetails());
+        assertEquals(312, response.getUsage().getOutputTokensDetails().getThinkingTokens());
+        // 思考 token 是 output_tokens 的子集
+        assertEquals(348, response.getUsage().getOutputTokens());
+    }
+
+    @Test
+    public void parsesInputTransformations() throws Exception {
+        String body = "{\"id\":\"msg_1\",\"stop_reason\":\"end_turn\","
+                + "\"input_transformations\":[{\"type\":\"thinking_dropped\","
+                + "\"path\":\"messages.3.content.0\",\"reason\":\"model_binding_mismatch\"}]}";
+
+        ChatResponse response = MAPPER.readValue(body, ChatResponse.class);
+
+        assertEquals(1, response.getInputTransformations().size());
+        assertEquals("thinking_dropped", response.getInputTransformations().get(0).getType());
+        assertEquals("messages.3.content.0", response.getInputTransformations().get(0).getPath());
+        assertEquals("model_binding_mismatch", response.getInputTransformations().get(0).getReason());
+    }
+
+    @Test
+    public void inputTransformationsAbsentWithoutTheBetaFlag() throws Exception {
+        String body = "{\"id\":\"msg_1\",\"stop_reason\":\"end_turn\"}";
+        ChatResponse response = MAPPER.readValue(body, ChatResponse.class);
+        assertNull(response.getInputTransformations());
+    }
 }

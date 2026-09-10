@@ -52,6 +52,7 @@ import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
 import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
+import me.vacuity.ai.sdk.openai.image.response.ImageStreamEvent;
 import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
 import me.vacuity.ai.sdk.openai.video.entity.VideoJob;
 import me.vacuity.ai.sdk.openai.video.request.CreateVideoRequest;
@@ -516,6 +517,14 @@ public class OpenaiClient {
     }
 
     public ImageResponse editImage(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
+        return execute(api.editImage(buildEditImageBody(request, mask, images)));
+    }
+
+    /**
+     * Builds the multipart body for an image edit. Shared by the blocking and
+     * streaming paths so a field can never be wired into only one of them.
+     */
+    private MultipartBody buildEditImageBody(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MediaType.get("multipart/form-data"))
                 .addFormDataPart("prompt", request.getPrompt());
@@ -548,7 +557,58 @@ public class OpenaiClient {
         if (request.getQuality() != null) {
             builder.addFormDataPart("quality", request.getQuality());
         }
-        return execute(api.editImage(builder.build()));
+        if (request.getBackground() != null) {
+            builder.addFormDataPart("background", request.getBackground());
+        }
+        if (request.getOutputFormat() != null) {
+            builder.addFormDataPart("output_format", request.getOutputFormat());
+        }
+        if (request.getOutputCompression() != null) {
+            builder.addFormDataPart("output_compression", request.getOutputCompression().toString());
+        }
+        if (request.getInputFidelity() != null) {
+            builder.addFormDataPart("input_fidelity", request.getInputFidelity());
+        }
+        if (request.getModeration() != null) {
+            builder.addFormDataPart("moderation", request.getModeration());
+        }
+        if (request.getUser() != null) {
+            builder.addFormDataPart("user", request.getUser());
+        }
+        if (request.getPartialImages() != null) {
+            builder.addFormDataPart("partial_images", request.getPartialImages().toString());
+        }
+        if (Boolean.TRUE.equals(request.getStream())) {
+            builder.addFormDataPart("stream", "true");
+        }
+        return builder.build();
+    }
+
+    /**
+     * Stream image generation, emitting partial images as they are produced.
+     * Set {@code partialImages} (0-3) on the request to control how many
+     * partials arrive before the completed event.
+     */
+    public Flowable<ImageStreamEvent> streamCreateImage(CreateImageRequest request) {
+        request.setStream(true);
+        return eventSourceStream(api.streamCreateImage(request), ImageStreamEvent.class);
+    }
+
+    /**
+     * Stream an image edit, emitting partial images as they are produced.
+     */
+    public Flowable<ImageStreamEvent> streamEditImage(EditImageRequest request, java.io.File image, java.io.File mask) {
+        List<java.io.File> images = new ArrayList<>(1);
+        images.add(image);
+        return streamEditImage(request, mask, images);
+    }
+
+    /**
+     * Stream an image edit over several input images.
+     */
+    public Flowable<ImageStreamEvent> streamEditImage(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
+        request.setStream(true);
+        return eventSourceStream(api.streamEditImage(buildEditImageBody(request, mask, images)), ImageStreamEvent.class);
     }
 
     public ImageResponse imageVariation(ImageVariationRequest request, String imagePath) {

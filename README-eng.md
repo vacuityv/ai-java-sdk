@@ -21,6 +21,7 @@ It targets Java 8 and builds on JDK 8 through 23.
 - [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) (`output_config.format`)
 - Refusal details (`stop_details`), task budgets, context editing, MCP servers, fast mode and more
 - Per-request `anthropic-beta` header
+- Thinking block prefix validation (`block_binding`) and the thinking-token breakdown (`output_tokens_details`)
 
 ## Supported Google Gemini
 
@@ -38,7 +39,7 @@ It targets Java 8 and builds on JDK 8 through 23.
 - [Responses API (include stream)](https://developers.openai.com/api/reference/responses/overview)
 - [File](https://platform.openai.com/docs/api-reference/files)
 - [Assistant (include stream)](https://platform.openai.com/docs/api-reference/assistants)
-- [Image](https://platform.openai.com/docs/api-reference/images)
+- [Image](https://platform.openai.com/docs/api-reference/images) (generate / edit / variation, **generate and edit support streaming**)
 - [Batch](https://platform.openai.com/docs/api-reference/batch)
 - [Realtime session](https://platform.openai.com/docs/api-reference/realtime-sessions)
 - [Video (Sora)](https://platform.openai.com/docs/api-reference/videos)
@@ -185,6 +186,65 @@ ChatRequest request = ChatRequest.builder()
 
 Multiple flags are joined with commas into the `anthropic-beta` header. Leaving `betas` unset keeps the previous
 default behaviour.
+
+### Streaming image generation
+
+Generating an image usually takes tens of seconds. Streaming delivers partial images before the final one — measured here at roughly 5 seconds earlier for the first viewable image.
+
+```java
+CreateImageRequest request = CreateImageRequest.builder()
+        .model("gpt-image-1")          // streaming is gpt-image only; dall-e does not support it
+        .prompt("a simple orange fox, flat vector style")
+        .size("1024x1024")
+        .partialImages(2)              // upper bound on partial images, 0-3
+        .build();
+
+client.streamCreateImage(request).blockingSubscribe(event -> {
+    if (event.isCompleted()) {
+        save(event.getB64Json());                 // the final image
+        log(event.getUsage().getTotalTokens());   // usage only appears on the completed event
+    } else {
+        preview(event.getB64Json());              // a partial image
+    }
+});
+```
+
+Editing streams too:
+
+```java
+client.streamEditImage(request, imageFile, maskFile)
+```
+
+**Every event carries a complete, standalone image rather than an incremental chunk.** This is the opposite of text streaming: replace the whole image (swap the `img` src) instead of appending.
+
+Three things to watch:
+
+- `partialImages` is an upper bound, not a guarantee — the server may send one or none, so don't assume a count
+- `usage` is only present on the completed event; it is null on partials
+- The payload is large: one low-quality 1024x1024 generation totalled about 3.6MB of base64 across its events
+
+The streaming methods need the internal OkHttpClient, so they **cannot be used with the `new OpenaiClient(OpenaiApi)` constructor** — that throws `IllegalStateException`.
+
+### Thinking block validation in multi-turn Claude conversations
+
+For accounts created on or after 2026-08-31, the API enforces a prefix check on thinking blocks by default: if you change the system prompt, the tools, or earlier messages, the block becomes invalid and the request returns a 400. Anthropic states that later models will enforce this for every account.
+
+If your multi-turn code rebuilds history, you can degrade instead of failing:
+
+```java
+Thinking thinking = Thinking.adaptive();
+thinking.setBlockBinding(BlockBinding.dropBlock());   // the default is error()
+
+ChatRequest request = ChatRequest.builder()
+        .model("claude-opus-5")
+        .thinking(thinking)
+        .betas(Arrays.asList("thinking-binding-controls-2026-08-01"))
+        .messages(messages)
+        .maxTokens(4096)
+        .build();
+```
+
+Dropped blocks are listed in the response's `getInputTransformations()`. Separately, `usage.getOutputTokensDetails().getThinkingTokens()` reports how many of the billed output tokens went to internal reasoning.
 
 openAI vision：
 

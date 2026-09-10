@@ -3,6 +3,7 @@ package me.vacuity.ai.sdk.test.unit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
+import me.vacuity.ai.sdk.claude.entity.BlockBinding;
 import me.vacuity.ai.sdk.claude.entity.CacheControl;
 import me.vacuity.ai.sdk.claude.entity.ChatFunction;
 import me.vacuity.ai.sdk.claude.entity.ChatMessage;
@@ -229,5 +230,33 @@ public class ClaudeRequestSerializationTest {
         public void setQuery(String query) {
             this.query = query;
         }
+    }
+
+    @Test
+    public void thinkingCarriesBlockBinding() throws Exception {
+        Thinking thinking = Thinking.adaptive();
+        thinking.setBlockBinding(BlockBinding.dropBlock());
+
+        JsonNode json = serialize(minimal().thinking(thinking).build());
+
+        assertEquals("drop_block",
+                json.get("thinking").get("block_binding").get("prefix_mismatch_behavior").asText());
+    }
+
+    @Test
+    public void blockBindingErrorFactoryMatchesTheApiDefault() throws Exception {
+        Thinking thinking = Thinking.adaptive();
+        thinking.setBlockBinding(BlockBinding.error());
+
+        JsonNode json = serialize(minimal().thinking(thinking).build());
+
+        assertEquals("error",
+                json.get("thinking").get("block_binding").get("prefix_mismatch_behavior").asText());
+    }
+
+    @Test
+    public void blockBindingOmittedWhenUnset() throws Exception {
+        JsonNode json = serialize(minimal().thinking(Thinking.adaptive()).build());
+        assertFalse(json.get("thinking").has("block_binding"));
     }
 }

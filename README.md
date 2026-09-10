@@ -19,6 +19,7 @@
 - [结构化输出](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)（`output_config.format`）
 - 拒绝原因（`stop_details`）、任务预算（`task_budget`）、上下文编辑、MCP server、fast mode 等
 - `anthropic-beta` 头可按请求配置
+- thinking 块前缀校验（`block_binding`）与思考 token 明细（`output_tokens_details`）
 
 ## 支持的 Google Gemini
 
@@ -35,7 +36,7 @@
 - [Responses API (含stream)](https://developers.openai.com/api/reference/responses/overview)
 - [文件](https://platform.openai.com/docs/api-reference/files)
 - [Assistant (含stream)](https://platform.openai.com/docs/api-reference/assistants)
-- [Image](https://platform.openai.com/docs/api-reference/images)
+- [Image](https://platform.openai.com/docs/api-reference/images)（生成 / 编辑 / 变体，**生成与编辑支持流式**）
 - [Batch](https://platform.openai.com/docs/api-reference/batch)
 - [Realtime session](https://platform.openai.com/docs/api-reference/realtime-sessions)
 - [Video (Sora)](https://platform.openai.com/docs/api-reference/videos)
@@ -180,6 +181,65 @@ ChatRequest request = ChatRequest.builder()
 ```
 
 多个 beta 标记会以逗号拼接进 `anthropic-beta` 头。不设置时保持默认行为。
+
+### GPT Image 流式生成
+
+生图通常要十几秒。流式可以在最终图出来之前先拿到中间图，实测首图能提前约 5 秒。
+
+```java
+CreateImageRequest request = CreateImageRequest.builder()
+        .model("gpt-image-1")          // 仅 gpt-image 系列支持流式，dall-e 不支持
+        .prompt("a simple orange fox, flat vector style")
+        .size("1024x1024")
+        .partialImages(2)              // 中间图张数上限，0-3
+        .build();
+
+client.streamCreateImage(request).blockingSubscribe(event -> {
+    if (event.isCompleted()) {
+        save(event.getB64Json());                     // 最终图
+        log(event.getUsage().getTotalTokens());       // 用量只在完成事件上
+    } else {
+        preview(event.getB64Json());                  // 中间图
+    }
+});
+```
+
+编辑也支持流式：
+
+```java
+client.streamEditImage(request, imageFile, maskFile)
+```
+
+**每个事件携带的都是一张完整独立的图，不是增量片段。** 这点和文本流式相反：渲染时应当整张替换（换掉 `img` 的 src），而不是追加拼接。
+
+三个注意点：
+
+- `partialImages` 是上限而非保证，服务端可能只回 1 张甚至 0 张，代码不要假设张数
+- `usage` 只出现在完成事件上，中间事件里是 null
+- 流量不小，一次 1024x1024 的低质量生图两个事件合计约 3.6MB base64，移动端慎用高 `partialImages`
+
+流式方法依赖内部的 OkHttpClient，因此**不能用 `new OpenaiClient(OpenaiApi)` 这个构造器**，否则会抛 `IllegalStateException`。
+
+### Claude 多轮对话的 thinking 块校验
+
+自 2026-08-31 起创建的账号，服务端默认强制校验 thinking 块的前缀：一旦你改动了 system、tools 或历史消息，该块失效并返回 400。官方说明后续模型会对所有账号强制。
+
+如果你的多轮逻辑会重建历史，可以选择降级而非报错：
+
+```java
+Thinking thinking = Thinking.adaptive();
+thinking.setBlockBinding(BlockBinding.dropBlock());   // 默认是 error()
+
+ChatRequest request = ChatRequest.builder()
+        .model("claude-opus-5")
+        .thinking(thinking)
+        .betas(Arrays.asList("thinking-binding-controls-2026-08-01"))
+        .messages(messages)
+        .maxTokens(4096)
+        .build();
+```
+
+被丢弃的块会列在响应的 `getInputTransformations()` 里。另外 `usage.getOutputTokensDetails().getThinkingTokens()` 可以看出计费的输出 token 中有多少花在了思考上。
 
 openAI vision：
 

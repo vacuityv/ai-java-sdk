@@ -208,6 +208,14 @@ public interface OpenaiApi {
     @POST("v1/images/edits")
     Single<ImageResponse> editImage(@Body RequestBody requestBody);
 
+    @Streaming
+    @POST("v1/images/generations")
+    Call<ResponseBody> streamCreateImage(@Body CreateImageRequest request);
+
+    @Streaming
+    @POST("v1/images/edits")
+    Call<ResponseBody> streamEditImage(@Body RequestBody requestBody);
+
     @POST("v1/images/variations")
     Single<ImageResponse> imageVariation(@Body RequestBody requestBody);
 

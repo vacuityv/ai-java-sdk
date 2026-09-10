@@ -45,4 +45,16 @@ public class CreateImageRequest {
     private String style;
 
     private String user;
+
+    /**
+     * Stream partial images as the final image is produced. Use the
+     * streaming client methods rather than setting this by hand.
+     */
+    private Boolean stream;
+
+    /**
+     * How many partial images to emit while streaming (0-3).
+     */
+    @JsonProperty("partial_images")
+    private Integer partialImages;
 }

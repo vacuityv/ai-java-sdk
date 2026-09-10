@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.claude.entity.ChatMessageContent;
+import me.vacuity.ai.sdk.claude.entity.InputTransformation;
 import me.vacuity.ai.sdk.claude.entity.StopDetails;
 import me.vacuity.ai.sdk.claude.entity.Usage;
 
@@ -47,6 +48,14 @@ public class ChatResponse {
      */
     @JsonProperty("stop_details")
     private StopDetails stopDetails;
+
+    /**
+     * Blocks the API dropped from the request. Only populated when the
+     * "thinking-binding-controls-2026-08-01" beta flag is sent; without it
+     * drops are silent.
+     */
+    @JsonProperty("input_transformations")
+    private List<InputTransformation> inputTransformations;
 
     private Usage usage;
 }

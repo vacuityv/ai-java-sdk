@@ -45,6 +45,13 @@ public class Usage {
     private Integer cacheReadInputTokens;
 
     /**
+     * Breakdown of the billed output tokens — notably how many went to
+     * internal reasoning.
+     */
+    @JsonProperty("output_tokens_details")
+    private OutputTokensDetails outputTokensDetails;
+
+    /**
      * Which capacity served the request.
      */
     @JsonProperty("service_tier")

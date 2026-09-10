@@ -36,6 +36,13 @@ public class Thinking {
     private String display;
 
     /**
+     * Controls what happens when a thinking block's prefix no longer matches.
+     * Requires the "thinking-binding-controls-2026-08-01" beta flag.
+     */
+    @JsonProperty("block_binding")
+    private BlockBinding blockBinding;
+
+    /**
      * Fixed thinking token budget.
      *
      * @deprecated Removed on current models (Opus 4.7 and later, Sonnet 5,

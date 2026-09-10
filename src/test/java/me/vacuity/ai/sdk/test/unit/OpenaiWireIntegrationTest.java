@@ -5,7 +5,10 @@ import com.sun.net.httpserver.HttpServer;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
+import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
+import me.vacuity.ai.sdk.openai.image.constant.ImageStreamEventConstant;
 import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
+import me.vacuity.ai.sdk.openai.image.response.ImageStreamEvent;
 import me.vacuity.ai.sdk.openai.video.entity.VideoJob;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -36,6 +41,9 @@ public class OpenaiWireIntegrationTest {
     private HttpServer server;
     private String baseUrl;
     private volatile String responseBody = "{}";
+    private volatile String responseContentType = "application/json";
+    private final java.util.concurrent.atomic.AtomicReference<String> capturedBody =
+            new java.util.concurrent.atomic.AtomicReference<>();
 
     @BeforeEach
     public void startServer() throws Exception {
@@ -51,8 +59,17 @@ public class OpenaiWireIntegrationTest {
     }
 
     private void handle(HttpExchange exchange) throws java.io.IOException {
+        try (java.io.InputStream in = exchange.getRequestBody()) {
+            java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+            byte[] chunk = new byte[4096];
+            int read;
+            while ((read = in.read(chunk)) != -1) {
+                buf.write(chunk, 0, read);
+            }
+            capturedBody.set(new String(buf.toByteArray(), StandardCharsets.UTF_8));
+        }
         byte[] out = responseBody.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.getResponseHeaders().set("Content-Type", responseContentType);
         exchange.sendResponseHeaders(200, out.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(out);
@@ -111,5 +128,135 @@ public class OpenaiWireIntegrationTest {
         assertNotNull(file);
         assertEquals("file_1", file.getId());
         assertEquals("a.jsonl", file.getFilename());
+    }
+
+    // ---------------------------------------------------- image edit multipart
+
+    private java.io.File tempPng() throws Exception {
+        java.io.File f = java.io.File.createTempFile("edit-", ".png");
+        f.deleteOnExit();
+        java.nio.file.Files.write(f.toPath(), new byte[]{(byte) 0x89, 'P', 'N', 'G'});
+        return f;
+    }
+
+    /**
+     * editImage builds its multipart body by hand, so a field can exist on the
+     * request object and still never reach the wire. moderation shipped in
+     * 1.9.17 and was silently dropped for exactly that reason.
+     */
+    @Test
+    public void editImageSendsEveryConfiguredField() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[{\"b64_json\":\"aGk=\"}]}";
+
+        EditImageRequest request = EditImageRequest.builder()
+                .prompt("make it pop")
+                .model("gpt-image-1")
+                .n(2)
+                .quality("high")
+                .size("1024x1024")
+                .responseFormat("b64_json")
+                .user("user-1")
+                .inputFidelity("high")
+                .moderation("low")
+                .background("transparent")
+                .outputFormat("webp")
+                .outputCompression(80)
+                .build();
+
+        // 显式转型：editImage(req, File, File) 与 editImage(req, File, List) 对 null 有歧义
+        client().editImage(request, tempPng(), (java.io.File) null);
+
+        String body = capturedBody.get();
+        for (String part : new String[]{
+                "prompt", "model", "n", "quality", "size", "response_format",
+                "user", "input_fidelity", "moderation",
+                "background", "output_format", "output_compression"}) {
+            assertTrue(body.contains("name=\"" + part + "\""),
+                    "multipart body is missing form part: " + part);
+        }
+        assertTrue(body.contains("transparent"), "background value must be sent");
+        assertTrue(body.contains("webp"), "output_format value must be sent");
+        assertTrue(body.contains("80"), "output_compression value must be sent");
+    }
+
+    @Test
+    public void editImageOmitsUnsetFields() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().editImage(EditImageRequest.builder().prompt("only prompt").build(),
+                tempPng(), (java.io.File) null);
+
+        String body = capturedBody.get();
+        assertTrue(body.contains("name=\"prompt\""));
+        for (String absent : new String[]{"moderation", "background", "output_format"}) {
+            assertFalse(body.contains("name=\"" + absent + "\""),
+                    "unset field must not be sent: " + absent);
+        }
+    }
+
+    // ------------------------------------------------------- image streaming
+
+    @Test
+    public void streamCreateImageParsesPartialAndCompletedEvents() {
+        responseContentType = "text/event-stream";
+        responseBody = ""
+                + "data: {\"type\":\"image_generation.partial_image\",\"b64_json\":\"cGFydDA=\","
+                + "\"partial_image_index\":0,\"size\":\"1024x1024\",\"quality\":\"high\","
+                + "\"background\":\"transparent\",\"output_format\":\"webp\",\"created_at\":1}\n\n"
+                + "data: {\"type\":\"image_generation.completed\",\"b64_json\":\"ZG9uZQ==\","
+                + "\"size\":\"1024x1024\",\"quality\":\"high\",\"created_at\":2,"
+                + "\"usage\":{\"input_tokens\":10,\"output_tokens\":50,\"total_tokens\":60,"
+                + "\"input_tokens_details\":{\"image_tokens\":4,\"text_tokens\":6}}}\n\n"
+                + "data: [DONE]\n\n";
+
+        java.util.List<ImageStreamEvent> events = new java.util.ArrayList<>();
+        client().streamCreateImage(CreateImageRequest.builder().prompt("a cat").partialImages(1).build())
+                .blockingSubscribe(events::add);
+
+        assertEquals(2, events.size());
+
+        ImageStreamEvent partial = events.get(0);
+        assertEquals(ImageStreamEventConstant.GENERATION_PARTIAL_IMAGE, partial.getType());
+        assertEquals("cGFydDA=", partial.getB64Json());
+        assertEquals(0, partial.getPartialImageIndex());
+        assertEquals("webp", partial.getOutputFormat());
+        assertEquals("transparent", partial.getBackground());
+        assertFalse(partial.isCompleted());
+
+        ImageStreamEvent done = events.get(1);
+        assertEquals(ImageStreamEventConstant.GENERATION_COMPLETED, done.getType());
+        assertTrue(done.isCompleted());
+        assertNotNull(done.getUsage());
+        assertEquals(60, done.getUsage().getTotalTokens());
+        assertEquals(4, done.getUsage().getInputTokensDetails().getImageTokens());
+    }
+
+    @Test
+    public void streamCreateImageSetsStreamFlagAndPartialImages() {
+        responseContentType = "text/event-stream";
+        responseBody = "data: [DONE]\n\n";
+
+        client().streamCreateImage(
+                        CreateImageRequest.builder().prompt("x").partialImages(3).build())
+                .blockingSubscribe(e -> { }, t -> { });
+
+        String body = capturedBody.get();
+        assertTrue(body.contains("\"stream\":true"), "stream flag must be sent, got: " + body);
+        assertTrue(body.contains("\"partial_images\":3"), "partial_images must be sent, got: " + body);
+    }
+
+    @Test
+    public void streamEditImageSendsStreamPartsInMultipart() throws Exception {
+        responseContentType = "text/event-stream";
+        responseBody = "data: [DONE]\n\n";
+
+        client().streamEditImage(
+                        EditImageRequest.builder().prompt("edit me").partialImages(2).build(),
+                        tempPng(), (java.io.File) null)
+                .blockingSubscribe(e -> { }, t -> { });
+
+        String body = capturedBody.get();
+        assertTrue(body.contains("name=\"stream\""), "stream part missing");
+        assertTrue(body.contains("name=\"partial_images\""), "partial_images part missing");
     }
 }
