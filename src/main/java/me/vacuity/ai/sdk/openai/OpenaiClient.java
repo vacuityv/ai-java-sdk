@@ -51,6 +51,8 @@ import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
+import me.vacuity.ai.sdk.openai.decision.request.DecisionRequest;
+import me.vacuity.ai.sdk.openai.decision.response.Decision;
 import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
 import me.vacuity.ai.sdk.openai.image.response.ImageStreamEvent;
 import me.vacuity.ai.sdk.openai.interceptor.OpenaiAuthenticationInterceptor;
@@ -463,6 +465,15 @@ public class OpenaiClient {
     public Flowable<AssistantStreamResponse> streamSubmitToolOutputs(String threadId, String runId, SubmitToolOutputsRequest submitToolOutputsRequest) {
         submitToolOutputsRequest.setStream(true);
         return assistantStream(api.streamSubmitToolOutputs(threadId, runId, submitToolOutputsRequest));
+    }
+
+    /**
+     * Ask the Decisions API for typed answers with probabilities instead of
+     * free text. Only gpt-6-luna supports this endpoint, and only input tokens
+     * are billed.
+     */
+    public Decision createDecision(DecisionRequest request) {
+        return execute(api.createDecision(request));
     }
 
     public ImageResponse createImage(CreateImageRequest request) {

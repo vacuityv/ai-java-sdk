@@ -3,6 +3,10 @@ package me.vacuity.ai.sdk.test.unit;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import me.vacuity.ai.sdk.openai.OpenaiClient;
+import me.vacuity.ai.sdk.openai.decision.request.DecisionQuestion;
+import me.vacuity.ai.sdk.openai.decision.request.DecisionRequest;
+import me.vacuity.ai.sdk.openai.decision.response.Decision;
+import me.vacuity.ai.sdk.openai.decision.response.DecisionAnswer;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
@@ -23,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Drives OpenaiClient over a real HTTP connection to a local server.
@@ -258,5 +263,119 @@ public class OpenaiWireIntegrationTest {
         String body = capturedBody.get();
         assertTrue(body.contains("name=\"stream\""), "stream part missing");
         assertTrue(body.contains("name=\"partial_images\""), "partial_images part missing");
+    }
+
+    // ------------------------------------------------------------- decisions
+
+    /**
+     * Fixture captured verbatim from a real /v1/decisions call, so the parsing
+     * assertions below are pinned to the shape the server actually returns.
+     */
+    private static final String REAL_DECISION_RESPONSE =
+            "{\"model\":\"gpt-6-luna\",\"answers\":["
+            + "{\"type\":\"predicate\",\"name\":\"is_bug\",\"probability\":1.0},"
+            + "{\"type\":\"choice\",\"name\":\"area\",\"choice\":\"mobile\",\"probabilities\":["
+            + "{\"value\":\"mobile\",\"probability\":1.0},"
+            + "{\"value\":\"backend\",\"probability\":0.0},"
+            + "{\"value\":\"docs\",\"probability\":0.0}],\"confidence\":1.0},"
+            + "{\"type\":\"score\",\"name\":\"severity\",\"score\":1.94,\"probabilities\":["
+            + "{\"value\":0,\"label\":\"low\",\"probability\":0.01},"
+            + "{\"value\":1,\"label\":\"medium\",\"probability\":0.04},"
+            + "{\"value\":2,\"label\":\"high\",\"probability\":0.95}],\"confidence\":0.91}],"
+            + "\"usage\":{\"input_tokens\":410,"
+            + "\"input_tokens_details\":{\"cached_tokens\":0,\"cache_write_tokens\":0},"
+            + "\"output_tokens\":0,\"output_tokens_details\":{\"reasoning_tokens\":0},"
+            + "\"total_tokens\":410}}";
+
+    private DecisionRequest sampleDecision() {
+        return DecisionRequest.builder()
+                .model("gpt-6-luna")
+                .input("The app crashes when I open settings.")
+                .questions(java.util.Arrays.asList(
+                        DecisionQuestion.predicate("is_bug", "Does this describe a defect?"),
+                        DecisionQuestion.choice("area", "Which area?", java.util.Arrays.asList(
+                                DecisionQuestion.Choice.of("mobile", "iOS or Android"),
+                                DecisionQuestion.Choice.of("backend", "server side"))),
+                        DecisionQuestion.score("severity", "How severe?", java.util.Arrays.asList(
+                                DecisionQuestion.Level.of("low", "cosmetic"),
+                                DecisionQuestion.Level.of("high", "unusable")))))
+                .build();
+    }
+
+    @Test
+    public void decisionRequestUsesTheDocumentedShape() throws Exception {
+        responseBody = REAL_DECISION_RESPONSE;
+
+        client().createDecision(sampleDecision());
+
+        com.fasterxml.jackson.databind.JsonNode body =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+
+        assertEquals("gpt-6-luna", body.get("model").asText());
+        assertTrue(body.get("input").isTextual());
+        assertEquals(3, body.get("questions").size());
+
+        assertEquals("predicate", body.get("questions").get(0).get("type").asText());
+        assertFalse(body.get("questions").get(0).has("choices"),
+                "a predicate question must not carry choices");
+
+        assertEquals("choice", body.get("questions").get(1).get("type").asText());
+        assertEquals("mobile", body.get("questions").get(1).get("choices").get(0).get("value").asText());
+
+        assertEquals("score", body.get("questions").get(2).get("type").asText());
+        assertEquals("low", body.get("questions").get(2).get("levels").get(0).get("label").asText());
+    }
+
+    @Test
+    public void decisionResponseParsesAllThreeAnswerTypes() {
+        responseBody = REAL_DECISION_RESPONSE;
+
+        Decision decision = client().createDecision(sampleDecision());
+
+        assertEquals("gpt-6-luna", decision.getModel());
+        assertEquals(3, decision.getAnswers().size());
+
+        DecisionAnswer predicate = decision.answer("is_bug");
+        assertEquals(1.0, predicate.getProbability());
+        assertFalse(predicate.isRefusal());
+
+        DecisionAnswer choice = decision.answer("area");
+        assertEquals("mobile", choice.getChoice());
+        assertEquals(1.0, choice.getConfidence());
+        assertEquals(3, choice.getProbabilities().size());
+        assertEquals("backend", choice.getProbabilities().get(1).getValue());
+
+        DecisionAnswer score = decision.answer("severity");
+        // score is a probability-weighted average of level indexes, not an index
+        assertEquals(1.94, score.getScore());
+        assertEquals("high", score.getProbabilities().get(2).getLabel());
+        assertEquals(2, score.getProbabilities().get(2).getValue());
+
+        // only input tokens are billed on this endpoint
+        assertEquals(410, decision.getUsage().getInputTokens());
+        assertEquals(0, decision.getUsage().getOutputTokens());
+        assertEquals(0, decision.getUsage().getInputTokensDetails().getCachedTokens());
+    }
+
+    @Test
+    public void decisionRefusalIsDetectableBeforeReadingValues() {
+        responseBody = "{\"model\":\"gpt-6-luna\",\"answers\":["
+                + "{\"type\":\"refusal\",\"name\":\"is_bug\"}],"
+                + "\"usage\":{\"input_tokens\":5,\"total_tokens\":5}}";
+
+        Decision decision = client().createDecision(sampleDecision());
+        DecisionAnswer answer = decision.answer("is_bug");
+
+        assertTrue(answer.isRefusal());
+        assertNull(answer.getProbability(), "a refusal carries no value fields");
+        assertNull(answer.getChoice());
+        assertNull(answer.getScore());
+    }
+
+    @Test
+    public void unknownAnswerByNameIsNull() {
+        responseBody = REAL_DECISION_RESPONSE;
+        Decision decision = client().createDecision(sampleDecision());
+        assertNull(decision.answer("no_such_question"));
     }
 }

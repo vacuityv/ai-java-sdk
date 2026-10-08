@@ -40,6 +40,7 @@
 - [Batch](https://platform.openai.com/docs/api-reference/batch)
 - [Realtime session](https://platform.openai.com/docs/api-reference/realtime-sessions)
 - [Video (Sora)](https://platform.openai.com/docs/api-reference/videos)
+- [Decisions API](https://developers.openai.com/api/docs/guides/decisions)（结构化判断，仅 gpt-6-luna）
 
 ## Importing
 
@@ -240,6 +241,48 @@ ChatRequest request = ChatRequest.builder()
 ```
 
 被丢弃的块会列在响应的 `getInputTransformations()` 里。另外 `usage.getOutputTokensDetails().getThinkingTokens()` 可以看出计费的输出 token 中有多少花在了思考上。
+
+### Decisions API（结构化判断）
+
+`POST /v1/decisions`，不返回自由文本，而是从你定义的选项里挑一个并给出概率分布。适合分类、路由、Agent 下一步决策。目前**只有 `gpt-6-luna` 支持**，且**只收输入费**（$0.10/1M），输出与缓存读写不计费。
+
+```java
+Decision decision = client.createDecision(DecisionRequest.builder()
+        .model("gpt-6-luna")
+        .input("The app crashes every time I open settings on iOS 18.")
+        .questions(Arrays.asList(
+                DecisionQuestion.predicate("is_bug", "Does this describe a defect?"),
+                DecisionQuestion.choice("area", "Which area?", Arrays.asList(
+                        DecisionQuestion.Choice.of("mobile", "iOS or Android client"),
+                        DecisionQuestion.Choice.of("backend", "server side"))),
+                DecisionQuestion.score("severity", "How severe?", Arrays.asList(
+                        DecisionQuestion.Level.of("low", "cosmetic"),
+                        DecisionQuestion.Level.of("medium", "degraded but usable"),
+                        DecisionQuestion.Level.of("high", "unusable or data loss")))))
+        .build());
+
+DecisionAnswer area = decision.answer("area");
+if (!area.isRefusal()) {
+    System.out.println(area.getChoice() + " @ " + area.getConfidence());
+}
+```
+
+三种题型：
+
+| 类型 | 额外字段 | 返回 |
+|---|---|---|
+| `predicate` | 无 | `probability`，陈述为真的概率 |
+| `choice` | `choices[]` | `choice` + `confidence` + 各选项概率分布 |
+| `score` | `levels[]`（低到高） | `score` + `confidence` + 各档概率 |
+
+**`score` 返回的是按概率加权的平均值，不是档位索引。** 例如三档 low/medium/high 得到 1.94，表示"几乎确定是 high 但略有保留"。路由时可直接拿它跟阈值比较，比单个标签信息量大。因此 `levels` 的顺序是有含义的，必须从低到高传。
+
+注意事项：
+
+- 读取任何值字段前先判断 `isRefusal()` —— 拒绝时所有值字段都是 null
+- 互相独立的问题可以放进同一个 `questions` 一次问完；有依赖关系的必须拆成多次请求
+- 图片输入必须是内联 base64 data URL，**不支持 http(s) 链接和 `file_id`**
+- `usage` 里有 `output_tokens` 和 `reasoning_tokens`，但官方说明这些不计费，仅供观测
 
 openAI vision：
 

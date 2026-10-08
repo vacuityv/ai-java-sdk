@@ -27,6 +27,8 @@ import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
+import me.vacuity.ai.sdk.openai.decision.request.DecisionRequest;
+import me.vacuity.ai.sdk.openai.decision.response.Decision;
 import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
 import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSession;
 import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeSessionRequest;
@@ -204,6 +206,9 @@ public interface OpenaiApi {
 
     @POST("v1/images/generations")
     Single<ImageResponse> createImage(@Body CreateImageRequest request);
+
+    @POST("v1/decisions")
+    Single<Decision> createDecision(@Body DecisionRequest request);
 
     @POST("v1/images/edits")
     Single<ImageResponse> editImage(@Body RequestBody requestBody);

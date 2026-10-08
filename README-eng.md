@@ -43,6 +43,7 @@ It targets Java 8 and builds on JDK 8 through 23.
 - [Batch](https://platform.openai.com/docs/api-reference/batch)
 - [Realtime session](https://platform.openai.com/docs/api-reference/realtime-sessions)
 - [Video (Sora)](https://platform.openai.com/docs/api-reference/videos)
+- [Decisions API](https://developers.openai.com/api/docs/guides/decisions) (structured judgements, gpt-6-luna only)
 
 ## Importing
 
@@ -245,6 +246,48 @@ ChatRequest request = ChatRequest.builder()
 ```
 
 Dropped blocks are listed in the response's `getInputTransformations()`. Separately, `usage.getOutputTokensDetails().getThinkingTokens()` reports how many of the billed output tokens went to internal reasoning.
+
+### Decisions API (structured judgements)
+
+`POST /v1/decisions` returns a typed choice with probabilities instead of free text — useful for classification, routing, and picking an agent's next step. Only **`gpt-6-luna`** supports it, and **only input tokens are billed** ($0.10/1M); output tokens and cache reads/writes are free.
+
+```java
+Decision decision = client.createDecision(DecisionRequest.builder()
+        .model("gpt-6-luna")
+        .input("The app crashes every time I open settings on iOS 18.")
+        .questions(Arrays.asList(
+                DecisionQuestion.predicate("is_bug", "Does this describe a defect?"),
+                DecisionQuestion.choice("area", "Which area?", Arrays.asList(
+                        DecisionQuestion.Choice.of("mobile", "iOS or Android client"),
+                        DecisionQuestion.Choice.of("backend", "server side"))),
+                DecisionQuestion.score("severity", "How severe?", Arrays.asList(
+                        DecisionQuestion.Level.of("low", "cosmetic"),
+                        DecisionQuestion.Level.of("medium", "degraded but usable"),
+                        DecisionQuestion.Level.of("high", "unusable or data loss")))))
+        .build());
+
+DecisionAnswer area = decision.answer("area");
+if (!area.isRefusal()) {
+    System.out.println(area.getChoice() + " @ " + area.getConfidence());
+}
+```
+
+The three question types:
+
+| Type | Extra fields | Returns |
+|---|---|---|
+| `predicate` | none | `probability` that the statement holds |
+| `choice` | `choices[]` | `choice` + `confidence` + the full distribution |
+| `score` | `levels[]` (low to high) | `score` + `confidence` + per-level probabilities |
+
+**`score` is a probability-weighted average of the level indexes, not a level index.** With low/medium/high, 1.94 means "almost certainly high, with slight hesitation". Compare it against a threshold directly — it carries more information than a single label. The order of `levels` is therefore load-bearing: pass them lowest to highest.
+
+Things to watch:
+
+- Check `isRefusal()` before reading any value field; on a refusal they are all null
+- Independent questions can share one `questions` array; dependent decisions need separate requests
+- Image input must be an inline base64 data URL — hosted http(s) URLs and `file_id` are rejected
+- `usage` reports `output_tokens` and `reasoning_tokens`, but the docs state these are not billed
 
 openAI vision：
 
