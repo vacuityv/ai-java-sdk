@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.gemini.entity.ChatMessage;
 import me.vacuity.ai.sdk.gemini.entity.Tool;
+import me.vacuity.ai.sdk.gemini.entity.ToolConfig;
 import me.vacuity.ai.sdk.gemini.enums.MediaResolution;
 import me.vacuity.ai.sdk.gemini.enums.Modality;
 
@@ -39,6 +40,14 @@ public class ChatRequest {
     private ChatMessage systemInstruction;
 
     private List<Tool> tools;
+
+    /**
+     * Required when combining function declarations with a built-in tool such
+     * as googleSearch on gemini-4-argon — see
+     * {@link ToolConfig#includeServerSideToolInvocations()}. Omitted from the
+     * request body when null.
+     */
+    private ToolConfig toolConfig;
 
 
     @Data

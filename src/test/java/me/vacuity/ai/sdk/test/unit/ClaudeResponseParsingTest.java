@@ -6,6 +6,7 @@ import me.vacuity.ai.sdk.claude.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -119,5 +120,59 @@ public class ClaudeResponseParsingTest {
         String body = "{\"id\":\"msg_1\",\"stop_reason\":\"end_turn\"}";
         ChatResponse response = MAPPER.readValue(body, ChatResponse.class);
         assertNull(response.getInputTransformations());
+    }
+
+    /**
+     * vac-chat replays assistant history verbatim, including Opus 4.8 encrypted
+     * thinking blocks whose text is empty and which carry only a signature.
+     * The SDK must not drop, rewrite, or reorder any of that: 1.11.0 only added
+     * optional request fields, it introduced no client-side validation.
+     */
+    @Test
+    public void emptyThinkingBlocksWithSignaturesRoundTripUntouched() throws Exception {
+        String original = "[" 
+                + "{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"sig-abc\"},"
+                + "{\"type\":\"redacted_thinking\",\"data\":\"encrypted-payload\"},"
+                + "{\"type\":\"text\",\"text\":\"answer\"}]";
+
+        java.util.List<me.vacuity.ai.sdk.claude.entity.ChatMessageContent> blocks =
+                MAPPER.readValue(original, MAPPER.getTypeFactory().constructCollectionType(
+                        java.util.List.class,
+                        me.vacuity.ai.sdk.claude.entity.ChatMessageContent.class));
+
+        assertEquals(3, blocks.size(), "no block may be dropped");
+
+        assertEquals("thinking", blocks.get(0).getType());
+        assertEquals("", blocks.get(0).getThinking(), "empty thinking text must survive as empty, not null");
+        assertEquals("sig-abc", blocks.get(0).getSignature());
+
+        assertEquals("redacted_thinking", blocks.get(1).getType());
+        assertEquals("encrypted-payload", blocks.get(1).getData());
+
+        com.fasterxml.jackson.databind.JsonNode back = MAPPER.readTree(MAPPER.writeValueAsString(blocks));
+        assertEquals(3, back.size());
+        assertEquals("", back.get(0).get("thinking").asText());
+        assertEquals("sig-abc", back.get(0).get("signature").asText());
+        assertEquals("encrypted-payload", back.get(1).get("data").asText());
+        assertEquals("answer", back.get(2).get("text").asText());
+    }
+
+    /**
+     * block_binding is opt-in: a request that never sets it must not carry it,
+     * so existing multi-turn callers keep the pre-1.11.0 wire shape.
+     */
+    @Test
+    public void blockBindingIsAbsentUnlessAskedFor() throws Exception {
+        me.vacuity.ai.sdk.claude.request.ChatRequest request =
+                me.vacuity.ai.sdk.claude.request.ChatRequest.builder()
+                        .model("claude-opus-5")
+                        .maxTokens(16)
+                        .thinking(me.vacuity.ai.sdk.claude.entity.Thinking.adaptive())
+                        .build();
+
+        com.fasterxml.jackson.databind.JsonNode json =
+                MAPPER.readTree(MAPPER.writeValueAsString(request));
+
+        assertFalse(json.get("thinking").has("block_binding"));
     }
 }

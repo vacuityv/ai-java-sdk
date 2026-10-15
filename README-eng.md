@@ -28,6 +28,7 @@ It targets Java 8 and builds on JDK 8 through 23.
 - [Chat (support function)](https://ai.google.dev/tutorials/rest_quickstart)
 - [Streaming Chat (support function)](https://ai.google.dev/tutorials/rest_quickstart)
 - [Veo video generation](https://ai.google.dev/gemini-api/docs/video)
+- Built-in tools alongside function declarations (`toolConfig.includeServerSideToolInvocations`)
 
 ## Supported openAI
 
@@ -288,6 +289,38 @@ Things to watch:
 - Independent questions can share one `questions` array; dependent decisions need separate requests
 - Image input must be an inline base64 data URL — hosted http(s) URLs and `file_id` are rejected
 - `usage` reports `output_tokens` and `reasoning_tokens`, but the docs state these are not billed
+
+### Combining Gemini built-in tools with function declarations
+
+On `gemini-4-argon`, a request carrying both function declarations and `googleSearch` must enable `toolConfig.includeServerSideToolInvocations` or the API returns a 400:
+
+> Please enable tool_config.include_server_side_tool_invocations to use Built-in tools with Function calling.
+
+```java
+ChatRequest request = ChatRequest.builder()
+        .model("gemini-4-argon")
+        .contents(contents)
+        .tools(Collections.singletonList(
+                Tool.functionsWithGoogleSearch(functions)))   // declarations + built-in search
+        .toolConfig(ToolConfig.includeServerSideToolInvocations())
+        .build();
+```
+
+Use `Tool.googleSearch()` for search alone. When `toolConfig` is unset the field is omitted from the body entirely, so older models are unaffected.
+
+**Enabling it adds two part types to the response:**
+
+```java
+for (ChatMessageContentPart part : candidate.getContent().getParts()) {
+    if (part.getToolCall() != null) {
+        // a tool the model ran server-side, e.g. GOOGLE_SEARCH_WEB with its queries
+    } else if (part.getToolResponse() != null) {
+        // that call's result
+    }
+}
+```
+
+Both part types **also carry `thoughtSignature`**. Gemini 3/4 expect the previous turn's model parts to be replayed verbatim, so `ChatMessageContentPart` now keeps a catch-all (`getExtra()`): fields the server returns but this SDK has not modelled are preserved and written back out unchanged instead of being silently dropped.
 
 openAI vision：
 

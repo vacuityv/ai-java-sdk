@@ -26,6 +26,7 @@
 - [对话 (支持function)](https://ai.google.dev/tutorials/rest_quickstart)
 - [流式对话 (支持function)](https://ai.google.dev/tutorials/rest_quickstart)
 - [Veo 视频生成](https://ai.google.dev/gemini-api/docs/video)
+- 内置工具与函数声明同时使用（`toolConfig.includeServerSideToolInvocations`）
 
 ## 支持的 openAI
 
@@ -283,6 +284,39 @@ if (!area.isRefusal()) {
 - 互相独立的问题可以放进同一个 `questions` 一次问完；有依赖关系的必须拆成多次请求
 - 图片输入必须是内联 base64 data URL，**不支持 http(s) 链接和 `file_id`**
 - `usage` 里有 `output_tokens` 和 `reasoning_tokens`，但官方说明这些不计费，仅供观测
+
+### Gemini 内置工具与函数声明同时使用
+
+`gemini-4-argon` 在同一请求里既挂函数声明又挂 `googleSearch` 时，必须开启
+`toolConfig.includeServerSideToolInvocations`，否则直接 400：
+
+> Please enable tool_config.include_server_side_tool_invocations to use Built-in tools with Function calling.
+
+```java
+ChatRequest request = ChatRequest.builder()
+        .model("gemini-4-argon")
+        .contents(contents)
+        .tools(Collections.singletonList(
+                Tool.functionsWithGoogleSearch(functions)))   // 函数声明 + 内置搜索
+        .toolConfig(ToolConfig.includeServerSideToolInvocations())
+        .build();
+```
+
+只要内置搜索的，用 `Tool.googleSearch()`。不设 `toolConfig` 时该字段不会出现在请求体里，老模型不受影响。
+
+**开启后响应里会多出两种 part：**
+
+```java
+for (ChatMessageContentPart part : candidate.getContent().getParts()) {
+    if (part.getToolCall() != null) {
+        // 模型在服务端发起的工具调用，如 GOOGLE_SEARCH_WEB 及其 queries
+    } else if (part.getToolResponse() != null) {
+        // 该次调用的结果
+    }
+}
+```
+
+这两种 part **同样带 `thoughtSignature`**。Gemini 3 / 4 要求多轮对话把上一轮 model 的 part 原样回传，因此 `ChatMessageContentPart` 增加了未知字段兜底（`getExtra()`）：服务端返回但 SDK 尚未建模的字段会被保留并在回传时原样发出，不会被静默丢弃。
 
 openAI vision：
 
