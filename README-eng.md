@@ -322,6 +322,55 @@ for (ChatMessageContentPart part : candidate.getContent().getParts()) {
 
 Both part types **also carry `thoughtSignature`**. Gemini 3/4 expect the previous turn's model parts to be replayed verbatim, so `ChatMessageContentPart` now keeps a catch-all (`getExtra()`): fields the server returns but this SDK has not modelled are preserved and written back out unchanged instead of being silently dropped.
 
+### Gemini thinking tokens and billing
+
+On Gemini 2.5 / 3.x / 4 the thinking tokens live in `usageMetadata.thoughtsTokenCount`. They are **not included in `candidatesTokenCount`**, yet Google bills them at the output rate — billing on `candidatesTokenCount` alone undercounts.
+
+```java
+Usage usage = response.getUsageMetadata();
+
+usage.getCandidatesTokenCount();        // the visible answer
+usage.getThoughtsTokenCount();          // thinking; null when the model did not think
+usage.getBillableOutputTokenCount();    // both together, i.e. what is billed as output
+```
+
+Also filled in: `cachedContentTokenCount`, `toolUsePromptTokenCount`, `trafficType`, and the four `ModalityTokenCount` breakdowns (`promptTokensDetails` / `candidatesTokensDetails` / `cacheTokensDetails` / `toolUsePromptTokensDetails`). Absent fields stay null.
+
+**Two things matter when billing a stream:**
+
+1. `usageMetadata` arrives on **every chunk**, not just the last one
+2. Its counters are **cumulative, not per-chunk deltas** — summing them overcounts badly
+
+So keep the last one you see:
+
+```java
+final Usage[] last = new Usage[1];
+client.streamChat(request).blockingSubscribe(chunk -> {
+    if (chunk != null && chunk.getUsageMetadata() != null) {
+        last[0] = chunk.getUsageMetadata();      // overwrite, never accumulate
+    }
+});
+```
+
+**Model behaviour differs:** `gemini-4-argon` does not think unless `thinkingLevel` (low / medium / high) is set — `includeThoughts` alone produces no thinking tokens. `gemini-3.8-flash` thinks by default.
+
+### Detecting truncation on a Claude stream
+
+The `delta` of a `message_delta` event now exposes `stop_reason` and `stop_sequence`, so there is no need to infer truncation from `output_tokens >= max_tokens`:
+
+```java
+client.streamChat(request).blockingSubscribe(event -> {
+    if ("message_delta".equals(event.getType())) {
+        String reason = event.getDelta().getStopReason();   // max_tokens / end_turn / tool_use ...
+        if ("max_tokens".equals(reason)) {
+            // truncated
+        }
+    }
+});
+```
+
+Content block deltas (`text_delta` / `thinking_delta` / `input_json_delta` / `signature_delta`) parse exactly as before; both fields are null on those.
+
 openAI vision：
 
 ```java

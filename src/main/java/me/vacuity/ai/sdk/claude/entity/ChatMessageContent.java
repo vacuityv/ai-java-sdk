@@ -68,4 +68,41 @@ public class ChatMessageContent {
     }
 
     private String data;
+
+    /**
+     * Only on a message_delta event: why generation stopped — "end_turn",
+     * "max_tokens", "tool_use", "pause_turn" or "refusal". Null on content
+     * block deltas (text_delta / thinking_delta / input_json_delta /
+     * signature_delta), which is every other delta you receive.
+     */
+    @JsonProperty("stop_reason")
+    private String stopReason;
+
+    /**
+     * Only on a message_delta event: the stop sequence that triggered the stop,
+     * when stopReason is "stop_sequence".
+     */
+    @JsonProperty("stop_sequence")
+    private String stopSequence;
+
+    /**
+     * Retained so existing call sites using the previous all-args constructor
+     * keep compiling after stopReason / stopSequence were added.
+     */
+    @Deprecated
+    public ChatMessageContent(String type, String text, String thinking, String signature, ContentSource source, String toolUseId, Object content, String id, String name, JsonNode input, String partialJson, CacheControl cacheControl, String data) {
+        this.type = type;
+        this.text = text;
+        this.thinking = thinking;
+        this.signature = signature;
+        this.source = source;
+        this.toolUseId = toolUseId;
+        this.content = content;
+        this.id = id;
+        this.name = name;
+        this.input = input;
+        this.partialJson = partialJson;
+        this.cacheControl = cacheControl;
+        this.data = data;
+    }
 }

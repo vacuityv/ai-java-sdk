@@ -175,4 +175,106 @@ public class ClaudeResponseParsingTest {
 
         assertFalse(json.get("thinking").has("block_binding"));
     }
+
+    // ------------------------------------------------- streaming stop_reason
+
+    private me.vacuity.ai.sdk.claude.response.StreamChatResponse event(String json)
+            throws Exception {
+        return MAPPER.readValue(json, me.vacuity.ai.sdk.claude.response.StreamChatResponse.class);
+    }
+
+    @Test
+    public void messageDeltaCarriesStopReason() throws Exception {
+        me.vacuity.ai.sdk.claude.response.StreamChatResponse e = event(
+                "{\"type\":\"message_delta\","
+                + "\"delta\":{\"stop_reason\":\"max_tokens\",\"stop_sequence\":null},"
+                + "\"usage\":{\"output_tokens\":1024}}");
+
+        assertEquals("message_delta", e.getType());
+        assertEquals("max_tokens", e.getDelta().getStopReason());
+        assertNull(e.getDelta().getStopSequence());
+        assertEquals(1024, e.getUsage().getOutputTokens());
+    }
+
+    @Test
+    public void messageDeltaCarriesStopSequence() throws Exception {
+        me.vacuity.ai.sdk.claude.response.StreamChatResponse e = event(
+                "{\"type\":\"message_delta\","
+                + "\"delta\":{\"stop_reason\":\"stop_sequence\",\"stop_sequence\":\"END\"}}");
+
+        assertEquals("stop_sequence", e.getDelta().getStopReason());
+        assertEquals("END", e.getDelta().getStopSequence());
+    }
+
+    @Test
+    public void everyStopReasonValueIsReadable() throws Exception {
+        for (String reason : new String[]{
+                "end_turn", "max_tokens", "tool_use", "pause_turn", "refusal"}) {
+            me.vacuity.ai.sdk.claude.response.StreamChatResponse e = event(
+                    "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"" + reason + "\"}}");
+            assertEquals(reason, e.getDelta().getStopReason());
+        }
+    }
+
+    /**
+     * The delta of a content block event must keep parsing exactly as before —
+     * stop_reason is a message_delta concern and must stay null here.
+     */
+    @Test
+    public void contentBlockDeltasAreUnaffected() throws Exception {
+        me.vacuity.ai.sdk.claude.response.StreamChatResponse text = event(
+                "{\"type\":\"content_block_delta\",\"index\":0,"
+                + "\"delta\":{\"type\":\"text_delta\",\"text\":\"hello\"}}");
+        assertEquals("hello", text.getDelta().getText());
+        assertNull(text.getDelta().getStopReason());
+
+        me.vacuity.ai.sdk.claude.response.StreamChatResponse thinking = event(
+                "{\"type\":\"content_block_delta\",\"index\":0,"
+                + "\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"reasoning\"}}");
+        assertEquals("reasoning", thinking.getDelta().getThinking());
+        assertNull(thinking.getDelta().getStopReason());
+
+        me.vacuity.ai.sdk.claude.response.StreamChatResponse json = event(
+                "{\"type\":\"content_block_delta\",\"index\":0,"
+                + "\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"a\\\":\"}}");
+        assertEquals("{\"a\":", json.getDelta().getPartialJson());
+        assertNull(json.getDelta().getStopReason());
+
+        me.vacuity.ai.sdk.claude.response.StreamChatResponse sig = event(
+                "{\"type\":\"content_block_delta\",\"index\":0,"
+                + "\"delta\":{\"type\":\"signature_delta\",\"signature\":\"abc\"}}");
+        assertEquals("abc", sig.getDelta().getSignature());
+        assertNull(sig.getDelta().getStopReason());
+    }
+
+    /**
+     * stopReason is a response-only concern; it must not leak into request
+     * bodies built from ChatMessageContent.
+     */
+    @Test
+    public void stopReasonIsNotSerializedWhenUnset() throws Exception {
+        me.vacuity.ai.sdk.claude.entity.ChatMessageContent block =
+                new me.vacuity.ai.sdk.claude.entity.ChatMessageContent();
+        block.setType("text");
+        block.setText("hi");
+
+        com.fasterxml.jackson.databind.JsonNode json =
+                MAPPER.readTree(MAPPER.writeValueAsString(block));
+
+        assertFalse(json.has("stop_reason"));
+        assertFalse(json.has("stop_sequence"));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void legacyAllArgsConstructorStillCompiles() {
+        // 13-arg signature as it stood before stopReason / stopSequence existed
+        me.vacuity.ai.sdk.claude.entity.ChatMessageContent block =
+                new me.vacuity.ai.sdk.claude.entity.ChatMessageContent(
+                        "text", "hi", null, null, null, null, null,
+                        null, null, null, null, null, null);
+        assertEquals("text", block.getType());
+        assertEquals("hi", block.getText());
+        assertNull(block.getStopReason());
+    }
 }

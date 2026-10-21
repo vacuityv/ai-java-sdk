@@ -318,6 +318,55 @@ for (ChatMessageContentPart part : candidate.getContent().getParts()) {
 
 这两种 part **同样带 `thoughtSignature`**。Gemini 3 / 4 要求多轮对话把上一轮 model 的 part 原样回传，因此 `ChatMessageContentPart` 增加了未知字段兜底（`getExtra()`）：服务端返回但 SDK 尚未建模的字段会被保留并在回传时原样发出，不会被静默丢弃。
 
+### Gemini 思考 token 与计费
+
+Gemini 2.5 / 3.x / 4 的思考 token 在 `usageMetadata.thoughtsTokenCount` 里，**不包含在 `candidatesTokenCount` 中**，但 Google 按输出价计费。只按 `candidatesTokenCount` 计费会漏收思考部分。
+
+```java
+Usage usage = response.getUsageMetadata();
+
+usage.getCandidatesTokenCount();        // 可见回答
+usage.getThoughtsTokenCount();          // 思考部分，模型未思考时为 null
+usage.getBillableOutputTokenCount();    // 两者之和，即按输出价计费的总量
+```
+
+还补齐了 `cachedContentTokenCount`、`toolUsePromptTokenCount`、`trafficType`，以及四组 `ModalityTokenCount` 明细（`promptTokensDetails` / `candidatesTokensDetails` / `cacheTokensDetails` / `toolUsePromptTokensDetails`）。字段缺失时为 null。
+
+**流式计费要注意两点：**
+
+1. `usageMetadata` 出现在**每一个 chunk** 上，不是只在最后一个
+2. 其中的计数是**累计值，不是增量** —— 逐 chunk 累加会严重超收
+
+所以取最后一个 chunk 的 `usageMetadata` 即可：
+
+```java
+final Usage[] last = new Usage[1];
+client.streamChat(request).blockingSubscribe(chunk -> {
+    if (chunk != null && chunk.getUsageMetadata() != null) {
+        last[0] = chunk.getUsageMetadata();      // 覆盖，不累加
+    }
+});
+```
+
+**模型行为差异**：`gemini-4-argon` 默认不思考，只设 `includeThoughts` 不会产生思考 token，必须同时设 `thinkingLevel`（low / medium / high）；`gemini-3.8-flash` 默认即思考。
+
+### Claude 流式的截断判断
+
+`message_delta` 事件的 `delta` 现在能读到 `stop_reason` 和 `stop_sequence`，不必再靠 `output_tokens >= max_tokens` 间接推断：
+
+```java
+client.streamChat(request).blockingSubscribe(event -> {
+    if ("message_delta".equals(event.getType())) {
+        String reason = event.getDelta().getStopReason();   // max_tokens / end_turn / tool_use ...
+        if ("max_tokens".equals(reason)) {
+            // 被截断
+        }
+    }
+});
+```
+
+内容增量事件（`text_delta` / `thinking_delta` / `input_json_delta` / `signature_delta`）的解析不受影响，这两个字段在它们上面为 null。
+
 openAI vision：
 
 ```java
