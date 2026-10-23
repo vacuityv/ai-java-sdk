@@ -45,12 +45,29 @@ import java.util.concurrent.TimeUnit;
 public class ClaudeClient {
 
     private static final String BASE_URL = "https://api.anthropic.com";
+
+    /**
+     * API version sent by default. Switched from 2023-06-01 in 1.14.0.
+     * <p>
+     * Under this version the Messages API rejects temperature / top_p / top_k
+     * outright, even at their former default values. Pass
+     * {@link #LEGACY_ANTHROPIC_VERSION} to a version-taking constructor if you
+     * depend on non-default sampling.
+     */
+    public static final String DEFAULT_ANTHROPIC_VERSION = "2026-10-21";
+
+    /**
+     * The version this SDK sent before 1.14.0. Still accepted by the API and
+     * not deprecated, so it remains a valid escape hatch.
+     */
+    public static final String LEGACY_ANTHROPIC_VERSION = "2023-06-01";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final ObjectMapper mapper = defaultObjectMapper();
 
 
     private final ClaudeApi api;
     private final ExecutorService executorService;
+    private final String anthropicVersion;
 
     public ClaudeClient(final String token) {
         OkHttpClient client = defaultClient(token, DEFAULT_TIMEOUT);
@@ -58,6 +75,7 @@ public class ClaudeClient {
 
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = client.dispatcher().executorService();
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
     }
 
     public ClaudeClient(final String token, final Duration timeout) {
@@ -66,6 +84,7 @@ public class ClaudeClient {
 
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = client.dispatcher().executorService();
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
     }
 
     public ClaudeClient(final String token, final Duration timeout, String baseUrl) {
@@ -74,11 +93,28 @@ public class ClaudeClient {
 
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = client.dispatcher().executorService();
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
     }
 
     public ClaudeClient(ClaudeApi api) {
         this.api = api;
         this.executorService = null;
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
+    }
+
+    /**
+     * Pins the anthropic-version header, e.g. {@link #LEGACY_ANTHROPIC_VERSION}
+     * to keep sending non-default temperature / top_p / top_k.
+     */
+    public ClaudeClient(final String token, final Duration timeout, String baseUrl,
+                        String anthropicVersion) {
+        OkHttpClient client = defaultClient(token, timeout, anthropicVersion);
+        Retrofit retrofit = defaultRetrofit(client, mapper, baseUrl);
+
+        this.api = retrofit.create(ClaudeApi.class);
+        this.executorService = client.dispatcher().executorService();
+        this.anthropicVersion = anthropicVersion == null
+                ? DEFAULT_ANTHROPIC_VERSION : anthropicVersion;
     }
 
     public ClaudeClient(final String token, final Duration timeout, Proxy proxy) {
@@ -89,6 +125,7 @@ public class ClaudeClient {
         Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = httpClient.dispatcher().executorService();
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
     }
 
     public ClaudeClient(final String token, final Duration timeout, Proxy proxy, String proxyUsername, String proxyPassword) {
@@ -106,6 +143,7 @@ public class ClaudeClient {
         Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = httpClient.dispatcher().executorService();
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
     }
 
     public ClaudeClient(final String token, final Duration timeout, Proxy proxy, Authenticator proxyAuthenticator) {
@@ -117,6 +155,7 @@ public class ClaudeClient {
         Retrofit retrofit = defaultRetrofit(httpClient, mapper, null);
         this.api = retrofit.create(ClaudeApi.class);
         this.executorService = httpClient.dispatcher().executorService();
+        this.anthropicVersion = DEFAULT_ANTHROPIC_VERSION;
     }
 
 
@@ -130,8 +169,12 @@ public class ClaudeClient {
     }
 
     public static OkHttpClient defaultClient(String apiKey, Duration timeout) {
+        return defaultClient(apiKey, timeout, DEFAULT_ANTHROPIC_VERSION);
+    }
+
+    public static OkHttpClient defaultClient(String apiKey, Duration timeout, String anthropicVersion) {
         return new OkHttpClient.Builder()
-                .addInterceptor(new ClaudeAuthenticationInterceptor(apiKey))
+                .addInterceptor(new ClaudeAuthenticationInterceptor(apiKey, anthropicVersion))
                 .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
                 .readTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
                 .build();
@@ -187,15 +230,44 @@ public class ClaudeClient {
     }
 
     public ChatResponse chat(ChatRequest request) {
+        rejectRemovedSamplingParameters(request);
         String betas = betaHeader(request);
         return betas == null ? execute(api.chat(request)) : execute(api.chat(betas, request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
+        rejectRemovedSamplingParameters(request);
         request.setStream(true);
         String betas = betaHeader(request);
         Call<ResponseBody> call = betas == null ? api.streamChat(request) : api.streamChat(betas, request);
         return stream(call, StreamChatResponse.class);
+    }
+
+    /**
+     * API version 2026-10-21 rejects temperature / top_p / top_k with a 400,
+     * even at their former defaults. Failing here instead means the caller
+     * finds out at the call site rather than from a server error, and the
+     * message says what to do about it.
+     */
+    private void rejectRemovedSamplingParameters(ChatRequest request) {
+        if (LEGACY_ANTHROPIC_VERSION.equals(anthropicVersion) || request == null) {
+            return;
+        }
+        String offender = null;
+        if (request.getTemperature() != null) {
+            offender = "temperature";
+        } else if (request.getTopP() != null) {
+            offender = "top_p";
+        } else if (request.getTopK() != null) {
+            offender = "top_k";
+        }
+        if (offender != null) {
+            throw new IllegalArgumentException(
+                    "anthropic-version " + anthropicVersion + " removed sampling parameters: "
+                            + offender + " is rejected with a 400 even at its former default. "
+                            + "Remove it from the request, or construct ClaudeClient with "
+                            + "ClaudeClient.LEGACY_ANTHROPIC_VERSION to keep using it.");
+        }
     }
 
     /**

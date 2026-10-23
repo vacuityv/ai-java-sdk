@@ -80,6 +80,23 @@ public class Thinking {
     }
 
     /**
+     * Turns off up-front thinking while keeping the progress updates the model
+     * writes between tool calls.
+     * <p>
+     * Claude Sonnet 5.5 only — every other model rejects it with a 400. Sonnet
+     * 5.5 in turn rejects {@link #disabled()}, so this is its lowest thinking
+     * setting. Accepted at effort "high" or below, and it takes no other
+     * field, so {@code display} cannot be combined with it. Without tools in
+     * the request the response is plain text.
+     * <p>
+     * Check {@code capabilities.thinking.types.between_tools.supported} on the
+     * Models API before sending it to a model you have not tested.
+     */
+    public static Thinking betweenTools() {
+        return Thinking.builder().type("between_tools").build();
+    }
+
+    /**
      * Thinking off. Rejected on Fable 5, and on Opus 5 when effort is
      * "xhigh" or "max".
      */

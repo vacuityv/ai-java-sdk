@@ -367,6 +367,53 @@ client.streamChat(request).blockingSubscribe(event -> {
 
 内容增量事件（`text_delta` / `thinking_delta` / `input_json_delta` / `signature_delta`）的解析不受影响，这两个字段在它们上面为 null。
 
+### Claude API 版本（1.14.0 起默认 2026-10-21）
+
+1.14.0 起，`anthropic-version` 头由 `2023-06-01` 改为 **`2026-10-21`**。
+
+**该版本移除了采样参数**：请求里带 `temperature`、`top_p` 或 `top_k` 会返回 400，**即使传的是原来的默认值**。已实测确认（`temperature: 1.0` 同样 400，报 `Extra inputs are not permitted`）。
+
+为避免线上才发现，SDK 在发送前就会拦截并抛 `IllegalArgumentException`，错误信息里写明了处理方式：
+
+```java
+// 1.14.0 起这样写会在调用处直接抛异常
+ChatRequest.builder().model("claude-opus-5").temperature(0.2f) /* ... */
+```
+
+两种处理方式，二选一：
+
+```java
+// 方式一（推荐）：去掉这三个参数
+ChatRequest.builder().model("claude-opus-5").maxTokens(1024) /* 不设 temperature */
+
+// 方式二：把版本钉回 2023-06-01，继续使用非默认采样
+ClaudeClient client = new ClaudeClient(
+        API_KEY, Duration.ofSeconds(60), null, ClaudeClient.LEGACY_ANTHROPIC_VERSION);
+```
+
+`2023-06-01` 官方并未弃用，也没有给退役时间表，所以方式二是长期可用的退路。
+
+该版本的另外两项变更对本 SDK 无影响：user 消息里的 `citations`（本 SDK 无此字段）、Admin API 字段重命名（本 SDK 未覆盖）。但如果你把 `document` 块放在 `assistant` 消息里，新版本会返回 400——文档块应放在 `user` 消息中。
+
+认证方式不变，仍用 `x-api-key`。官方 SDK 改用 `Authorization: Bearer` 是它们内部的变化，API 两种头都接受。
+
+### between_tools 思考模式
+
+`Thinking.betweenTools()` 关闭「回答前的思考」，但保留模型在工具调用之间写的进度更新。
+
+```java
+ChatRequest.builder()
+        .model("claude-sonnet-5-5")
+        .thinking(Thinking.betweenTools())
+        .tools(tools)
+        .maxTokens(2048)
+        .build();
+```
+
+**仅 Claude Sonnet 5.5 支持**，其他模型一律 400。之所以存在，是因为 Sonnet 5.5 不接受 `Thinking.disabled()`，`between_tools` 是它唯一的「降低思考」手段。限制：只在 effort 为 `high` 或更低时可用，且不接受 `display` 等其他字段。请求里没有工具时，响应就只有文本。
+
+发送前可用 Models API 的 `capabilities.thinking.types.between_tools.supported` 确认模型是否支持。
+
 openAI vision：
 
 ```java

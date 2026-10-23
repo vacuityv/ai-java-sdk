@@ -14,9 +14,22 @@ public class ClaudeAuthenticationInterceptor implements Interceptor {
 
     private final String apiKey;
 
+    /**
+     * Value sent in the anthropic-version header. Set via the constructor so a
+     * caller can pin an older version.
+     */
+    private final String anthropicVersion;
+
     public ClaudeAuthenticationInterceptor(String apiKey) {
+        this(apiKey, me.vacuity.ai.sdk.claude.ClaudeClient.DEFAULT_ANTHROPIC_VERSION);
+    }
+
+    public ClaudeAuthenticationInterceptor(String apiKey, String anthropicVersion) {
         Objects.requireNonNull(apiKey, "Claude token required");
         this.apiKey = apiKey;
+        this.anthropicVersion = anthropicVersion == null
+                ? me.vacuity.ai.sdk.claude.ClaudeClient.DEFAULT_ANTHROPIC_VERSION
+                : anthropicVersion;
     }
 
     @Override
@@ -24,7 +37,7 @@ public class ClaudeAuthenticationInterceptor implements Interceptor {
         Request request = chain.request()
                 .newBuilder()
                 .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
+                .header("anthropic-version", anthropicVersion)
                 .header("content-type", "application/json")
                 .build();
         return chain.proceed(request);

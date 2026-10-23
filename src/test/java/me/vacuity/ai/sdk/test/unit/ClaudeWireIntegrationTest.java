@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -132,7 +133,8 @@ public class ClaudeWireIntegrationTest {
 
         assertEquals("/v1/messages", capturedPath.get());
         assertEquals("test-key-not-a-real-secret", capturedApiKey.get());
-        assertEquals("2023-06-01", capturedVersion.get());
+        // 1.14.0 起默认版本由 2023-06-01 改为 2026-10-21
+        assertEquals(ClaudeClient.DEFAULT_ANTHROPIC_VERSION, capturedVersion.get());
     }
 
     @Test
@@ -268,5 +270,109 @@ public class ClaudeWireIntegrationTest {
         assertTrue(thrown.getMessage() != null
                         && thrown.getMessage().contains("unsupported parameter"),
                 "error message should carry the server text, got: " + thrown.getMessage());
+    }
+
+    // ------------------------------------------------------- API version
+
+    private ClaudeClient legacyClient() {
+        return new ClaudeClient("test-key-not-a-real-secret", Duration.ofSeconds(10),
+                baseUrl, ClaudeClient.LEGACY_ANTHROPIC_VERSION);
+    }
+
+    @Test
+    public void defaultVersionIsTheCurrentOne() throws Exception {
+        responseBody = "{\"id\":\"msg_1\"}";
+        client().chat(minimal().build());
+
+        assertEquals("2026-10-21", capturedVersion.get());
+        assertEquals(ClaudeClient.DEFAULT_ANTHROPIC_VERSION, capturedVersion.get());
+    }
+
+    @Test
+    public void legacyVersionCanStillBePinned() throws Exception {
+        responseBody = "{\"id\":\"msg_1\"}";
+        legacyClient().chat(minimal().build());
+
+        assertEquals("2023-06-01", capturedVersion.get());
+    }
+
+    @Test
+    public void versionHeaderAlsoAppliesToStreaming() throws Exception {
+        responseContentType = "text/event-stream";
+        responseBody = "data: {\"type\":\"message_stop\"}\n\n";
+
+        client().streamChat(minimal().build()).blockingSubscribe(e -> { }, t -> { });
+        assertEquals("2026-10-21", capturedVersion.get());
+    }
+
+    @Test
+    public void versionHeaderSurvivesTheBetaOverload() throws Exception {
+        responseBody = "{\"id\":\"msg_1\"}";
+        client().chat(minimal()
+                .betas(Collections.singletonList("context-management-2025-06-27"))
+                .build());
+
+        assertEquals("2026-10-21", capturedVersion.get());
+        assertEquals("context-management-2025-06-27", capturedBeta.get());
+    }
+
+    // --------------------------------------- removed sampling parameters
+
+    /**
+     * 2026-10-21 rejects temperature / top_p / top_k with a 400 even at their
+     * former defaults — verified against the live API. Failing at the call site
+     * gives a message that says what to do instead of a bare server error.
+     */
+    @Test
+    @SuppressWarnings("deprecation")
+    public void samplingParametersFailFastOnTheCurrentVersion() {
+        responseBody = "{\"id\":\"msg_1\"}";
+
+        for (ChatRequest request : new ChatRequest[]{
+                minimal().temperature(1.0f).build(),
+                minimal().topP(0.9f).build(),
+                minimal().topK(40).build()}) {
+            IllegalArgumentException thrown = null;
+            try {
+                client().chat(request);
+            } catch (IllegalArgumentException e) {
+                thrown = e;
+            }
+            assertNotNull(thrown, "a removed sampling parameter must be rejected before the call");
+            assertTrue(thrown.getMessage().contains("2026-10-21"));
+            assertTrue(thrown.getMessage().contains("LEGACY_ANTHROPIC_VERSION"),
+                    "the message should point at the escape hatch, got: " + thrown.getMessage());
+        }
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void samplingParametersStillWorkOnTheLegacyVersion() throws Exception {
+        responseBody = "{\"id\":\"msg_1\"}";
+
+        legacyClient().chat(minimal().temperature(0.2f).build());
+
+        assertEquals("2023-06-01", capturedVersion.get());
+        assertEquals(0.2, capturedJson().get("temperature").asDouble(), 0.0001);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void streamingAlsoFailsFastOnSamplingParameters() {
+        IllegalArgumentException thrown = null;
+        try {
+            client().streamChat(minimal().temperature(1.0f).build());
+        } catch (IllegalArgumentException e) {
+            thrown = e;
+        }
+        assertNotNull(thrown, "streaming must reject removed sampling parameters too");
+    }
+
+    @Test
+    public void requestsWithoutSamplingParametersPassThrough() throws Exception {
+        responseBody = "{\"id\":\"msg_1\",\"stop_reason\":\"end_turn\"}";
+        ChatResponse response = client().chat(minimal().build());
+        assertNotNull(response);
+        assertFalse(capturedJson().has("temperature"));
     }
 }

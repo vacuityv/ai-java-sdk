@@ -371,6 +371,53 @@ client.streamChat(request).blockingSubscribe(event -> {
 
 Content block deltas (`text_delta` / `thinking_delta` / `input_json_delta` / `signature_delta`) parse exactly as before; both fields are null on those.
 
+### Claude API version (defaults to 2026-10-21 from 1.14.0)
+
+From 1.14.0 the `anthropic-version` header changes from `2023-06-01` to **`2026-10-21`**.
+
+**That version removes the sampling parameters**: a request carrying `temperature`, `top_p` or `top_k` returns a 400 — **even at their former default values**. Verified against the live API (`temperature: 1.0` also fails, with `Extra inputs are not permitted`).
+
+So that this surfaces at the call site rather than in production, the SDK rejects such a request before sending it, with an `IllegalArgumentException` whose message says what to do:
+
+```java
+// From 1.14.0 this throws at the call site
+ChatRequest.builder().model("claude-opus-5").temperature(0.2f) /* ... */
+```
+
+Pick one of two fixes:
+
+```java
+// Option 1 (recommended): drop the three parameters
+ChatRequest.builder().model("claude-opus-5").maxTokens(1024) /* no temperature */
+
+// Option 2: pin the version back and keep non-default sampling
+ClaudeClient client = new ClaudeClient(
+        API_KEY, Duration.ofSeconds(60), null, ClaudeClient.LEGACY_ANTHROPIC_VERSION);
+```
+
+Anthropic has not deprecated `2023-06-01` nor announced a retirement date, so option 2 remains viable long term.
+
+Two other changes in that version do not affect this SDK: `citations` in user messages (no such field here) and the Admin API renames (not covered here). But if you put a `document` block directly in an `assistant` message, the new version returns a 400 — documents belong in `user` messages.
+
+Authentication is unchanged and still uses `x-api-key`. The official SDKs switching to `Authorization: Bearer` is internal to them; the API accepts either header.
+
+### between_tools thinking
+
+`Thinking.betweenTools()` turns off up-front thinking while keeping the progress updates the model writes between tool calls.
+
+```java
+ChatRequest.builder()
+        .model("claude-sonnet-5-5")
+        .thinking(Thinking.betweenTools())
+        .tools(tools)
+        .maxTokens(2048)
+        .build();
+```
+
+**Claude Sonnet 5.5 only** — every other model returns a 400. It exists because Sonnet 5.5 rejects `Thinking.disabled()`, making `between_tools` its only way to reduce thinking. Limits: accepted at effort `high` or below, and it takes no other field, so `display` cannot be combined with it. With no tools in the request the response is plain text.
+
+Check `capabilities.thinking.types.between_tools.supported` on the Models API before sending it to an untested model.
+
 openAI vision：
 
 ```java

@@ -13,12 +13,15 @@ import retrofit2.http.Streaming;
 
 public interface ClaudeApi {
 
-    @Headers({"anthropic-version: 2023-06-01", "anthropic-beta: web-fetch-2025-09-10"})
+    // 注意：这里的 anthropic-version 会被 ClaudeAuthenticationInterceptor 覆盖，
+    // 实际生效的是 ClaudeClient 构造时传入的版本。此处保持同值以免误导读者。
+
+    @Headers({"anthropic-version: 2026-10-21", "anthropic-beta: web-fetch-2025-09-10"})
     @POST("v1/messages")
     Single<ChatResponse> chat(@Body ChatRequest request);
 
 
-    @Headers({"anthropic-version: 2023-06-01", "anthropic-beta: web-fetch-2025-09-10"})
+    @Headers({"anthropic-version: 2026-10-21", "anthropic-beta: web-fetch-2025-09-10"})
     @Streaming
     @POST("v1/messages")
     Call<ResponseBody> streamChat(@Body ChatRequest request);
@@ -27,7 +30,7 @@ public interface ClaudeApi {
      * Same as {@link #chat(ChatRequest)} but with a caller-supplied
      * anthropic-beta header. A null value omits the header entirely.
      */
-    @Headers("anthropic-version: 2023-06-01")
+    @Headers("anthropic-version: 2026-10-21")
     @POST("v1/messages")
     Single<ChatResponse> chat(@Header("anthropic-beta") String betas, @Body ChatRequest request);
 
@@ -35,7 +38,7 @@ public interface ClaudeApi {
      * Same as {@link #streamChat(ChatRequest)} but with a caller-supplied
      * anthropic-beta header. A null value omits the header entirely.
      */
-    @Headers("anthropic-version: 2023-06-01")
+    @Headers("anthropic-version: 2026-10-21")
     @Streaming
     @POST("v1/messages")
     Call<ResponseBody> streamChat(@Header("anthropic-beta") String betas, @Body ChatRequest request);

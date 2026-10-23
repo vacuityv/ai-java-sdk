@@ -259,4 +259,17 @@ public class ClaudeRequestSerializationTest {
         JsonNode json = serialize(minimal().thinking(Thinking.adaptive()).build());
         assertFalse(json.get("thinking").has("block_binding"));
     }
+
+    /**
+     * between_tools takes no other field — the API rejects display alongside
+     * it — so the factory must emit type alone.
+     */
+    @Test
+    public void betweenToolsSerializesTypeOnly() throws Exception {
+        JsonNode json = serialize(minimal().thinking(Thinking.betweenTools()).build());
+
+        JsonNode thinking = json.get("thinking");
+        assertEquals("between_tools", thinking.get("type").asText());
+        assertEquals(1, thinking.size(), "between_tools accepts no other field, got " + thinking);
+    }
 }
