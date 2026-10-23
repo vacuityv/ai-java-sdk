@@ -371,33 +371,32 @@ client.streamChat(request).blockingSubscribe(event -> {
 
 Content block deltas (`text_delta` / `thinking_delta` / `input_json_delta` / `signature_delta`) parse exactly as before; both fields are null on those.
 
-### Claude API version (defaults to 2026-10-21 from 1.14.0)
+### Claude API version (defaults to 2026-10-21 from 2.0.0)
 
-From 1.14.0 the `anthropic-version` header changes from `2023-06-01` to **`2026-10-21`**.
+From 2.0.0 the `anthropic-version` header changes from `2023-06-01` to **`2026-10-21`**, and **`temperature` / `topP` / `topK` are removed from `ChatRequest`**.
 
-**That version removes the sampling parameters**: a request carrying `temperature`, `top_p` or `top_k` returns a 400 — **even at their former default values**. Verified against the live API (`temperature: 1.0` also fails, with `Extra inputs are not permitted`).
-
-So that this surfaces at the call site rather than in production, the SDK rejects such a request before sending it, with an `IllegalArgumentException` whose message says what to do:
+That API version no longer accepts the three parameters: sending one returns a 400 **even at its former default value** (verified: `temperature: 1.0` fails with `Extra inputs are not permitted`). Since they can no longer be sent, the fields are gone — so these call sites now fail at **compile time** rather than at runtime.
 
 ```java
-// From 1.14.0 this throws at the call site
-ChatRequest.builder().model("claude-opus-5").temperature(0.2f) /* ... */
+// Gone in 2.0.0; this no longer compiles
+ChatRequest.builder().model("claude-opus-5").temperature(0.2f)
+
+// Just drop it
+ChatRequest.builder().model("claude-opus-5").maxTokens(1024).build();
 ```
 
-Pick one of two fixes:
+Per Anthropic: newer models (Claude 4.7 and later) only ever accepted the defaults, so the parameters meant nothing there; on older models a lowered `temperature` loses its effect and **no other setting replaces it**.
+
+The version is still selectable, but note it **cannot** bring sampling back — the fields no longer exist:
 
 ```java
-// Option 1 (recommended): drop the three parameters
-ChatRequest.builder().model("claude-opus-5").maxTokens(1024) /* no temperature */
-
-// Option 2: pin the version back and keep non-default sampling
 ClaudeClient client = new ClaudeClient(
         API_KEY, Duration.ofSeconds(60), null, ClaudeClient.LEGACY_ANTHROPIC_VERSION);
 ```
 
-Anthropic has not deprecated `2023-06-01` nor announced a retirement date, so option 2 remains viable long term.
+It is there for other cases, such as an Amazon Bedrock deployment on a model older than Claude 4.7, which `2026-10-21` does not cover.
 
-Two other changes in that version do not affect this SDK: `citations` in user messages (no such field here) and the Admin API renames (not covered here). But if you put a `document` block directly in an `assistant` message, the new version returns a 400 — documents belong in `user` messages.
+The version's other changes do not affect this SDK: `citations` in user messages (no such field here) and the Admin API renames (not covered). But a `document` block placed directly in an `assistant` message now returns a 400 — documents belong in `user` messages.
 
 Authentication is unchanged and still uses `x-api-key`. The official SDKs switching to `Authorization: Bearer` is internal to them; the API accepts either header.
 

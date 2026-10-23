@@ -316,57 +316,6 @@ public class ClaudeWireIntegrationTest {
         assertEquals("context-management-2025-06-27", capturedBeta.get());
     }
 
-    // --------------------------------------- removed sampling parameters
-
-    /**
-     * 2026-10-21 rejects temperature / top_p / top_k with a 400 even at their
-     * former defaults — verified against the live API. Failing at the call site
-     * gives a message that says what to do instead of a bare server error.
-     */
-    @Test
-    @SuppressWarnings("deprecation")
-    public void samplingParametersFailFastOnTheCurrentVersion() {
-        responseBody = "{\"id\":\"msg_1\"}";
-
-        for (ChatRequest request : new ChatRequest[]{
-                minimal().temperature(1.0f).build(),
-                minimal().topP(0.9f).build(),
-                minimal().topK(40).build()}) {
-            IllegalArgumentException thrown = null;
-            try {
-                client().chat(request);
-            } catch (IllegalArgumentException e) {
-                thrown = e;
-            }
-            assertNotNull(thrown, "a removed sampling parameter must be rejected before the call");
-            assertTrue(thrown.getMessage().contains("2026-10-21"));
-            assertTrue(thrown.getMessage().contains("LEGACY_ANTHROPIC_VERSION"),
-                    "the message should point at the escape hatch, got: " + thrown.getMessage());
-        }
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void samplingParametersStillWorkOnTheLegacyVersion() throws Exception {
-        responseBody = "{\"id\":\"msg_1\"}";
-
-        legacyClient().chat(minimal().temperature(0.2f).build());
-
-        assertEquals("2023-06-01", capturedVersion.get());
-        assertEquals(0.2, capturedJson().get("temperature").asDouble(), 0.0001);
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void streamingAlsoFailsFastOnSamplingParameters() {
-        IllegalArgumentException thrown = null;
-        try {
-            client().streamChat(minimal().temperature(1.0f).build());
-        } catch (IllegalArgumentException e) {
-            thrown = e;
-        }
-        assertNotNull(thrown, "streaming must reject removed sampling parameters too");
-    }
 
     @Test
     public void requestsWithoutSamplingParametersPassThrough() throws Exception {

@@ -71,7 +71,6 @@ public class ClaudeTest {
                 .messages(messages)
                 .thinking(thinking)
                 .maxTokens(64000)
-                .temperature(1f)
                 .tools(functions)
                 .build();
         try {
@@ -105,7 +104,6 @@ public class ClaudeTest {
                 .messages(messages)
                 .thinking(thinking)
                 .maxTokens(64000)
-                .temperature(1f)
                 .tools(functions)
                 .build();
         Flowable<StreamChatResponse> response = client.streamChat(request);
@@ -226,7 +224,6 @@ public class ClaudeTest {
                 .tools(functionExecutor.getFunctions())
                 .thinking(thinking)
                 .maxTokens(128000)
-                .temperature(1f)
                 .build();
         try {
             ChatResponse response = client.chat(request);
@@ -280,7 +277,6 @@ public class ClaudeTest {
                 .tools(functionExecutor.getFunctions())
                 .thinking(thinking)
                 .maxTokens(128000)
-                .temperature(1f)
                 .build();
 
         StringBuilder sb = new StringBuilder();

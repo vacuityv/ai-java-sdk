@@ -55,26 +55,6 @@ public class ChatRequest {
 
     private Boolean stream;
 
-    /**
-     * @deprecated Removed on Opus 4.7 and later, Opus 5, Sonnet 5 and Fable 5 —
-     * sending it returns a 400. Steer behaviour with prompting instead.
-     */
-    @Deprecated
-    private Float temperature;
-
-    /**
-     * @deprecated See {@link #temperature}.
-     */
-    @Deprecated
-    @JsonProperty("top_p")
-    private Float topP;
-
-    /**
-     * @deprecated See {@link #temperature}.
-     */
-    @Deprecated
-    @JsonProperty("top_k")
-    private Integer topK;
 
     private List<ChatFunction> tools;
 

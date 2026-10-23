@@ -367,33 +367,32 @@ client.streamChat(request).blockingSubscribe(event -> {
 
 内容增量事件（`text_delta` / `thinking_delta` / `input_json_delta` / `signature_delta`）的解析不受影响，这两个字段在它们上面为 null。
 
-### Claude API 版本（1.14.0 起默认 2026-10-21）
+### Claude API 版本（2.0.0 起默认 2026-10-21）
 
-1.14.0 起，`anthropic-version` 头由 `2023-06-01` 改为 **`2026-10-21`**。
+2.0.0 起，`anthropic-version` 头由 `2023-06-01` 改为 **`2026-10-21`**，并**移除了 `ChatRequest` 上的 `temperature` / `topP` / `topK` 三个字段**。
 
-**该版本移除了采样参数**：请求里带 `temperature`、`top_p` 或 `top_k` 会返回 400，**即使传的是原来的默认值**。已实测确认（`temperature: 1.0` 同样 400，报 `Extra inputs are not permitted`）。
-
-为避免线上才发现，SDK 在发送前就会拦截并抛 `IllegalArgumentException`，错误信息里写明了处理方式：
+该 API 版本不再接受这三个参数，带上就返回 400，**即使传的是原来的默认值**（实测 `temperature: 1.0` 同样 400，报 `Extra inputs are not permitted`）。既然无法再发送，字段就一并删掉了——升级后这些调用会在**编译期**报错，而不是等到运行时。
 
 ```java
-// 1.14.0 起这样写会在调用处直接抛异常
-ChatRequest.builder().model("claude-opus-5").temperature(0.2f) /* ... */
+// 2.0.0 起不再存在，编译不通过
+ChatRequest.builder().model("claude-opus-5").temperature(0.2f)
+
+// 改为直接去掉
+ChatRequest.builder().model("claude-opus-5").maxTokens(1024).build();
 ```
 
-两种处理方式，二选一：
+官方说明：新模型（Claude 4.7 及以后）本来就只接受默认值，这三个参数对它们无意义；老模型上降低 `temperature` 的效果会失去，且**没有替代参数**。
+
+`anthropic-version` 仍可按需指定，但注意它**不能**恢复采样能力（字段已不存在）：
 
 ```java
-// 方式一（推荐）：去掉这三个参数
-ChatRequest.builder().model("claude-opus-5").maxTokens(1024) /* 不设 temperature */
-
-// 方式二：把版本钉回 2023-06-01，继续使用非默认采样
 ClaudeClient client = new ClaudeClient(
         API_KEY, Duration.ofSeconds(60), null, ClaudeClient.LEGACY_ANTHROPIC_VERSION);
 ```
 
-`2023-06-01` 官方并未弃用，也没有给退役时间表，所以方式二是长期可用的退路。
+它的用途是别的场景，例如 Amazon Bedrock 上早于 Claude 4.7 的模型不被 `2026-10-21` 覆盖。
 
-该版本的另外两项变更对本 SDK 无影响：user 消息里的 `citations`（本 SDK 无此字段）、Admin API 字段重命名（本 SDK 未覆盖）。但如果你把 `document` 块放在 `assistant` 消息里，新版本会返回 400——文档块应放在 `user` 消息中。
+该版本其余变更对本 SDK 无影响：user 消息里的 `citations`（本 SDK 无此字段）、Admin API 字段重命名（未覆盖）。但如果你把 `document` 块放在 `assistant` 消息里，新版本会返回 400——文档块应放在 `user` 消息中。
 
 认证方式不变，仍用 `x-api-key`。官方 SDK 改用 `Authorization: Bearer` 是它们内部的变化，API 两种头都接受。
 

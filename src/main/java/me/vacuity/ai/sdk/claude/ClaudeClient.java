@@ -47,18 +47,24 @@ public class ClaudeClient {
     private static final String BASE_URL = "https://api.anthropic.com";
 
     /**
-     * API version sent by default. Switched from 2023-06-01 in 1.14.0.
+     * API version sent by default. Switched from 2023-06-01 in 2.0.0.
      * <p>
-     * Under this version the Messages API rejects temperature / top_p / top_k
-     * outright, even at their former default values. Pass
-     * {@link #LEGACY_ANTHROPIC_VERSION} to a version-taking constructor if you
-     * depend on non-default sampling.
+     * This version removed the sampling parameters, so {@code ChatRequest} no
+     * longer carries temperature / top_p / top_k at all — see the 2.0.0 release
+     * notes. It also rejects a {@code document} block placed directly in an
+     * {@code assistant} message.
      */
     public static final String DEFAULT_ANTHROPIC_VERSION = "2026-10-21";
 
     /**
-     * The version this SDK sent before 1.14.0. Still accepted by the API and
-     * not deprecated, so it remains a valid escape hatch.
+     * The version this SDK sent before 2.0.0. Still accepted by the API and not
+     * deprecated.
+     * <p>
+     * Note this no longer restores non-default sampling: the request fields
+     * were removed in 2.0.0, so there is nothing to send regardless of version.
+     * Pin it when a target needs the older wire contract — for example an
+     * Amazon Bedrock deployment on a model older than Claude 4.7, which
+     * 2026-10-21 does not cover.
      */
     public static final String LEGACY_ANTHROPIC_VERSION = "2023-06-01";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
@@ -103,8 +109,8 @@ public class ClaudeClient {
     }
 
     /**
-     * Pins the anthropic-version header, e.g. {@link #LEGACY_ANTHROPIC_VERSION}
-     * to keep sending non-default temperature / top_p / top_k.
+     * Pins the anthropic-version header. See
+     * {@link #LEGACY_ANTHROPIC_VERSION} for when that is useful.
      */
     public ClaudeClient(final String token, final Duration timeout, String baseUrl,
                         String anthropicVersion) {
@@ -230,44 +236,23 @@ public class ClaudeClient {
     }
 
     public ChatResponse chat(ChatRequest request) {
-        rejectRemovedSamplingParameters(request);
         String betas = betaHeader(request);
         return betas == null ? execute(api.chat(request)) : execute(api.chat(betas, request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
-        rejectRemovedSamplingParameters(request);
         request.setStream(true);
         String betas = betaHeader(request);
         Call<ResponseBody> call = betas == null ? api.streamChat(request) : api.streamChat(betas, request);
         return stream(call, StreamChatResponse.class);
     }
 
+
     /**
-     * API version 2026-10-21 rejects temperature / top_p / top_k with a 400,
-     * even at their former defaults. Failing here instead means the caller
-     * finds out at the call site rather than from a server error, and the
-     * message says what to do about it.
+     * The anthropic-version this client sends on every request.
      */
-    private void rejectRemovedSamplingParameters(ChatRequest request) {
-        if (LEGACY_ANTHROPIC_VERSION.equals(anthropicVersion) || request == null) {
-            return;
-        }
-        String offender = null;
-        if (request.getTemperature() != null) {
-            offender = "temperature";
-        } else if (request.getTopP() != null) {
-            offender = "top_p";
-        } else if (request.getTopK() != null) {
-            offender = "top_k";
-        }
-        if (offender != null) {
-            throw new IllegalArgumentException(
-                    "anthropic-version " + anthropicVersion + " removed sampling parameters: "
-                            + offender + " is rejected with a 400 even at its former default. "
-                            + "Remove it from the request, or construct ClaudeClient with "
-                            + "ClaudeClient.LEGACY_ANTHROPIC_VERSION to keep using it.");
-        }
+    public String getAnthropicVersion() {
+        return anthropicVersion;
     }
 
     /**
