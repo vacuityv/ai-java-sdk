@@ -235,8 +235,8 @@ ImageResponse gif = client.createImage(CreateImageRequest.builder()
         .model("gpt-image-2.6-sunburst")
         .prompt("a small waving cartoon cat")
         .outputFormat("gif")
-        .frameCount(4)                 // 2-64，默认 9
-        .frameDurationMs(150)          // 20-2000ms，默认 200
+        .frameCount(4)                 // 2-16，默认 9
+        .frameDurationMs(150)          // 最小 20ms，无上限，默认 200
         .complexity("low")             // low / medium / high，默认 high
         .size("512x512")
         .build());
@@ -288,6 +288,83 @@ client.editImage(EditImageRequest.builder()
 - `safetyIdentifier` 是 `user` 的新名字，两者都还能用，也可以同时发；响应会回显
 - 响应新增 `background` / `outputFormat` / `quality` / `size` 回显，请求没设时可以用它们看服务端取了什么默认值
 - `usage.outputTokensDetails` 补齐了输出侧的 image/text token 拆分
+
+> 2.1.0 的文档把 `frameCount` 写成 2-64、`frameDurationMs` 写成 20-2000ms，都是错的。按官方文档和实测：`frameCount` 是 **2-16**（生成和编辑都一样），`frameDurationMs` 最小 20 且**没有上限**（编码器按 10ms 取整，每帧编码延迟上限 655350ms，实测 5000 原样接受）。另外 `complexity` 没有固定默认值，省略时用的是该图像模型自己配置的默认。
+
+### GIF 编辑（2.2.0）
+
+编辑也能出动图，和生成同一组参数：
+
+```java
+ImageResponse gif = client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("make the shape pulse")
+        .outputFormat("gif")
+        .frameCount(4)
+        .frameDurationMs(150)
+        .quality("low")
+        .size("512x512")
+        .build(), sourceImage, (File) null);
+```
+
+这里的 `512x512` 和普通编辑不能互换：同尺寸的 PNG 编辑会被拒为 `below the current minimum pixel budget`，因为 GIF 的像素预算是按雪碧图算的，不是按单帧。GIF 编辑不支持 `mask` / `stream` / `partialImages` / `outputCompression`，SVG 编辑完全不支持（只接受 png/webp/jpeg）。
+
+### SVG 作图模型的 reasoning（2.2.0）
+
+`svg.reasoning.effort` 控制作图模型想多久，和 `complexity`（控制参考图）是两回事：
+
+```java
+ImageResponse svg = client.createImage(CreateImageRequest.builder()
+        .model("gpt-image-2.6-flare")
+        .prompt("a flat icon of a bicycle")
+        .outputFormat("svg")
+        .svg(SvgOptions.of("gpt-6.1-terra", "low"))   // 等价于 model + reasoning.effort
+        .build());
+```
+
+`effort` 取 `none` / `minimal` / `low` / `medium` / `high` / `xhigh` / `max`，省略时用作图模型自己的默认。它直接影响账单：同一个 prompt，默认时 `svgUsage.reasoningTokens` 实测 501~1226，`low` 降到 57。
+
+### 引用已上传的图做编辑（2.2.0）
+
+编辑接口还有一条 JSON 形式的路径，输入图用 `file_id` 或 URL **引用**而不是上传字节。同一张图要反复编辑时，上传一次比每次重传划算 —— 这是 multipart 那条路做不到的。
+
+```java
+// 先上传一次
+OpenaiFile uploaded = client.uploadFile("vision", "/path/to/mug.png");
+
+// 之后按 id 引用，不传字节
+ImageResponse result = client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("make the mug red")
+        .images(Collections.singletonList(ImageReference.fileId(uploaded.getId())))
+        .quality("low")
+        .size("1024x1024")
+        .build());
+```
+
+`ImageReference` 二选一：`fileId(..)` 或 `imageUrl(..)`（支持 `data:image/png;base64,...`，编码后 20MB 以内）。`images` 最多 16 张。这条路径上的 mask 和标注层用 `maskReference` / `markupReference`，不是文件字段：
+
+```java
+client.editImage(EditImageRequest.builder()
+        .prompt("paint the circled area yellow")
+        .images(Collections.singletonList(ImageReference.imageUrl(sourceDataUrl)))
+        .markupReference(ImageReference.imageUrl(markupDataUrl))
+        .build());
+```
+
+流式也支持，注意编辑发的是 `image_edit.*` 事件而不是 `image_generation.*`（`isCompleted()` 两者都认）：
+
+```java
+client.streamEditImage(request).blockingSubscribe(event -> { ... });
+```
+
+**两条路不能混着用。** `editImage(request)` 走 JSON，不能带 `markup` 文件字段；带 `java.io.File` 的那些重载走 multipart，不能带 `images` / `maskReference` / `markupReference`。设了对面那条路的字段会直接抛 `IllegalArgumentException`，而不是悄悄丢掉 —— `moderation` 从 1.9.17 到 1.11.0 就是这么没生效的。
+
+### 关于客户端校验
+
+SDK 只在两处抢在请求前报错：`svg` 输出缺 `svg.model`，以及 `mask` 和标注层同时给。其余格式限制（GIF 不能流式、SVG 要 `n=1`、透明背景不能配 jpeg 等）一律交给服务端。
+
+2.2.0 的开发过程中这些规则曾经全部在客户端镜像过一遍，然后删掉了：镜像一条规则，就等于上游放宽之后 SDK 还在拦，而且会让活体测试失去发现这件事的能力。现在这些规则由 `OpenaiImageLiveSmokeTest` 钉住服务端当前的行为 —— 那里红了不代表 SDK 坏了，代表 API 变了。
 
 ### Claude 多轮对话的 thinking 块校验
 

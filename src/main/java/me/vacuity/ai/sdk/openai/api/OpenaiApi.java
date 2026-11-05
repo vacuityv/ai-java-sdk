@@ -27,6 +27,7 @@ import me.vacuity.ai.sdk.openai.entity.DeleteStatus;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
+import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.decision.request.DecisionRequest;
 import me.vacuity.ai.sdk.openai.decision.response.Decision;
 import me.vacuity.ai.sdk.openai.image.response.ImageResponse;
@@ -213,6 +214,13 @@ public interface OpenaiApi {
     @POST("v1/images/edits")
     Single<ImageResponse> editImage(@Body RequestBody requestBody);
 
+    /**
+     * The JSON form of the edit endpoint, which names its input images instead
+     * of uploading them.
+     */
+    @POST("v1/images/edits")
+    Single<ImageResponse> editImageByReference(@Body EditImageRequest request);
+
     @Streaming
     @POST("v1/images/generations")
     Call<ResponseBody> streamCreateImage(@Body CreateImageRequest request);
@@ -220,6 +228,10 @@ public interface OpenaiApi {
     @Streaming
     @POST("v1/images/edits")
     Call<ResponseBody> streamEditImage(@Body RequestBody requestBody);
+
+    @Streaming
+    @POST("v1/images/edits")
+    Call<ResponseBody> streamEditImageByReference(@Body EditImageRequest request);
 
     @POST("v1/images/variations")
     Single<ImageResponse> imageVariation(@Body RequestBody requestBody);

@@ -81,19 +81,81 @@ public class EditImageRequest {
     /**
      * Optional annotation layer sent alongside the input image.
      * <p>
-     * Must be a PNG matching the first input image's dimensions and containing
-     * transparent pixels, and cannot be combined with a mask. Carried on the
-     * request object rather than as another method parameter, so the existing
-     * editImage overloads keep their signatures.
+     * Must be a PNG matching the first input image's dimensions after
+     * orientation and containing transparent pixels, and cannot be combined
+     * with a mask. Carried on the request object rather than as another method
+     * parameter, so the existing editImage overloads keep their signatures.
      */
     @com.fasterxml.jackson.annotation.JsonIgnore
     private java.io.File markup;
 
     /**
-     * Stable per-end-user identifier used for abuse monitoring, echoed back on
-     * the response. The newer name for what {@code user} carried; both are
-     * still accepted, and sending both together is allowed.
+     * Stable per-end-user identifier used for abuse monitoring, at most 128
+     * characters, echoed back on the response.
+     * <p>
+     * This replaces {@code user}, which is deprecated. A non-empty value here
+     * takes precedence; {@code user} is only consulted when this is omitted,
+     * null or empty.
      */
     @JsonProperty("safety_identifier")
     private String safetyIdentifier;
+
+    /**
+     * Number of GIF frames, 2-16, upstream default 9. Only sent with
+     * {@code outputFormat} "gif".
+     * <p>
+     * Frames are rendered as one sprite sheet, so this and {@code size} are not
+     * independent: the sheet's longest edge must stay within 3840px, and 16
+     * frames at 1024x1024 is rejected. The sheet also decides the pixel budget,
+     * which is why a GIF edit at 512x512 is accepted while a PNG edit at the
+     * same size is "below the current minimum pixel budget".
+     *
+     * @since 2.2.0
+     */
+    @JsonProperty("frame_count")
+    private Integer frameCount;
+
+    /**
+     * Requested delay per GIF frame in milliseconds, minimum 20, upstream
+     * default 200. Only sent with {@code outputFormat} "gif".
+     * <p>
+     * There is no upper bound on the parameter: the encoder rounds to the
+     * nearest 10ms and caps the encoded delay at 655350ms per frame, and 5000
+     * is accepted as sent.
+     *
+     * @since 2.2.0
+     */
+    @JsonProperty("frame_duration_ms")
+    private Integer frameDurationMs;
+
+    /**
+     * Input images named rather than uploaded, 1-16 of them.
+     * <p>
+     * Setting this selects the JSON form of the endpoint, which is the only
+     * form that can reference a File API id. Use {@code editImage(request)} —
+     * the overloads that take {@code java.io.File} send multipart and cannot
+     * carry these.
+     *
+     * @since 2.2.0
+     */
+    private java.util.List<me.vacuity.ai.sdk.openai.image.entity.ImageReference> images;
+
+    /**
+     * The mask, named rather than uploaded. JSON form only; the multipart
+     * overloads take the mask as a {@code java.io.File} argument instead.
+     *
+     * @since 2.2.0
+     */
+    @JsonProperty("mask")
+    private me.vacuity.ai.sdk.openai.image.entity.ImageReference maskReference;
+
+    /**
+     * The markup layer, named rather than uploaded. JSON form only; the
+     * multipart form uses the {@code markup} {@code java.io.File} field.
+     * Still mutually exclusive with a mask.
+     *
+     * @since 2.2.0
+     */
+    @JsonProperty("markup")
+    private me.vacuity.ai.sdk.openai.image.entity.ImageReference markupReference;
 }

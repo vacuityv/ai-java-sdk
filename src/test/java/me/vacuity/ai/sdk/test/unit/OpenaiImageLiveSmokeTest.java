@@ -210,14 +210,15 @@ public class OpenaiImageLiveSmokeTest {
      */
     @Test
     public void svgGenerationReturnsSvgTextAndSeparateUsage() {
-        ImageResponse response = client().createImage(CreateImageRequest.builder()
+        ImageResponse response = throughGatewayHiccups(
+                () -> client().createImage(CreateImageRequest.builder()
                 .model("gpt-image-2.6-flare")
                 .prompt("a flat icon of a bicycle")
                 .outputFormat("svg")
                 .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model(SVG_MODEL))
                 .quality("low")
                 .n(1)
-                .build());
+                .build()));
 
         assertEquals("svg", response.getOutputFormat());
 
@@ -235,26 +236,30 @@ public class OpenaiImageLiveSmokeTest {
     }
 
     /**
-     * Omitting svg.model is the one failure mode worth pinning: the request is
-     * otherwise valid, so a silently dropped nested object would look like a
-     * server problem rather than an SDK one.
+     * Omitting svg.model is now refused by the SDK before the request leaves,
+     * so this no longer reaches the server.
+     * <p>
+     * That is the cost of the pre-flight checks added in 2.2.0: this test used
+     * to be a live canary that would have told us if the server ever stopped
+     * requiring svg.model, and it cannot be that any more. The server rule was
+     * confirmed by hand on 2026-11-05 (`missing_required_parameter` on
+     * `svg.model`); anyone dropping the guard in ImageRequestValidator has to
+     * re-check it against the live API rather than trusting this test.
      */
     @Test
-    public void svgWithoutAnAuthoringModelIsRejectedByTheServer() {
-        me.vacuity.ai.sdk.common.VacSdkException e =
-                org.junit.jupiter.api.Assertions.assertThrows(
-                        me.vacuity.ai.sdk.common.VacSdkException.class,
-                        () -> client().createImage(CreateImageRequest.builder()
-                                .model("gpt-image-2.6-flare")
-                                .prompt("a flat icon of a bicycle")
-                                .outputFormat("svg")
-                                .quality("low")
-                                .n(1)
-                                .build()));
+    public void svgWithoutAnAuthoringModelIsRefusedBeforeTheRequest() {
+        IllegalArgumentException e = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> client().createImage(CreateImageRequest.builder()
+                        .model("gpt-image-2.6-flare")
+                        .prompt("a flat icon of a bicycle")
+                        .outputFormat("svg")
+                        .quality("low")
+                        .n(1)
+                        .build()));
 
-        assertEquals("missing_required_parameter", e.getCode());
-        assertTrue(e.getMessage().contains("svg.model"), "server must name svg.model: "
-                + e.getMessage());
+        assertTrue(e.getMessage().contains("svg.model"),
+                "the refusal must name svg.model: " + e.getMessage());
     }
 
     /**
@@ -312,5 +317,282 @@ public class OpenaiImageLiveSmokeTest {
         f.deleteOnExit();
         ImageIO.write(img, "png", f);
         return f;
+    }
+
+    // ------------------------------------------- GIF 编辑 / svg.reasoning (2.2.0)
+
+    /**
+     * A GIF edit really returns a GIF. The two framing fields go out in the
+     * hand-built multipart body, so only a live call proves they arrive.
+     * <p>
+     * 512x512 is deliberate and is NOT interchangeable with a PNG edit: a
+     * plain edit at that size is refused as "below the current minimum pixel
+     * budget", because for GIF the budget is measured on the sprite sheet
+     * rather than one frame.
+     */
+    @Test
+    public void gifEditReturnsAGif() throws Exception {
+        ImageResponse response = client().editImage(EditImageRequest.builder()
+                .model(MODEL)
+                .prompt("make the shape pulse")
+                .outputFormat("gif")
+                .frameCount(4)
+                .frameDurationMs(150)
+                .quality("low")
+                .size("512x512")
+                .build(), smallPng(), (File) null);
+
+        assertEquals("gif", response.getOutputFormat(), "server must echo output_format");
+        byte[] bytes = java.util.Base64.getDecoder()
+                .decode(response.getData().get(0).getB64Json());
+        assertEquals("GIF89a", new String(bytes, 0, 6, java.nio.charset.StandardCharsets.US_ASCII),
+                "an edit asking for gif must return a real GIF");
+    }
+
+    /**
+     * frame_count's range differs between the two endpoints' documentation
+     * only in prose, so pin what the server actually enforces on edits.
+     */
+    @Test
+    public void gifEditRejectsAFrameCountAboveSixteen() throws Exception {
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().editImage(EditImageRequest.builder()
+                                .model(MODEL).prompt("x")
+                                .outputFormat("gif").frameCount(20)
+                                .quality("low").size("512x512")
+                                .build(), smallPng(), (File) null));
+
+        assertTrue(e.getMessage().contains("2 to 16"),
+                "server must state the 2-16 range: " + e.getMessage());
+    }
+
+    /**
+     * svg.reasoning.effort is not decorative — it changes what the authoring
+     * model charges. "low" measured 57 reasoning tokens against 501-1226 with
+     * the effort left to the model's default.
+     */
+    @Test
+    public void svgReasoningEffortReachesTheAuthoringModel() {
+        ImageResponse response = throughGatewayHiccups(
+                () -> client().createImage(CreateImageRequest.builder()
+                .model("gpt-image-2.6-flare")
+                .prompt("a flat icon of a bicycle")
+                .outputFormat("svg")
+                .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.of(SVG_MODEL, "low"))
+                .quality("low")
+                .n(1)
+                .build()));
+
+        assertEquals(SVG_MODEL, response.getSvgUsage().getModel());
+        assertTrue(response.getSvgUsage().getReasoningTokens() > 0,
+                "the author model still reports reasoning tokens at effort=low");
+        assertTrue(response.getSvgUsage().getReasoningTokens() < 400,
+                "effort=low should be far below the default's 500+ reasoning tokens, got "
+                        + response.getSvgUsage().getReasoningTokens());
+    }
+
+    /**
+     * An invalid effort must be the server's complaint, not a silently
+     * dropped field.
+     */
+    @Test
+    public void anUnknownSvgReasoningEffortIsRejectedByTheServer() {
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().createImage(CreateImageRequest.builder()
+                                .model("gpt-image-2.6-flare").prompt("x")
+                                .outputFormat("svg")
+                                .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions
+                                        .of(SVG_MODEL, "bogus"))
+                                .n(1).build()));
+
+        assertTrue(e.getMessage().contains("minimal") || e.getMessage().contains("effort"),
+                "server must name the effort enum: " + e.getMessage());
+    }
+
+    /**
+     * SVG generations take 30s+ and this proxy intermittently answers 502 on
+     * them. Retrying a gateway error is not the same as retrying a failed
+     * assertion: the call never reached a verdict, so there is nothing to
+     * paper over. Anything that is not a 502/503/504 is rethrown immediately.
+     */
+    private <T> T throughGatewayHiccups(java.util.function.Supplier<T> call) {
+        RuntimeException last = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                return call.get();
+            } catch (retrofit2.adapter.rxjava2.HttpException e) {
+                int code = e.code();
+                if (code != 502 && code != 503 && code != 504) {
+                    throw e;
+                }
+                last = e;
+            }
+        }
+        throw new AssertionError("gateway kept failing after 3 attempts", last);
+    }
+
+    // ---------------------------- 服务端格式规则的活体哨兵 (2.2.0)
+
+    /**
+     * The format restrictions the SDK deliberately does NOT mirror.
+     * <p>
+     * 2.2.0 had client-side copies of all of these and dropped them: a
+     * mirrored rule keeps being enforced after upstream relaxes it, and it
+     * costs exactly this test. So they live here instead. Every case below is
+     * a validation error, rejected before any image is produced, so the whole
+     * method is cheap despite being eight live calls.
+     * <p>
+     * A failure here does not mean the SDK broke. It means the API changed,
+     * and that the docs and javadoc need rereading.
+     */
+    @Test
+    public void theServerStillEnforcesTheFormatRestrictions() {
+        assertServerRejects("gif + output_compression",
+                CreateImageRequest.builder().model(MODEL).prompt("x")
+                        .outputFormat("gif").size("512x512").outputCompression(80).build());
+        assertServerRejects("gif + partial_images",
+                CreateImageRequest.builder().model(MODEL).prompt("x")
+                        .outputFormat("gif").size("512x512").partialImages(2).build());
+        assertServerRejects("svg + n=2",
+                CreateImageRequest.builder().model("gpt-image-2.6-flare").prompt("x")
+                        .outputFormat("svg")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model(SVG_MODEL))
+                        .n(2).build());
+        assertServerRejects("svg + output_compression",
+                CreateImageRequest.builder().model("gpt-image-2.6-flare").prompt("x")
+                        .outputFormat("svg")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model(SVG_MODEL))
+                        .n(1).outputCompression(80).build());
+        assertServerRejects("svg 对象配 png",
+                CreateImageRequest.builder().model("gpt-image-2.6-flare").prompt("x")
+                        .outputFormat("png")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model(SVG_MODEL))
+                        .build());
+        assertServerRejects("transparent + jpeg",
+                CreateImageRequest.builder().model(MODEL).prompt("x")
+                        .outputFormat("jpeg").background("transparent").build());
+    }
+
+    @Test
+    public void theServerStillRefusesGifWithAMaskAndSvgEdits() throws Exception {
+        File png = smallPng();
+
+        // "'mask' is not supported for GIF output."
+        org.junit.jupiter.api.Assertions.assertThrows(
+                me.vacuity.ai.sdk.common.VacSdkException.class,
+                () -> client().editImage(EditImageRequest.builder().model(MODEL).prompt("x")
+                        .outputFormat("gif").size("512x512").build(), png, png));
+
+        // "Invalid value: 'svg'. Supported values are: 'png', 'webp', and 'jpeg'."
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().editImage(EditImageRequest.builder().model(MODEL)
+                                .prompt("x").outputFormat("svg").build(),
+                                png, (File) null));
+        assertTrue(e.getMessage().contains("png"),
+                "svg edits must still be refused, naming the supported formats: "
+                        + e.getMessage());
+    }
+
+    private void assertServerRejects(String label, CreateImageRequest request) {
+        org.junit.jupiter.api.Assertions.assertThrows(
+                me.vacuity.ai.sdk.common.VacSdkException.class,
+                () -> client().createImage(request),
+                "the server should still reject " + label
+                        + " — if it now accepts it, drop the matching javadoc warning");
+    }
+
+    // ------------------------------------------- JSON 形式的 edits (2.2.0)
+
+    /**
+     * The JSON form is the only way to edit an image the API already holds.
+     * Uploading once and editing by id is the point of it, so the test does
+     * exactly that.
+     */
+    @Test
+    public void editImageByFileIdWorks() throws Exception {
+        String fileId = uploadForVision(smallPng());
+
+        ImageResponse response = client().editImage(EditImageRequest.builder()
+                .model(MODEL)
+                .prompt("make the square bright red")
+                .images(java.util.Collections.singletonList(
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference.fileId(fileId)))
+                .quality("low")
+                .size("1024x1024")
+                .build());
+
+        assertNotNull(response.getData().get(0).getB64Json(),
+                "an edit by file_id must return image data");
+        assertNotNull(response.getData().get(0).getGenerationId());
+    }
+
+    /**
+     * A data URL rather than an upload, plus a markup layer sent the same way.
+     */
+    @Test
+    public void editImageByDataUrlWithMarkupReferenceWorks() throws Exception {
+        String source = dataUrl(smallPng());
+        String markup = dataUrl(annotationPng(256, 256));
+
+        ImageResponse response = client().editImage(EditImageRequest.builder()
+                .model(MODEL)
+                .prompt("paint the circled area bright yellow")
+                .images(java.util.Collections.singletonList(
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference.imageUrl(source)))
+                .markupReference(
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference.imageUrl(markup))
+                .quality("low")
+                .size("1024x1024")
+                .build());
+
+        assertNotNull(response.getData().get(0).getB64Json());
+    }
+
+    /**
+     * Streaming the JSON form, which emits image_edit.* rather than
+     * image_generation.* events.
+     */
+    @Test
+    public void streamEditImageByReferenceEmitsEditEvents() throws Exception {
+        String fileId = uploadForVision(smallPng());
+        List<ImageStreamEvent> events = new ArrayList<>();
+
+        client().streamEditImage(EditImageRequest.builder()
+                        .model(MODEL)
+                        .prompt("make it green")
+                        .images(java.util.Collections.singletonList(
+                                me.vacuity.ai.sdk.openai.image.entity.ImageReference
+                                        .fileId(fileId)))
+                        .quality("low")
+                        .size("1024x1024")
+                        .partialImages(1)
+                        .build())
+                .blockingSubscribe(events::add);
+
+        assertFalse(events.isEmpty(), "streaming produced no events");
+        ImageStreamEvent last = events.get(events.size() - 1);
+        assertTrue(last.isCompleted(),
+                "the final event should be completed; sequence was " + eventTypes(events));
+        assertEquals(ImageStreamEventConstant.EDIT_COMPLETED, last.getType(),
+                "edits emit image_edit.*, not image_generation.*");
+        assertNotNull(last.getB64Json());
+    }
+
+    private String uploadForVision(File file) {
+        me.vacuity.ai.sdk.openai.file.entity.OpenaiFile uploaded =
+                client().uploadFile("vision", file.getAbsolutePath());
+        assertNotNull(uploaded.getId(), "the file upload must return an id");
+        return uploaded.getId();
+    }
+
+    private static String dataUrl(File png) throws Exception {
+        byte[] bytes = java.nio.file.Files.readAllBytes(png.toPath());
+        return "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(bytes);
     }
 }

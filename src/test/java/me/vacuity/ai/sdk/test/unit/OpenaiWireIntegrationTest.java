@@ -476,8 +476,13 @@ public class OpenaiWireIntegrationTest {
                 + "\"total_tokens\":984},"
                 + "\"data\":[{\"b64_json\":\"PHN2Zz48L3N2Zz4=\"}]}";
 
+        // svg.model is required by the server, and now by the SDK's own
+        // pre-flight check, so the request has to be a valid one even though
+        // this test only cares about parsing the response.
         ImageResponse response = client().createImage(
-                CreateImageRequest.builder().prompt("x").outputFormat("svg").build());
+                CreateImageRequest.builder().prompt("x").outputFormat("svg")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model("gpt-6.1-terra"))
+                        .build());
 
         assertEquals("svg", response.getOutputFormat());
         assertNotNull(response.getSvgUsage(), "svg_usage must deserialize");
@@ -547,5 +552,238 @@ public class OpenaiWireIntegrationTest {
             assertFalse(body.contains("\"" + absent + "\""),
                     "unset field must not be sent: " + absent);
         }
+    }
+
+    // ------------------------------------------- GIF 编辑 / svg.reasoning (2.2.0)
+
+    /**
+     * frame_count and frame_duration_ms travel in the hand-built multipart
+     * body, the same place complexity and markup had to be wired by hand.
+     */
+    @Test
+    public void editImageSendsGifFramingFields() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[{\"b64_json\":\"R0lGODlh\"}]}";
+
+        client().editImage(EditImageRequest.builder()
+                .prompt("make the circle pulse")
+                .model("gpt-image-2.6-flare")
+                .outputFormat("gif")
+                .frameCount(6)
+                .frameDurationMs(150)
+                .build(), tempPng(), (java.io.File) null);
+
+        String body = capturedBody.get();
+        assertTrue(body.contains("name=\"frame_count\""),
+                "multipart body is missing form part: frame_count");
+        assertTrue(body.contains("name=\"frame_duration_ms\""),
+                "multipart body is missing form part: frame_duration_ms");
+        assertTrue(body.contains("\r\n\r\n6\r\n"), "frame_count value must be sent");
+        assertTrue(body.contains("\r\n\r\n150\r\n"), "frame_duration_ms value must be sent");
+    }
+
+    @Test
+    public void unsetGifFramingFieldsStayOffTheEditWire() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().editImage(EditImageRequest.builder().prompt("x").build(),
+                tempPng(), (java.io.File) null);
+
+        String body = capturedBody.get();
+        for (String absent : new String[]{"frame_count", "frame_duration_ms", "complexity"}) {
+            assertFalse(body.contains("name=\"" + absent + "\""),
+                    "unset field must not be sent: " + absent);
+        }
+    }
+
+    /**
+     * svg.reasoning.effort is a second level of nesting — the one place a
+     * serialization mistake would silently drop the whole block.
+     */
+    @Test
+    public void createImageSendsSvgReasoningEffort() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().createImage(CreateImageRequest.builder()
+                .prompt("a flat icon of a bicycle")
+                .model("gpt-image-2.6-flare")
+                .outputFormat("svg")
+                .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.of("gpt-6.1-terra", "low"))
+                .build());
+
+        com.fasterxml.jackson.databind.JsonNode sent =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+        assertEquals("gpt-6.1-terra", sent.get("svg").get("model").asText());
+        assertTrue(sent.get("svg").get("reasoning").isObject(),
+                "svg.reasoning must serialize as a nested object");
+        assertEquals("low", sent.get("svg").get("reasoning").get("effort").asText());
+    }
+
+    @Test
+    public void svgOptionsWithoutReasoningOmitsTheBlock() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().createImage(CreateImageRequest.builder()
+                .prompt("x").outputFormat("svg")
+                .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model("gpt-6.1-terra"))
+                .build());
+
+        com.fasterxml.jackson.databind.JsonNode sent =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+        assertNull(sent.get("svg").get("reasoning"),
+                "an unset reasoning block must not be sent as null");
+    }
+
+    // ------------------------------------------------ 客户端前置校验 (2.2.0)
+
+    /**
+     * The SDK refuses only these shapes. Everything else — gif with streaming,
+     * svg with n &gt; 1, a transparent jpeg — is left to the server, on purpose:
+     * see ImageRequestValidator. The live suite pins those server rules.
+     */
+    @Test
+    public void onlyTheTwoDeliberateRulesAreEnforcedLocally() {
+        responseBody = "{\"created\":1,\"data\":[]}";
+        OpenaiClient c = client();
+
+        // Kept: a missing svg.model costs a round trip to discover.
+        assertRefused(() -> c.createImage(CreateImageRequest.builder().prompt("x")
+                .outputFormat("svg").build()));
+
+        // Dropped on purpose — these must now reach the wire and let the
+        // server answer, so the SDK cannot outlive a relaxed upstream rule.
+        for (CreateImageRequest allowed : new CreateImageRequest[]{
+                CreateImageRequest.builder().prompt("x").outputFormat("gif")
+                        .outputCompression(80).build(),
+                CreateImageRequest.builder().prompt("x").outputFormat("jpeg")
+                        .background("transparent").build(),
+                CreateImageRequest.builder().prompt("x").outputFormat("svg")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model("m"))
+                        .n(2).build()}) {
+            capturedBody.set(null);
+            c.createImage(allowed);
+            assertNotNull(capturedBody.get(),
+                    "the SDK must not block this — the server decides");
+        }
+    }
+
+    /**
+     * A field that is set and silently never sent is the failure mode that hid
+     * moderation from 1.9.17 to 1.11.0, so each transport refuses the fields
+     * it physically cannot carry.
+     */
+    @Test
+    public void fieldsTheTransportCannotCarryAreRefused() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+        OpenaiClient c = client();
+        java.io.File png = tempPng();
+        me.vacuity.ai.sdk.openai.image.entity.ImageReference ref =
+                me.vacuity.ai.sdk.openai.image.entity.ImageReference.fileId("file-abc");
+
+        // multipart cannot send references
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x")
+                .images(java.util.Collections.singletonList(ref)).build(),
+                png, (java.io.File) null));
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x")
+                .maskReference(ref).build(), png, (java.io.File) null));
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x")
+                .markupReference(ref).build(), png, (java.io.File) null));
+
+        // the JSON form cannot send files, and needs at least one input
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x").build()));
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x")
+                .images(java.util.Collections.singletonList(ref))
+                .markup(png).build()));
+
+        // mask and markup stay mutually exclusive on both transports
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x")
+                .markup(png).build(), png, png));
+        assertRefused(() -> c.editImage(EditImageRequest.builder().prompt("x")
+                .images(java.util.Collections.singletonList(ref))
+                .markupReference(ref).maskReference(ref).build()));
+
+        assertNull(capturedBody.get(), "no refused request may reach the wire");
+    }
+
+    // ------------------------------------------------- JSON 形式的 edits (2.2.0)
+
+    @Test
+    public void editImageByReferenceSendsTheJsonShape() throws Exception {
+        responseBody = "{\"created\":1,\"output_format\":\"png\","
+                + "\"data\":[{\"b64_json\":\"aGk=\",\"generation_id\":\"gen_1\"}]}";
+
+        ImageResponse response = client().editImage(EditImageRequest.builder()
+                .model("gpt-image-2.6-sunburst")
+                .prompt("make the mug red")
+                .images(java.util.Arrays.asList(
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference.fileId("file-abc"),
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference
+                                .imageUrl("https://example.invalid/a.png")))
+                .markupReference(me.vacuity.ai.sdk.openai.image.entity.ImageReference
+                        .imageUrl("data:image/png;base64,aGk="))
+                .complexity("low")
+                .quality("low")
+                .size("1024x1024")
+                .build());
+
+        com.fasterxml.jackson.databind.JsonNode sent =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+        assertEquals(2, sent.get("images").size());
+        assertEquals("file-abc", sent.get("images").get(0).get("file_id").asText());
+        assertEquals("https://example.invalid/a.png",
+                sent.get("images").get(1).get("image_url").asText());
+        assertNull(sent.get("images").get(0).get("image_url"),
+                "an unset half of a reference must not be sent as null");
+        // markupReference must land on the wire as "markup", not its Java name
+        assertNotNull(sent.get("markup"), "markupReference must serialize as \"markup\"");
+        assertEquals("data:image/png;base64,aGk=", sent.get("markup").get("image_url").asText());
+        assertNull(sent.get("markupReference"), "the Java field name must not reach the wire");
+        assertEquals("low", sent.get("complexity").asText());
+        assertEquals("gen_1", response.getData().get(0).getGenerationId());
+    }
+
+    @Test
+    public void maskReferenceSerializesAsMask() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().editImage(EditImageRequest.builder()
+                .prompt("x")
+                .images(java.util.Collections.singletonList(
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference.fileId("file-abc")))
+                .maskReference(me.vacuity.ai.sdk.openai.image.entity.ImageReference
+                        .fileId("file-mask"))
+                .build());
+
+        com.fasterxml.jackson.databind.JsonNode sent =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+        assertEquals("file-mask", sent.get("mask").get("file_id").asText());
+        assertNull(sent.get("maskReference"), "the Java field name must not reach the wire");
+    }
+
+    @Test
+    public void streamEditImageByReferenceParsesEditEvents() {
+        responseContentType = "text/event-stream";
+        responseBody = "data: {\"type\":\"image_edit.partial_image\",\"b64_json\":\"cDA=\","
+                + "\"partial_image_index\":0}\n\n"
+                + "data: {\"type\":\"image_edit.completed\",\"b64_json\":\"ZG9uZQ==\","
+                + "\"usage\":{\"total_tokens\":7}}\n\n";
+
+        java.util.List<ImageStreamEvent> events = new java.util.ArrayList<>();
+        client().streamEditImage(EditImageRequest.builder()
+                .prompt("x")
+                .images(java.util.Collections.singletonList(
+                        me.vacuity.ai.sdk.openai.image.entity.ImageReference.fileId("file-abc")))
+                .partialImages(1)
+                .build()).blockingSubscribe(events::add);
+
+        assertEquals(2, events.size());
+        assertEquals(ImageStreamEventConstant.EDIT_PARTIAL_IMAGE, events.get(0).getType());
+        assertEquals(0, events.get(0).getPartialImageIndex());
+        assertTrue(events.get(1).isCompleted(),
+                "image_edit.completed must count as completed");
+        assertEquals(7, events.get(1).getUsage().getTotalTokens());
+    }
+
+    private static void assertRefused(org.junit.jupiter.api.function.Executable call) {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, call);
     }
 }

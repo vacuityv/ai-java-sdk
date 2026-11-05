@@ -22,6 +22,12 @@ public class CreateImageRequest {
 
     private String prompt;
     
+    /**
+     * "transparent", "opaque" or "auto" (the default).
+     * <p>
+     * A transparent background needs {@code outputFormat} "png" or "webp";
+     * "jpeg" is rejected.
+     */
     private String background;
 
     private String model;
@@ -68,13 +74,18 @@ public class CreateImageRequest {
     private Integer partialImages;
 
     /**
-     * How much detail to put into the image: "low", "medium" or "high".
-     * Upstream default is "high". gpt-image-2.6 and later.
+     * Computation spent planning the image, independently of rendering
+     * {@code quality}: "low", "medium" or "high".
+     * <p>
+     * Omit it to use the image model's own configured default — there is no
+     * fixed default to rely on. For SVG output this controls the reference
+     * image, not the SVG author's reasoning, which is
+     * {@code svg.reasoning.effort}.
      */
     private String complexity;
 
     /**
-     * Number of GIF frames, 2-64, upstream default 9.
+     * Number of GIF frames, 2-16, upstream default 9.
      * <p>
      * Frames are rendered as one sprite sheet before being assembled, so
      * {@code frameCount} and {@code size} are not independent: the sheet's
@@ -87,22 +98,39 @@ public class CreateImageRequest {
     private Integer frameCount;
 
     /**
-     * How long each GIF frame is shown, 20-2000ms, upstream default 200.
+     * Requested delay per GIF frame in milliseconds, minimum 20, upstream
+     * default 200.
+     * <p>
+     * There is no upper bound on the parameter: the encoder rounds to the
+     * nearest 10ms and caps the encoded delay at 655350ms per frame, and 5000
+     * is accepted as sent.
      */
     @JsonProperty("frame_duration_ms")
     private Integer frameDurationMs;
 
     /**
-     * The model that authors the SVG. Required whenever
-     * {@code outputFormat} is "svg" — the server answers
-     * {@code missing_required_parameter} on {@code svg.model} otherwise.
+     * SVG authoring options: the model that writes the SVG, and optionally how
+     * hard it reasons.
+     * <p>
+     * {@code svg.model} is required whenever {@code outputFormat} is "svg" —
+     * the server answers {@code missing_required_parameter} otherwise — and
+     * sending this block with any other output format is rejected too. SVG
+     * output additionally requires {@code n} = 1 and rules out
+     * {@code stream} / {@code partialImages} / {@code outputCompression}.
+     * <p>
+     * The top-level {@code model} still selects the image model that creates
+     * the reference image; {@code svg.model} is billed separately, reported as
+     * {@code svgUsage} on the response.
      */
     private SvgOptions svg;
 
     /**
-     * Stable per-end-user identifier used for abuse monitoring, echoed back on
-     * the response. The newer name for what {@code user} carried; both are
-     * still accepted, and sending both together is allowed.
+     * Stable per-end-user identifier used for abuse monitoring, at most 128
+     * characters, echoed back on the response.
+     * <p>
+     * This replaces {@code user}, which is deprecated. A non-empty value here
+     * takes precedence; {@code user} is only consulted when this is omitted,
+     * null or empty. Sending both is accepted.
      */
     @JsonProperty("safety_identifier")
     private String safetyIdentifier;

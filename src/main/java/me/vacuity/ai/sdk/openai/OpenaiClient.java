@@ -48,6 +48,7 @@ import me.vacuity.ai.sdk.openai.entity.ListRequest;
 import me.vacuity.ai.sdk.openai.entity.Model;
 import me.vacuity.ai.sdk.openai.error.ChatResponseError;
 import me.vacuity.ai.sdk.openai.file.entity.OpenaiFile;
+import me.vacuity.ai.sdk.openai.image.ImageRequestValidator;
 import me.vacuity.ai.sdk.openai.image.request.CreateImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.EditImageRequest;
 import me.vacuity.ai.sdk.openai.image.request.ImageVariationRequest;
@@ -477,6 +478,7 @@ public class OpenaiClient {
     }
 
     public ImageResponse createImage(CreateImageRequest request) {
+        ImageRequestValidator.validate(request);
         return execute(api.createImage(request));
     }
 
@@ -532,10 +534,28 @@ public class OpenaiClient {
     }
 
     /**
+     * Edits images named on the request instead of uploaded from disk.
+     * <p>
+     * This is the JSON form of the endpoint, and the only one that can
+     * reference a File API id — handy when the same image is edited repeatedly,
+     * since it is uploaded once instead of with every request. Put the inputs
+     * in {@code images} as {@link me.vacuity.ai.sdk.openai.image.entity.ImageReference},
+     * and use {@code maskReference} / {@code markupReference} rather than the
+     * file fields.
+     *
+     * @since 2.2.0
+     */
+    public ImageResponse editImage(EditImageRequest request) {
+        ImageRequestValidator.validateByReference(request);
+        return execute(api.editImageByReference(request));
+    }
+
+    /**
      * Builds the multipart body for an image edit. Shared by the blocking and
      * streaming paths so a field can never be wired into only one of them.
      */
     private MultipartBody buildEditImageBody(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
+        ImageRequestValidator.validate(request, mask);
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MediaType.get("multipart/form-data"))
                 .addFormDataPart("prompt", request.getPrompt());
@@ -598,11 +618,13 @@ public class OpenaiClient {
         if (request.getComplexity() != null) {
             builder.addFormDataPart("complexity", request.getComplexity());
         }
+        if (request.getFrameCount() != null) {
+            builder.addFormDataPart("frame_count", request.getFrameCount().toString());
+        }
+        if (request.getFrameDurationMs() != null) {
+            builder.addFormDataPart("frame_duration_ms", request.getFrameDurationMs().toString());
+        }
         if (request.getMarkup() != null) {
-            if (mask != null) {
-                throw new IllegalArgumentException(
-                        "markup and mask cannot be sent together on an image edit");
-            }
             RequestBody markupBody = RequestBody.create(
                     request.getMarkup(), MediaType.parse("image/png"));
             builder.addFormDataPart("markup", request.getMarkup().getName(), markupBody);
@@ -617,6 +639,7 @@ public class OpenaiClient {
      */
     public Flowable<ImageStreamEvent> streamCreateImage(CreateImageRequest request) {
         request.setStream(true);
+        ImageRequestValidator.validate(request);
         return eventSourceStream(api.streamCreateImage(request), ImageStreamEvent.class);
     }
 
@@ -635,6 +658,22 @@ public class OpenaiClient {
     public Flowable<ImageStreamEvent> streamEditImage(EditImageRequest request, java.io.File mask, List<java.io.File> images) {
         request.setStream(true);
         return eventSourceStream(api.streamEditImage(buildEditImageBody(request, mask, images)), ImageStreamEvent.class);
+    }
+
+    /**
+     * Streams an edit over images named on the request. The JSON counterpart
+     * of {@link #streamEditImage(EditImageRequest, java.io.File, List)}.
+     * <p>
+     * Edits emit {@code image_edit.partial_image} and
+     * {@code image_edit.completed}, not the {@code image_generation.*} events —
+     * {@link ImageStreamEvent#isCompleted()} covers both.
+     *
+     * @since 2.2.0
+     */
+    public Flowable<ImageStreamEvent> streamEditImage(EditImageRequest request) {
+        request.setStream(true);
+        ImageRequestValidator.validateByReference(request);
+        return eventSourceStream(api.streamEditImageByReference(request), ImageStreamEvent.class);
     }
 
     public ImageResponse imageVariation(ImageVariationRequest request, String imagePath) {

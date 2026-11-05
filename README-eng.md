@@ -240,8 +240,8 @@ ImageResponse gif = client.createImage(CreateImageRequest.builder()
         .model("gpt-image-2.6-sunburst")
         .prompt("a small waving cartoon cat")
         .outputFormat("gif")
-        .frameCount(4)                 // 2-64, default 9
-        .frameDurationMs(150)          // 20-2000ms, default 200
+        .frameCount(4)                 // 2-16, default 9
+        .frameDurationMs(150)          // min 20ms, no upper bound, default 200
         .complexity("low")             // low / medium / high, default high
         .size("512x512")
         .build());
@@ -293,6 +293,83 @@ client.editImage(EditImageRequest.builder()
 - `safetyIdentifier` is the newer name for `user`; both still work, may be sent together, and are echoed on the response
 - The response now echoes `background` / `outputFormat` / `quality` / `size`, which is how to see what defaults the server picked
 - `usage.outputTokensDetails` completes the image/text token split on the output side
+
+> 2.1.0's docs gave `frameCount` as 2-64 and `frameDurationMs` as 20-2000ms. Both were wrong. Per the official reference and live testing: `frameCount` is **2-16** on both endpoints, and `frameDurationMs` has a minimum of 20 and **no upper bound** (the encoder rounds to 10ms and caps the encoded delay at 655350ms per frame; 5000 is accepted as sent). `complexity` also has no fixed default — omitting it uses the image model's own configured default.
+
+### GIF edits (2.2.0)
+
+Edits produce animated GIFs too, with the same framing fields:
+
+```java
+ImageResponse gif = client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("make the shape pulse")
+        .outputFormat("gif")
+        .frameCount(4)
+        .frameDurationMs(150)
+        .quality("low")
+        .size("512x512")
+        .build(), sourceImage, (File) null);
+```
+
+That `512x512` is not interchangeable with a plain edit: a PNG edit at the same size is refused as `below the current minimum pixel budget`, because for GIF the budget is measured on the sprite sheet rather than one frame. GIF edits support neither `mask`, `stream`, `partialImages` nor `outputCompression`, and SVG edits are not supported at all (only png/webp/jpeg).
+
+### Reasoning for the SVG author model (2.2.0)
+
+`svg.reasoning.effort` controls how hard the authoring model thinks, which is a different thing from `complexity` (which controls the reference image):
+
+```java
+ImageResponse svg = client.createImage(CreateImageRequest.builder()
+        .model("gpt-image-2.6-flare")
+        .prompt("a flat icon of a bicycle")
+        .outputFormat("svg")
+        .svg(SvgOptions.of("gpt-6.1-terra", "low"))   // model + reasoning.effort
+        .build());
+```
+
+`effort` is one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, and omitting it uses the author model's own default. It moves the bill: for one prompt, `svgUsage.reasoningTokens` measured 501-1226 with the effort unset and 57 at `low`.
+
+### Editing an image the API already holds (2.2.0)
+
+The edit endpoint also has a JSON form, where input images are **referenced** by `file_id` or URL instead of uploaded as bytes. When the same image is edited repeatedly, uploading once beats resending it every time — and the multipart form cannot do this at all.
+
+```java
+// upload once
+OpenaiFile uploaded = client.uploadFile("vision", "/path/to/mug.png");
+
+// then reference it by id, with no bytes on the wire
+ImageResponse result = client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("make the mug red")
+        .images(Collections.singletonList(ImageReference.fileId(uploaded.getId())))
+        .quality("low")
+        .size("1024x1024")
+        .build());
+```
+
+An `ImageReference` carries exactly one of `fileId(..)` or `imageUrl(..)` (a `data:image/png;base64,...` URL works, up to 20MB encoded). `images` holds up to 16. On this path the mask and markup layer are references too, not file fields:
+
+```java
+client.editImage(EditImageRequest.builder()
+        .prompt("paint the circled area yellow")
+        .images(Collections.singletonList(ImageReference.imageUrl(sourceDataUrl)))
+        .markupReference(ImageReference.imageUrl(markupDataUrl))
+        .build());
+```
+
+Streaming works as well. Note that edits emit `image_edit.*` events rather than `image_generation.*` — `isCompleted()` covers both:
+
+```java
+client.streamEditImage(request).blockingSubscribe(event -> { ... });
+```
+
+**The two paths do not mix.** `editImage(request)` sends JSON and cannot carry the `markup` file field; the overloads taking `java.io.File` send multipart and cannot carry `images` / `maskReference` / `markupReference`. Setting a field the chosen transport cannot send throws `IllegalArgumentException` rather than dropping it silently — silent dropping is how `moderation` stayed dead from 1.9.17 to 1.11.0.
+
+### On client-side validation
+
+The SDK fails fast in exactly two places: `svg` output without an `svg.model`, and a mask given together with a markup layer. Every other format restriction — GIF rules out streaming, SVG requires `n=1`, a transparent background rules out jpeg — is left to the server.
+
+During 2.2.0 all of those were mirrored client-side and then removed. Mirroring a rule means the SDK keeps enforcing it after upstream relaxes it, and it costs the live tests their ability to notice that happening. Those rules are now pinned by `OpenaiImageLiveSmokeTest` against the live API instead: a failure there does not mean the SDK broke, it means the API changed.
 
 ### Thinking block validation in multi-turn Claude conversations
 

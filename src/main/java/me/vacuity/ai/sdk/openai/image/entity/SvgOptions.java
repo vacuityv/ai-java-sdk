@@ -28,7 +28,27 @@ public class SvgOptions {
      */
     private String model;
 
+    /**
+     * Reasoning settings for the SVG author model. Optional; omit to use that
+     * model's own default.
+     *
+     * @since 2.2.0
+     */
+    private SvgReasoning reasoning;
+
     public static SvgOptions model(String model) {
         return SvgOptions.builder().model(model).build();
+    }
+
+    /**
+     * Shorthand for an authoring model plus a reasoning effort.
+     *
+     * @since 2.2.0
+     */
+    public static SvgOptions of(String model, String effort) {
+        return SvgOptions.builder()
+                .model(model)
+                .reasoning(SvgReasoning.effort(effort))
+                .build();
     }
 }
