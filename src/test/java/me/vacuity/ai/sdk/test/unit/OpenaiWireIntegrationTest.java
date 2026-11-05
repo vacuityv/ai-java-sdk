@@ -378,4 +378,174 @@ public class OpenaiWireIntegrationTest {
         Decision decision = client().createDecision(sampleDecision());
         assertNull(decision.answer("no_such_question"));
     }
+
+    // ------------------------------------------------- GPT-Image-2.6 (2.1.0)
+
+    /**
+     * The new generations-only knobs. These go out as JSON, so the risk is the
+     * snake_case wire names rather than a forgotten multipart part.
+     */
+    @Test
+    public void createImageSendsGifFramingAndComplexity() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().createImage(CreateImageRequest.builder()
+                .prompt("a waving cat")
+                .model("gpt-image-2.6-sunburst")
+                .outputFormat("gif")
+                .complexity("low")
+                .frameCount(12)
+                .frameDurationMs(120)
+                .build());
+
+        com.fasterxml.jackson.databind.JsonNode sent =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+        assertEquals("gif", sent.get("output_format").asText());
+        assertEquals("low", sent.get("complexity").asText());
+        assertEquals(12, sent.get("frame_count").asInt(), "frame_count must reach the wire");
+        assertEquals(120, sent.get("frame_duration_ms").asInt(),
+                "frame_duration_ms must reach the wire");
+    }
+
+    /**
+     * svg is a nested object, not a string — the authoring model lives under
+     * svg.model, and the API rejects an SVG request that omits it.
+     */
+    @Test
+    public void createImageSendsSvgModelAsNestedObject() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().createImage(CreateImageRequest.builder()
+                .prompt("a flat icon of a bicycle")
+                .model("gpt-image-2.6-flare")
+                .outputFormat("svg")
+                .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model("gpt-6.1-terra"))
+                .build());
+
+        com.fasterxml.jackson.databind.JsonNode sent =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedBody.get());
+        assertTrue(sent.get("svg").isObject(), "svg must serialize as an object");
+        assertEquals("gpt-6.1-terra", sent.get("svg").get("model").asText());
+    }
+
+    /**
+     * Verbatim body from a real gpt-image-2.6 GIF generation. Covers the echoed
+     * request settings, output_tokens_details and data[].generation_id, none of
+     * which the 2.0.0 ImageResponse could hold.
+     */
+    @Test
+    public void gifResponseParsesEchoedSettingsAndGenerationId() {
+        responseBody = "{\"background\":\"opaque\",\"output_format\":\"gif\","
+                + "\"quality\":\"low\",\"size\":\"512x512\","
+                + "\"usage\":{\"input_tokens\":41,"
+                + "\"input_tokens_details\":{\"image_tokens\":0,\"text_tokens\":41},"
+                + "\"output_tokens\":555,"
+                + "\"output_tokens_details\":{\"image_tokens\":555,\"text_tokens\":0},"
+                + "\"total_tokens\":596},"
+                + "\"data\":[{\"b64_json\":\"R0lGODlh\",\"generation_id\":\"gen_abc123\"}]}";
+
+        ImageResponse response = client().createImage(
+                CreateImageRequest.builder().prompt("x").outputFormat("gif").build());
+
+        assertEquals("opaque", response.getBackground());
+        assertEquals("gif", response.getOutputFormat());
+        assertEquals("low", response.getQuality());
+        assertEquals("512x512", response.getSize());
+        assertEquals("gen_abc123", response.getData().get(0).getGenerationId());
+        assertNotNull(response.getUsage().getOutputTokensDetails(),
+                "output_tokens_details must deserialize");
+        assertEquals(555, response.getUsage().getOutputTokensDetails().getImageTokens());
+        assertEquals(0, response.getUsage().getOutputTokensDetails().getTextTokens());
+        assertNull(response.getSvgUsage(), "a GIF response carries no svg_usage");
+    }
+
+    /**
+     * Verbatim body from a real SVG generation. svg_usage is billed separately
+     * at the authoring model's own rates, so it must not be folded into usage.
+     */
+    @Test
+    public void svgResponseParsesSvgUsageSeparatelyFromImageUsage() {
+        responseBody = "{\"background\":\"transparent\",\"output_format\":\"svg\","
+                + "\"quality\":\"low\",\"size\":\"1312x1199\","
+                + "\"svg_usage\":{\"input_tokens\":2194,\"model\":\"gpt-6.1-terra\","
+                + "\"output_tokens\":2592,\"reasoning_tokens\":1226,\"total_tokens\":4786},"
+                + "\"usage\":{\"input_tokens\":81,"
+                + "\"input_tokens_details\":{\"image_tokens\":0,\"text_tokens\":81},"
+                + "\"output_tokens\":903,"
+                + "\"output_tokens_details\":{\"image_tokens\":903,\"text_tokens\":0},"
+                + "\"total_tokens\":984},"
+                + "\"data\":[{\"b64_json\":\"PHN2Zz48L3N2Zz4=\"}]}";
+
+        ImageResponse response = client().createImage(
+                CreateImageRequest.builder().prompt("x").outputFormat("svg").build());
+
+        assertEquals("svg", response.getOutputFormat());
+        assertNotNull(response.getSvgUsage(), "svg_usage must deserialize");
+        assertEquals("gpt-6.1-terra", response.getSvgUsage().getModel());
+        assertEquals(2194, response.getSvgUsage().getInputTokens());
+        assertEquals(2592, response.getSvgUsage().getOutputTokens());
+        assertEquals(1226, response.getSvgUsage().getReasoningTokens());
+        assertEquals(4786, response.getSvgUsage().getTotalTokens());
+        // The two usage blocks are independent — reading one must not shadow the other.
+        assertEquals(984, response.getUsage().getTotalTokens());
+    }
+
+    /**
+     * complexity and markup travel in the hand-built multipart body, which is
+     * exactly where moderation went missing between 1.9.17 and 1.11.0.
+     */
+    @Test
+    public void editImageSendsComplexityAndMarkup() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[{\"b64_json\":\"aGk=\"}]}";
+
+        EditImageRequest request = EditImageRequest.builder()
+                .prompt("follow the annotations")
+                .model("gpt-image-2.6-sunburst")
+                .complexity("high")
+                .markup(tempPng())
+                .safetyIdentifier("sid-1")
+                .build();
+
+        client().editImage(request, tempPng(), (java.io.File) null);
+
+        String body = capturedBody.get();
+        assertTrue(body.contains("name=\"complexity\""),
+                "multipart body is missing form part: complexity");
+        assertTrue(body.contains("high"), "complexity value must be sent");
+        assertTrue(body.contains("name=\"markup\""),
+                "multipart body is missing file part: markup");
+        assertTrue(body.contains("name=\"safety_identifier\""),
+                "multipart body is missing form part: safety_identifier");
+        assertTrue(body.contains("sid-1"), "safety_identifier value must be sent");
+    }
+
+    /**
+     * The API rejects markup together with mask. Failing locally beats paying
+     * for a round trip to find out.
+     */
+    @Test
+    public void markupTogetherWithMaskIsRejectedLocally() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        EditImageRequest request = EditImageRequest.builder()
+                .prompt("x")
+                .markup(tempPng())
+                .build();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> client().editImage(request, tempPng(), tempPng()));
+    }
+
+    @Test
+    public void unsetGifAndSvgFieldsStayOffTheWire() throws Exception {
+        responseBody = "{\"created\":1,\"data\":[]}";
+
+        client().createImage(CreateImageRequest.builder().prompt("plain png").build());
+
+        String body = capturedBody.get();
+        for (String absent : new String[]{"complexity", "frame_count", "frame_duration_ms", "svg"}) {
+            assertFalse(body.contains("\"" + absent + "\""),
+                    "unset field must not be sent: " + absent);
+        }
+    }
 }

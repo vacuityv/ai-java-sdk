@@ -30,4 +30,15 @@ public class ImageUsage {
     
     @JsonProperty("total_tokens")
     private Integer totalTokens;
+
+    /**
+     * Breakdown of the billed output tokens.
+     * <p>
+     * Deliberately its own type rather than reusing
+     * {@link ImageInputTokensDetails}, whose fields are identical: changing
+     * the type of {@code inputTokensDetails} to a shared one would break
+     * every caller that names it.
+     */
+    @JsonProperty("output_tokens_details")
+    private ImageOutputTokensDetails outputTokensDetails;
 }

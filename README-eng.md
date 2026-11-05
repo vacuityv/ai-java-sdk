@@ -195,7 +195,7 @@ Generating an image usually takes tens of seconds. Streaming delivers partial im
 
 ```java
 CreateImageRequest request = CreateImageRequest.builder()
-        .model("gpt-image-1")          // streaming is gpt-image only; dall-e does not support it
+        .model("gpt-image-2.6-sunburst") // streaming is gpt-image only; dall-e does not support it
         .prompt("a simple orange fox, flat vector style")
         .size("1024x1024")
         .partialImages(2)              // upper bound on partial images, 0-3
@@ -226,6 +226,73 @@ Three things to watch:
 - The payload is large: one low-quality 1024x1024 generation totalled about 3.6MB of base64 across its events
 
 The streaming methods need the internal OkHttpClient, so they **cannot be used with the `new OpenaiClient(OpenaiApi)` constructor** — that throws `IllegalStateException`.
+
+> `gpt-image-1` has been retired upstream — it now answers `The model 'gpt-image-1' does not exist.` — so the examples pin `gpt-image-2.6-sunburst`.
+
+### GPT-Image-2.6: GIF, SVG and markup edits
+
+`gpt-image-2.6-sunburst` and `gpt-image-2.6-flare` add two output formats and two new controls.
+
+**Animated GIF**
+
+```java
+ImageResponse gif = client.createImage(CreateImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("a small waving cartoon cat")
+        .outputFormat("gif")
+        .frameCount(4)                 // 2-64, default 9
+        .frameDurationMs(150)          // 20-2000ms, default 200
+        .complexity("low")             // low / medium / high, default high
+        .size("512x512")
+        .build());
+
+gif.getOutputFormat();                 // "gif" — the server echoes the settings used
+gif.getData().get(0).getGenerationId();
+```
+
+Frames are rendered as a single sprite sheet before being assembled, so `frameCount` and `size` are not independent: the sheet's longest edge must stay within 3840px. 4 frames at `1024x1024` is rejected (`No supported sheet fits 4 GIF frames`), while the same 4 frames at `512x512` are fine. Lower the size, not the frame count, when that error comes back.
+
+**SVG**
+
+```java
+ImageResponse svg = client.createImage(CreateImageRequest.builder()
+        .model("gpt-image-2.6-flare")
+        .prompt("a flat icon of a bicycle")
+        .outputFormat("svg")
+        .svg(SvgOptions.model("gpt-6.1-terra"))   // required, 400 otherwise
+        .build());
+
+// b64_json holds base64-encoded SVG source text, not a bitmap
+String source = new String(Base64.getDecoder()
+        .decode(svg.getData().get(0).getB64Json()), StandardCharsets.UTF_8);
+
+svg.getSvgUsage().getModel();          // "gpt-6.1-terra"
+svg.getSvgUsage().getTotalTokens();    // billed at the authoring model's own rates
+svg.getUsage().getTotalTokens();       // a separate bill — do not add the two together
+```
+
+Omitting `svg.model` returns `missing_required_parameter`. SVG is generations-only and requires `n` = 1.
+
+**Markup edits**
+
+`markup` is a PNG matching the input image's dimensions and containing transparent pixels, used to circle the region to change — more flexible than `mask`. It lives on the request object rather than as another method parameter, so the existing `editImage` overloads keep their signatures.
+
+```java
+client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("paint the circled area bright yellow")
+        .markup(annotationPng)         // same size as the first input image, with transparency
+        .complexity("low")
+        .build(), sourceImage, (File) null);
+```
+
+`markup` and `mask` are mutually exclusive — the server returns `mutually_exclusive_parameters`, and the SDK throws `IllegalArgumentException` before spending the round trip.
+
+**Also**
+
+- `safetyIdentifier` is the newer name for `user`; both still work, may be sent together, and are echoed on the response
+- The response now echoes `background` / `outputFormat` / `quality` / `size`, which is how to see what defaults the server picked
+- `usage.outputTokensDetails` completes the image/text token split on the output side
 
 ### Thinking block validation in multi-turn Claude conversations
 

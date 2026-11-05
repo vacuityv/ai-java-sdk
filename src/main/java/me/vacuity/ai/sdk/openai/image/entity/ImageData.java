@@ -26,4 +26,11 @@ public class ImageData {
 
     @JsonProperty("revised_prompt")
     private String revisedPrompt;
+
+    /**
+     * Server-side id for this generated image, returned by gpt-image-2.6 on
+     * generations and edits. Absent on SVG output.
+     */
+    @JsonProperty("generation_id")
+    private String generationId;
 }

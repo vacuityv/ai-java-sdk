@@ -592,6 +592,21 @@ public class OpenaiClient {
         if (Boolean.TRUE.equals(request.getStream())) {
             builder.addFormDataPart("stream", "true");
         }
+        if (request.getSafetyIdentifier() != null) {
+            builder.addFormDataPart("safety_identifier", request.getSafetyIdentifier());
+        }
+        if (request.getComplexity() != null) {
+            builder.addFormDataPart("complexity", request.getComplexity());
+        }
+        if (request.getMarkup() != null) {
+            if (mask != null) {
+                throw new IllegalArgumentException(
+                        "markup and mask cannot be sent together on an image edit");
+            }
+            RequestBody markupBody = RequestBody.create(
+                    request.getMarkup(), MediaType.parse("image/png"));
+            builder.addFormDataPart("markup", request.getMarkup().getName(), markupBody);
+        }
         return builder.build();
     }
 

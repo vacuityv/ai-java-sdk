@@ -71,4 +71,29 @@ public class EditImageRequest {
      */
     @JsonProperty("partial_images")
     private Integer partialImages;
+
+    /**
+     * Rendering effort: "low", "medium" or "high". Upstream defaults to "high"
+     * when omitted.
+     */
+    private String complexity;
+
+    /**
+     * Optional annotation layer sent alongside the input image.
+     * <p>
+     * Must be a PNG matching the first input image's dimensions and containing
+     * transparent pixels, and cannot be combined with a mask. Carried on the
+     * request object rather than as another method parameter, so the existing
+     * editImage overloads keep their signatures.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.io.File markup;
+
+    /**
+     * Stable per-end-user identifier used for abuse monitoring, echoed back on
+     * the response. The newer name for what {@code user} carried; both are
+     * still accepted, and sending both together is allowed.
+     */
+    @JsonProperty("safety_identifier")
+    private String safetyIdentifier;
 }

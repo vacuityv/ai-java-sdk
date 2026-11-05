@@ -190,7 +190,7 @@ ChatRequest request = ChatRequest.builder()
 
 ```java
 CreateImageRequest request = CreateImageRequest.builder()
-        .model("gpt-image-1")          // 仅 gpt-image 系列支持流式，dall-e 不支持
+        .model("gpt-image-2.6-sunburst") // 仅 gpt-image 系列支持流式，dall-e 不支持
         .prompt("a simple orange fox, flat vector style")
         .size("1024x1024")
         .partialImages(2)              // 中间图张数上限，0-3
@@ -221,6 +221,73 @@ client.streamEditImage(request, imageFile, maskFile)
 - 流量不小，一次 1024x1024 的低质量生图两个事件合计约 3.6MB base64，移动端慎用高 `partialImages`
 
 流式方法依赖内部的 OkHttpClient，因此**不能用 `new OpenaiClient(OpenaiApi)` 这个构造器**，否则会抛 `IllegalStateException`。
+
+> `gpt-image-1` 已被上游下线（现在返回 `The model 'gpt-image-1' does not exist.`），示例已改用 `gpt-image-2.6-sunburst`。
+
+### GPT-Image-2.6：GIF / SVG / 标注编辑
+
+`gpt-image-2.6-sunburst` 与 `gpt-image-2.6-flare` 新增了两种输出格式和两个控制项。
+
+**动图（GIF）**
+
+```java
+ImageResponse gif = client.createImage(CreateImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("a small waving cartoon cat")
+        .outputFormat("gif")
+        .frameCount(4)                 // 2-64，默认 9
+        .frameDurationMs(150)          // 20-2000ms，默认 200
+        .complexity("low")             // low / medium / high，默认 high
+        .size("512x512")
+        .build());
+
+gif.getOutputFormat();                 // "gif"，服务端回显实际用的设置
+gif.getData().get(0).getGenerationId();
+```
+
+帧是先画成一张雪碧图再合成的，所以 `frameCount` 和 `size` 不独立：雪碧图最长边不能超过 3840px。4 帧 + `1024x1024` 会被拒（`No supported sheet fits 4 GIF frames`），同样 4 帧在 `512x512` 下正常。撞到这个报错要降 `size`，而不是降帧数。
+
+**矢量图（SVG）**
+
+```java
+ImageResponse svg = client.createImage(CreateImageRequest.builder()
+        .model("gpt-image-2.6-flare")
+        .prompt("a flat icon of a bicycle")
+        .outputFormat("svg")
+        .svg(SvgOptions.model("gpt-6.1-terra"))   // 必填，否则 400
+        .build());
+
+// b64_json 里是 base64 后的 SVG 源码文本，不是位图
+String source = new String(Base64.getDecoder()
+        .decode(svg.getData().get(0).getB64Json()), StandardCharsets.UTF_8);
+
+svg.getSvgUsage().getModel();          // "gpt-6.1-terra"
+svg.getSvgUsage().getTotalTokens();    // 按作图模型自己的价格单独计费
+svg.getUsage().getTotalTokens();       // 与上面是两笔账，不要相加当成一笔
+```
+
+漏掉 `svg.model` 会直接返回 `missing_required_parameter`。SVG 只支持 generations，且 `n` 必须为 1。
+
+**标注编辑（markup）**
+
+`markup` 是一张和输入图同尺寸、带透明像素的 PNG，用来圈出要改的区域，比 `mask` 更灵活。它放在请求对象上而不是方法参数上，所以 `editImage` 的重载签名没有变化。
+
+```java
+client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-sunburst")
+        .prompt("paint the circled area bright yellow")
+        .markup(annotationPng)         // 与首张输入图同尺寸、含透明像素
+        .complexity("low")
+        .build(), sourceImage, (File) null);
+```
+
+`markup` 与 `mask` 互斥，服务端会返回 `mutually_exclusive_parameters`；SDK 在发请求前就会抛 `IllegalArgumentException`，省掉一次往返。
+
+**其他**
+
+- `safetyIdentifier` 是 `user` 的新名字，两者都还能用，也可以同时发；响应会回显
+- 响应新增 `background` / `outputFormat` / `quality` / `size` 回显，请求没设时可以用它们看服务端取了什么默认值
+- `usage.outputTokensDetails` 补齐了输出侧的 image/text token 拆分
 
 ### Claude 多轮对话的 thinking 块校验
 
