@@ -9,9 +9,32 @@ import lombok.NoArgsConstructor;
 /**
  * Token usage from an OpenAI-compatible chat-completions response.
  * <p>
- * Shared by every vendor the SDK reaches through that wire format, which
- * report cache hits in two different shapes. Both are carried here; prefer
- * {@link #getCachedPromptTokens()} over reading either directly.
+ * The fields mirror what each vendor documents, under that vendor's own wire
+ * name, with no normalising layer on top: vendors report cache hits in two
+ * different shapes and the SDK carries both rather than picking one. Which
+ * fields arrive depends on the vendor and the model, so read the ones your
+ * vendor documents.
+ * <p>
+ * Containment, which matters for billing and differs per vendor:
+ * <ul>
+ * <li>OpenAI: {@code promptTokens} is the total.
+ * {@code promptTokensDetails.cachedTokens} and
+ * {@code promptTokensDetails.cacheWriteTokens} are disjoint subsets of it, so
+ * the ordinary remainder is {@code promptTokens} minus both. Measured on
+ * gpt-5.6-terra: 2655 = 3 ordinary + 2652 written + 0 cached on one call, and
+ * 3 + 0 + 2652 on the repeat.</li>
+ * <li>DeepSeek: documents {@code promptTokens} =
+ * {@code promptCacheHitTokens} + {@code promptCacheMissTokens}, and puts the
+ * hit count in {@code promptTokensDetails.cachedTokens} as well — its docs
+ * call that field "Same as prompt_cache_hit_tokens".</li>
+ * <li>Alibaba Bailian: documents {@code promptTokensDetails.cachedTokens} as
+ * "a part of" {@code promptTokens}. Its docs do not state how
+ * {@code cacheCreationInputTokens} relates to {@code promptTokens}, so do not
+ * assume — check against your own traffic before billing on it.</li>
+ * </ul>
+ * Note that {@code me.vacuity.ai.sdk.claude.entity.Usage} is the other way
+ * round: there {@code inputTokens} is the uncached remainder and the cache
+ * counts are added to it, not subtracted from it.
  * <p>
  * In streaming, usage does not arrive unless it is asked for: against OpenAI,
  * without {@code streamOptions.includeUsage = true} no chunk carries usage at
@@ -77,46 +100,4 @@ public class Usage {
      */
     @JsonProperty("completion_tokens_details")
     private CompletionTokensDetails completionTokensDetails;
-
-    /**
-     * Prompt tokens served from cache, whichever shape the vendor used, or
-     * null when none reported any.
-     * <p>
-     * Reads {@code promptTokensDetails.cachedTokens} first and falls back to
-     * {@code promptCacheHitTokens}; DeepSeek sets both to the same value, so
-     * the order only matters for vendors that set one. Derived, not a wire
-     * field.
-     *
-     * @since 2.2.1
-     */
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    public Integer getCachedPromptTokens() {
-        if (promptTokensDetails != null && promptTokensDetails.getCachedTokens() != null) {
-            return promptTokensDetails.getCachedTokens();
-        }
-        return promptCacheHitTokens;
-    }
-
-    /**
-     * Prompt tokens that were NOT served from cache — the part billed at the
-     * full input rate — or null when the split is unknown.
-     * <p>
-     * Computed as {@code promptTokens - cachedPromptTokens}, because cached
-     * tokens are a subset of {@code promptTokens} rather than a separate
-     * bucket. Billing both {@code promptTokens} and the cached count charges
-     * the cached part twice.
-     *
-     * @since 2.2.1
-     */
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    public Integer getUncachedPromptTokens() {
-        Integer cached = getCachedPromptTokens();
-        if (promptTokens == null) {
-            return null;
-        }
-        if (cached == null) {
-            return promptTokens;
-        }
-        return promptTokens - cached;
-    }
 }

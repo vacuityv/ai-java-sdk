@@ -185,4 +185,84 @@ public class ClaudeLiveSmokeTest {
             this.city = city;
         }
     }
+
+
+    // -------------------------------------- 缓存 usage 口径 (2.2.2)
+
+    /**
+     * Claude's cache accounting is additive, and this is the live proof.
+     * <p>
+     * {@code inputTokens} stays small on both calls because it is the uncached
+     * remainder, not the total — the opposite of the OpenAI-compatible
+     * {@code promptTokens}. Billing {@code inputTokens} as a total here
+     * undercharges by the whole cached prefix.
+     */
+    @org.junit.jupiter.api.Test
+    public void cacheUsageIsAdditiveAndSplitsWritesByLifetime() {
+        String marker = "cache-probe-" + System.nanoTime();
+        me.vacuity.ai.sdk.claude.entity.Usage first = client()
+                .chat(cachedRequest(marker)).getUsage();
+        me.vacuity.ai.sdk.claude.entity.Usage second = client()
+                .chat(cachedRequest(marker)).getUsage();
+
+        int written = nz(first.getCacheCreationInputTokens());
+        int read = nz(second.getCacheReadInputTokens());
+        org.junit.jupiter.api.Assertions.assertTrue(written > 0 || read > 0,
+                "one of the two calls should have touched the cache; wrote " + written
+                        + ", read " + read + ". Caching is best-effort, so an occasional "
+                        + "double miss is the vendor's call, not an SDK fault");
+
+        // inputTokens must NOT be the whole prompt. The addition lives here,
+        // not in the SDK — Claude adds where the OpenAI side subtracts, and
+        // the SDK reports each vendor's fields as that vendor defines them.
+        org.junit.jupiter.api.Assertions.assertTrue(
+                total(first) > first.getInputTokens(),
+                "the cached prefix must sit outside inputTokens; total "
+                        + total(first) + " vs inputTokens " + first.getInputTokens());
+
+        // the same prompt must size the same both times, however the buckets moved
+        org.junit.jupiter.api.Assertions.assertEquals(total(first), total(second),
+                "the same prompt must total the same whether written or read");
+
+        if (written > 0) {
+            org.junit.jupiter.api.Assertions.assertNotNull(first.getCacheCreation(),
+                    "a write must report its lifetime split — 5m bills 1.25x, 1h bills 2x");
+            org.junit.jupiter.api.Assertions.assertEquals(written,
+                    nz(first.getCacheCreation().getEphemeral5mInputTokens())
+                            + nz(first.getCacheCreation().getEphemeral1hInputTokens()),
+                    "the lifetimes must account for the whole write");
+        }
+
+        org.junit.jupiter.api.Assertions.assertNotNull(first.getSpeed(),
+                "speed must be reported — fast mode bills about 2x");
+    }
+
+    private ChatRequest cachedRequest(String marker) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 140; i++) {
+            sb.append("You are a meticulous reviewer of Java SDK code. ")
+              .append("Follow these rules exactly and never deviate. ");
+        }
+        ChatMessageContent system = new ChatMessageContent();
+        system.setType("text");
+        system.setText(sb + marker);
+        system.setCacheControl(CacheControl.builder().type("ephemeral").build());
+
+        return ChatRequest.builder()
+                .model("claude-opus-5-5")
+                .maxTokens(16)
+                .system(java.util.Collections.singletonList(system))
+                .messages(java.util.Collections.singletonList(
+                        ChatMessage.builder().role("user").content("Reply with: ok").build()))
+                .build();
+    }
+
+    private static int total(me.vacuity.ai.sdk.claude.entity.Usage u) {
+        return nz(u.getInputTokens()) + nz(u.getCacheCreationInputTokens())
+                + nz(u.getCacheReadInputTokens());
+    }
+
+    private static int nz(Integer v) {
+        return v == null ? 0 : v;
+    }
 }

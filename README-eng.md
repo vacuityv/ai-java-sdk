@@ -477,48 +477,101 @@ for (ChatMessageContentPart part : candidate.getContent().getParts()) {
 
 Both part types **also carry `thoughtSignature`**. Gemini 3/4 expect the previous turn's model parts to be replayed verbatim, so `ChatMessageContentPart` now keeps a catch-all (`getExtra()`): fields the server returns but this SDK has not modelled are preserved and written back out unchanged instead of being silently dropped.
 
-### Cache tokens on OpenAI-compatible chat completions (2.2.1)
+### Cache tokens on OpenAI-compatible chat completions (2.2.1 onwards)
 
-Every vendor behind the OpenAI-compatible endpoint (OpenAI, DeepSeek, Qwen, ...) reports cache hits, in **two different shapes**. `Usage` carries both:
+`Usage` mirrors the fields each vendor documents, under that vendor's own wire name, with no normalising layer: hit counts come in two shapes, both are carried, and the SDK neither picks one for you nor does the arithmetic:
 
 ```java
-ChatResponse r = client.chat(request);
+Usage u = client.chat(request).getUsage();
 
-r.getUsage().getCachedPromptTokens();     // the hit count, from either shape
-r.getUsage().getUncachedPromptTokens();   // the part billed at the full rate
+u.getPromptTokensDetails().getCachedTokens();              // OpenAI / Bailian / DeepSeek
+u.getPromptTokensDetails().getCacheWriteTokens();          // OpenAI, gpt-5.6 onwards
+u.getPromptTokensDetails().getCacheCreationInputTokens();  // Bailian's write count
+u.getPromptCacheHitTokens();                               // DeepSeek's flat shape
+u.getPromptCacheMissTokens();
+u.getCompletionTokensDetails().getReasoningTokens();
 ```
 
-| Field | Used by |
-|---|---|
-| `promptTokensDetails.cachedTokens` | OpenAI, Qwen, **and DeepSeek** |
-| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek's flat shape |
-| `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` |
+| Field | Used by | Verified against |
+|---|---|---|
+| `promptTokensDetails.cachedTokens` | OpenAI, Bailian, DeepSeek | all three vendors' docs + live OpenAI |
+| `promptTokensDetails.cacheWriteTokens` | OpenAI, gpt-5.6 and later | live gpt-5.6-terra |
+| `promptTokensDetails.cacheCreationInputTokens` | Alibaba Bailian compatible mode | Bailian docs (**not live-verified**) |
+| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek's flat shape | DeepSeek docs (**not live-verified**) |
+| `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` | live OpenAI |
 
-**The billing trap: the cached count is a SUBSET of `promptTokens`, not a separate bucket.**
+**Containment follows each vendor's own docs and differs between them — bill by the one you are calling:**
 
-A measured OpenAI call reported `promptTokens` 2658 with `cachedTokens` 1792, so only 2658 − 1792 = 866 were billed at the full input rate. Adding `promptTokens` and the cached count charges the cached part twice. DeepSeek documents the same subset relationship from the other side: `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`.
+- **OpenAI**: `promptTokens` **is** the total; `cachedTokens` and `cacheWriteTokens` are disjoint subsets of it. Measured on gpt-5.6-terra, same prompt twice, `promptTokens` 2655 both times:
 
-`getUncachedPromptTokens()` is that subtraction. When a vendor reports no cache information it returns the whole `promptTokens` — better to bill the full rate than to under-bill — while `getCachedPromptTokens()` returns `null` rather than `0`, because "not reported" and "reported as zero" are different facts.
+  | | ordinary | cached | cacheWrite |
+  |---|---|---|---|
+  | first call (write) | 3 | 0 | 2652 |
+  | second call (read) | 3 | 2652 | 0 |
 
-DeepSeek fills both shapes with the same number, so `getCachedPromptTokens()` alone covers all three vendors with no per-vendor branching.
+  The three are priced differently, so a bill has three terms: `ordinary * inputRate + cacheWrite * inputRate * writeMultiplier + cached * inputRate * readMultiplier`. On gpt-5.6+ writes are 1.25x (2.5x for the 12-hour lifetime) and reads 0.1x (0.05x for Sol and Terra); earlier models carry no write charge.
+
+- **DeepSeek**: its docs state `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`, and describe `cached_tokens` as "Same as `prompt_cache_hit_tokens`".
+
+- **Alibaba Bailian**: its docs describe `cached_tokens` as "a part of" `usage.prompt_tokens`. But **they do not state how `cache_creation_input_tokens` relates to `prompt_tokens`**, and the SDK does not guess — OpenAI's equivalent is a subset, but that is OpenAI's behaviour, not a documented fact about Bailian. Check it against your own traffic before billing on it. Bailian's published multipliers: explicit cache writes 1.25x and reads 0.1x; implicit writes 1.0x and reads 0.2x.
+
+A field that is **not returned** reads as `null`, not `0` — "this model does not report it" and "it was zero this time" are different facts, and gpt-5.5 reports no write field at all.
 
 **Streaming has to ask for usage.** Against OpenAI, without `streamOptions.includeUsage` **no chunk carries usage at all** — not even the last one. With it set, a separate usage-only chunk is emitted and every earlier chunk carries `usage: null`:
 
 ```java
 ChatRequest request = ChatRequest.builder()
-        .model("gpt-5.5")
-        .messages(messages)
+        .model("gpt-5.5").messages(messages)
         .streamOptions(StreamOptions.builder().includeUsage(true).build())
         .build();
 
 client.streamChat(request).blockingSubscribe(chunk -> {
-    if (chunk.getUsage() != null) {          // only the last one is non-null
-        bill(chunk.getUsage());
-    }
+    if (chunk.getUsage() != null) bill(chunk.getUsage());   // only the last is non-null
 });
 ```
 
 DeepSeek instead documents usage riding on the last content chunk, with no separate usage-only chunk. Code that bills from a stream must handle both — test `getUsage() != null` rather than counting chunks.
+
+### ⚠️ Claude's cache arithmetic is the opposite of OpenAI's
+
+The easiest thing to get wrong when billing across vendors. The SDK does not reconcile it for you, so this difference is yours to handle:
+
+| | How to get the total prompt tokens |
+|---|---|
+| OpenAI-compatible | `promptTokens` **is** the total; cache counts are subsets → **subtract** |
+| Claude | `inputTokens` is the uncached **remainder** → **add** |
+
+```java
+// OpenAI-compatible: promptTokens is the total
+openaiUsage.getPromptTokens();
+
+// Claude: do NOT treat inputTokens as the total
+claudeUsage.getInputTokens()
+        + claudeUsage.getCacheCreationInputTokens()
+        + claudeUsage.getCacheReadInputTokens();
+```
+
+Measured on claude-opus-5-5 with a ~4.8k-token system prompt under `cache_control`, same request twice:
+
+| | inputTokens | cacheCreation | cacheRead | total |
+|---|---|---|---|---|
+| first call (write) | 13 | 4763 | 0 | 4776 |
+| second call (read) | 13 | 0 | 4763 | 4776 |
+
+**`inputTokens` was 13 both times.** Treating it as a total the way OpenAI's field works would bill this request for 13 tokens instead of 4776.
+
+### Claude cache writes are priced by lifetime (2.3.0)
+
+Claude's write rate depends on the TTL — **1.25x for 5 minutes, 2x for 1 hour** — so `cacheCreationInputTokens` on its own cannot be priced. 2.3.0 adds the split:
+
+```java
+claudeUsage.getCacheCreation().getEphemeral5mInputTokens();   // 1.25x
+claudeUsage.getCacheCreation().getEphemeral1hInputTokens();   // 2x
+```
+
+The two add up to `cacheCreationInputTokens`. Reads run about 0.1x the base input rate (0.05x on Opus 5.5 and Sonnet 5.5, 0.025x on Fable / Mythos 5.1 and later) — rates vary by model, so check your own.
+
+`inferenceGeo` and **`speed`** were added too. `speed` is billing-relevant (fast mode is priced at roughly 2x) and reports the speed that actually served the request, which can differ from the one asked for since a request may fall back to standard. Bill what it reports.
 
 ### Gemini thinking tokens and billing
 

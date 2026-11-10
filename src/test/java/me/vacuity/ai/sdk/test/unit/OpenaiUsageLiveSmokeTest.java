@@ -79,7 +79,8 @@ public class OpenaiUsageLiveSmokeTest {
                 "prompt_tokens_details must deserialize — a wrong wire name shows up here");
 
         ChatResponse second = client().chat(request());
-        Integer cached = second.getUsage().getCachedPromptTokens();
+        assertNotNull(second.getUsage().getPromptTokensDetails());
+        Integer cached = second.getUsage().getPromptTokensDetails().getCachedTokens();
         assertNotNull(cached, "the second call must still report a cached-token count");
 
         assertTrue(cached > 0,
@@ -88,12 +89,10 @@ public class OpenaiUsageLiveSmokeTest {
                         + " prompt tokens. Caching is best-effort, so an occasional 0 is "
                         + "the vendor's call, not an SDK fault");
 
-        // the arithmetic the billing code depends on
+        // the containment the billing code depends on — checked here, not
+        // encoded in the SDK
         assertTrue(cached <= second.getUsage().getPromptTokens(),
                 "cached tokens are a subset of prompt_tokens, never more");
-        assertEquals(second.getUsage().getPromptTokens(),
-                cached + second.getUsage().getUncachedPromptTokens(),
-                "cached + uncached must equal prompt_tokens");
     }
 
     /**
@@ -123,7 +122,8 @@ public class OpenaiUsageLiveSmokeTest {
                         + " of " + with.size() + " chunks");
         assertNotNull(carrying.get(0).getUsage().getPromptTokensDetails(),
                 "the streamed usage must carry the prompt breakdown too");
-        assertNotNull(carrying.get(0).getUsage().getCachedPromptTokens());
+        assertNotNull(carrying.get(0).getUsage().getPromptTokensDetails()
+                .getCachedTokens());
     }
 
     private List<StreamChatResponse> collect(ChatRequest request) {
@@ -138,5 +138,81 @@ public class OpenaiUsageLiveSmokeTest {
             sb.append(s);
         }
         return sb.toString();
+    }
+
+
+    // -------------------------------------------- 缓存写入 token (2.2.2)
+
+    /**
+     * gpt-5.6 and later bill cache writes at 1.25x the plain input rate, so
+     * the write count has to arrive and has to be its own bucket.
+     * <p>
+     * The two calls are sent in order on purpose: the first writes the prompt
+     * into the cache, the second reads it back. Both report the same
+     * prompt_tokens, split differently.
+     */
+    @Test
+    public void gpt56ReportsCacheWritesThenCacheReads() {
+        String marker = "cache-write-probe-" + System.nanoTime();
+
+        ChatRequest first = writeProbe(marker);
+        ChatResponse writing = client().chat(first);
+        assertNotNull(writing.getUsage().getPromptTokensDetails());
+        Integer written = writing.getUsage().getPromptTokensDetails().getCacheWriteTokens();
+        assertNotNull(written,
+                "gpt-5.6 must report cache_write_tokens — a wrong wire name shows up here");
+
+        ChatResponse reading = client().chat(writeProbe(marker));
+        Integer cached = reading.getUsage().getPromptTokensDetails().getCachedTokens();
+        assertNotNull(cached);
+
+        assertTrue(written > 0 || cached > 0,
+                "one of the two calls should have touched the cache; wrote " + written
+                        + ", read " + cached + ". Caching is best-effort, so an occasional "
+                        + "double miss is the vendor's call, not an SDK fault");
+
+        // the invariant every bill rests on, checked against a live response.
+        // The arithmetic lives here, not in the SDK — vendors differ and the
+        // SDK reports each one's fields as that vendor defines them.
+        for (ChatResponse r : new ChatResponse[]{writing, reading}) {
+            int cachedPart = zeroIfNull(r.getUsage().getPromptTokensDetails()
+                    .getCachedTokens());
+            int writtenPart = zeroIfNull(r.getUsage().getPromptTokensDetails()
+                    .getCacheWriteTokens());
+            assertTrue(cachedPart + writtenPart <= r.getUsage().getPromptTokens(),
+                    "cached and written are disjoint subsets of prompt_tokens; got "
+                            + cachedPart + " + " + writtenPart + " vs "
+                            + r.getUsage().getPromptTokens());
+        }
+    }
+
+    /**
+     * gpt-5.5 predates write accounting and reports no write field. Its
+     * absence must stay null rather than becoming a silent 0, so a bill can
+     * tell "this model has no write charge" from "wrote nothing this time".
+     */
+    @Test
+    public void theOlderModelStillReportsNoWriteField() {
+        ChatResponse response = client().chat(request());
+
+        assertNotNull(response.getUsage().getPromptTokensDetails());
+        org.junit.jupiter.api.Assertions.assertNull(
+                response.getUsage().getPromptTokensDetails().getCacheWriteTokens(),
+                "gpt-5.5 should report no cache_write_tokens; if it now does, the "
+                        + "billing code needs the 1.25x write rate for this model too");
+    }
+
+    private ChatRequest writeProbe(String marker) {
+        return ChatRequest.builder()
+                .model("gpt-5.6-terra")
+                .messages(Arrays.asList(
+                        ChatMessage.builder().role("system")
+                                .content(LONG_SYSTEM + marker).build(),
+                        ChatMessage.builder().role("user").content("Reply with: ok").build()))
+                .build();
+    }
+
+    private static int zeroIfNull(Integer v) {
+        return v == null ? 0 : v;
     }
 }

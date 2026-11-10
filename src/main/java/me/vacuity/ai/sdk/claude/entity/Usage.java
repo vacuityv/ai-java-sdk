@@ -7,12 +7,27 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * @description:
- * @author: vacuity
- * @create: 2024-03-06 15:07
- **/
-
-
+ * Token usage from the Claude Messages API.
+ * <p>
+ * Containment, which matters for billing: <strong>{@code inputTokens} is the
+ * uncached remainder, not the total.</strong> The cache counts sit beside it
+ * rather than inside it, so the whole prompt is
+ * {@code inputTokens + cacheCreationInputTokens + cacheReadInputTokens}.
+ * <p>
+ * Measured on claude-opus-5-5 with a ~4.8k-token cached system prompt:
+ * {@code inputTokens} was 13 on both calls of a pair, with 4763 under
+ * {@code cacheCreationInputTokens} on the first and under
+ * {@code cacheReadInputTokens} on the second — a 4776-token prompt either
+ * way.
+ * <p>
+ * This is the opposite of the OpenAI-compatible
+ * {@code me.vacuity.ai.sdk.openai.entity.Usage}, where {@code promptTokens}
+ * is the total and the cache counts are subsets to subtract. Code that bills
+ * both needs both formulas; the SDK reports each vendor's fields as that
+ * vendor defines them and does not reconcile them for you.
+ *
+ * @author vacuity
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -56,4 +71,32 @@ public class Usage {
      */
     @JsonProperty("service_tier")
     private String serviceTier;
+
+    /**
+     * Cache-write tokens split by lifetime. Needed to price writes at all,
+     * since 5-minute and 1-hour writes cost 1.25x and 2x respectively.
+     *
+     * @since 2.3.0
+     */
+    @JsonProperty("cache_creation")
+    private CacheCreation cacheCreation;
+
+    /**
+     * Where inference ran, for example "global". Informational.
+     *
+     * @since 2.3.0
+     */
+    @JsonProperty("inference_geo")
+    private String inferenceGeo;
+
+    /**
+     * Which speed served the request: "standard" or "fast".
+     * <p>
+     * Billing-relevant — fast mode is priced at roughly 2x standard — and it
+     * can differ from what was asked for, since a request may fall back to
+     * standard. Bill what this says, not what was requested.
+     *
+     * @since 2.3.0
+     */
+    private String speed;
 }

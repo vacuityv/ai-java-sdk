@@ -473,48 +473,101 @@ for (ChatMessageContentPart part : candidate.getContent().getParts()) {
 
 这两种 part **同样带 `thoughtSignature`**。Gemini 3 / 4 要求多轮对话把上一轮 model 的 part 原样回传，因此 `ChatMessageContentPart` 增加了未知字段兜底（`getExtra()`）：服务端返回但 SDK 尚未建模的字段会被保留并在回传时原样发出，不会被静默丢弃。
 
-### 兼容 OpenAI 的 chat-completions 缓存 token（2.2.1）
+### 兼容 OpenAI 的 chat-completions 缓存 token（2.2.1 起）
 
-走 OpenAI 兼容接口的厂商（OpenAI / DeepSeek / Qwen 等）都会报缓存命中，但**形状有两种**。`Usage` 两种都收：
+`Usage` 把各家官方文档里的字段**原样映射**,不做归一化 —— 命中数有两种形状,两种都收,不替你选一种,也不替你算:
 
 ```java
-ChatResponse r = client.chat(request);
+Usage u = client.chat(request).getUsage();
 
-r.getUsage().getCachedPromptTokens();     // 命中数，两种形状都能读
-r.getUsage().getUncachedPromptTokens();   // 按全价计费的那部分
+u.getPromptTokensDetails().getCachedTokens();              // OpenAI / 百炼 / DeepSeek
+u.getPromptTokensDetails().getCacheWriteTokens();          // OpenAI,gpt-5.6 起
+u.getPromptTokensDetails().getCacheCreationInputTokens();  // 百炼兼容模式的写入
+u.getPromptCacheHitTokens();                               // DeepSeek 扁平形状
+u.getPromptCacheMissTokens();
+u.getCompletionTokensDetails().getReasoningTokens();
 ```
 
-| 字段 | 谁用 |
-|---|---|
-| `promptTokensDetails.cachedTokens` | OpenAI、Qwen，**以及 DeepSeek** |
-| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek 的扁平形状 |
-| `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` |
+| 字段 | 谁用 | 核实依据 |
+|---|---|---|
+| `promptTokensDetails.cachedTokens` | OpenAI、百炼、DeepSeek | 三家官方文档 + OpenAI 真机 |
+| `promptTokensDetails.cacheWriteTokens` | OpenAI,gpt-5.6 起 | gpt-5.6-terra 真机 |
+| `promptTokensDetails.cacheCreationInputTokens` | 阿里云百炼兼容模式 | 百炼官方文档(**未真机验证**) |
+| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek 扁平形状 | DeepSeek 官方文档(**未真机验证**) |
+| `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` | OpenAI 真机 |
 
-**计费口径（容易算错）：缓存命中数是 `promptTokens` 的子集，不是额外一桶。**
+**包含关系按各家官方文档,互不相同,计费时请按你用的那家来算:**
 
-实测一次 OpenAI 调用：`promptTokens` 2658、`cachedTokens` 1792，所以按全价计的只有 2658 − 1792 = 866。把 `promptTokens` 和命中数相加，会把缓存那部分收两次钱。DeepSeek 自己的文档也写了 `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`，同样是子集关系。
+- **OpenAI**:`promptTokens` **就是总数**,`cachedTokens` 与 `cacheWriteTokens` 是它互不重叠的子集。gpt-5.6-terra 实测同一 prompt 连发两次,`promptTokens` 都是 2655:
 
-`getUncachedPromptTokens()` 就是这个减法；厂商没报缓存信息时它返回整个 `promptTokens`（宁可按全价算，也不要漏计费），而 `getCachedPromptTokens()` 这时返回 `null` 而不是 `0` —— "没报" 和 "报了 0" 是两件事。
+  | | 普通 | cached | cacheWrite |
+  |---|---|---|---|
+  | 第一次(写入) | 3 | 0 | 2652 |
+  | 第二次(读取) | 3 | 2652 | 0 |
 
-DeepSeek 同时填了两种形状且数值相同，所以 `getCachedPromptTokens()` 一个方法就够覆盖三家，不需要按厂商分支。
+  三者价格不同,所以账单是三项:`普通 × 输入价 + cacheWrite × 输入价 × 写入倍率 + cached × 输入价 × 命中倍率`。gpt-5.6+ 写入 1.25×(12 小时 TTL 2.5×)、命中 0.1×(Sol / Terra 0.05×);更早的模型不额外收写入费。
 
-**流式要显式要求 usage。** 对 OpenAI，不设 `streamOptions.includeUsage` 的话**任何 chunk 都不带 usage**，连最后一个也没有；设了之后会多出一个独立的 usage-only chunk，其余 chunk 的 `usage` 是 `null`：
+- **DeepSeek**:官方文档写 `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`,并且 `cached_tokens` 文档原话是 "Same as `prompt_cache_hit_tokens`"。
+
+- **阿里云百炼**:官方文档写 `cached_tokens` 是 "`usage.prompt_tokens` 的一部分"。但**文档没写 `cache_creation_input_tokens` 和 `prompt_tokens` 的关系**,SDK 也不替你猜 —— OpenAI 的同类字段是子集,但那是 OpenAI 的行为,不是百炼的文档事实,按它计费前请用自己的流量核一次。百炼文档给的倍率:显式缓存写入 1.25×、命中 0.1×;隐式缓存写入 1.0×、命中 0.2×。
+
+字段**没返回**时是 `null` 而不是 `0` —— "这个模型不报" 和 "这次是 0" 是两件事,gpt-5.5 就不报写入字段。
+
+**流式要显式要求 usage。** 对 OpenAI,不设 `streamOptions.includeUsage` 时**任何 chunk 都不带 usage**,连最后一个也没有;设了之后会多出一个独立的 usage-only chunk,其余 chunk 的 `usage` 是 `null`:
 
 ```java
 ChatRequest request = ChatRequest.builder()
-        .model("gpt-5.5")
-        .messages(messages)
+        .model("gpt-5.5").messages(messages)
         .streamOptions(StreamOptions.builder().includeUsage(true).build())
         .build();
 
 client.streamChat(request).blockingSubscribe(chunk -> {
-    if (chunk.getUsage() != null) {          // 只有最后那个非 null
-        bill(chunk.getUsage());
-    }
+    if (chunk.getUsage() != null) bill(chunk.getUsage());   // 只有最后那个非 null
 });
 ```
 
-DeepSeek 的文档则说 usage 挂在最后一个内容 chunk 上，不另发 usage-only chunk。靠流式计费的代码两种都要能处理 —— 判断 `getUsage() != null` 而不是数 chunk。
+DeepSeek 文档则说 usage 挂在最后一个内容 chunk 上,不另发 usage-only chunk。靠流式计费的代码两种都要能处理 —— 判断 `getUsage() != null` 而不是数 chunk。
+
+### ⚠️ Claude 的缓存口径和 OpenAI 相反
+
+跨厂商计费最容易算错的一处。SDK 不替你调和,所以这个差异要你自己处理:
+
+| | 总输入 token 怎么算 |
+|---|---|
+| 兼容 OpenAI 侧 | `promptTokens` **就是总数**,缓存是子集 → **减** |
+| Claude | `inputTokens` 是**已扣掉缓存的余数** → **加** |
+
+```java
+// 兼容 OpenAI 侧:promptTokens 是总数
+openaiUsage.getPromptTokens();
+
+// Claude:不要把 inputTokens 当总数
+claudeUsage.getInputTokens()
+        + claudeUsage.getCacheCreationInputTokens()
+        + claudeUsage.getCacheReadInputTokens();
+```
+
+claude-opus-5-5 实测,约 4.8k token 的 system 带 `cache_control`,同一请求连发两次:
+
+| | inputTokens | cacheCreation | cacheRead | 总输入 |
+|---|---|---|---|---|
+| 第一次(写入) | 13 | 4763 | 0 | 4776 |
+| 第二次(读取) | 13 | 0 | 4763 | 4776 |
+
+**两次 `inputTokens` 都是 13。** 按 OpenAI 那套把它当总数,这个请求就会按 13 个 token 计费而不是 4776。
+
+### Claude 的缓存写入要看 TTL(2.3.0)
+
+Claude 的写入价按生命周期分档:**5 分钟 1.25×、1 小时 2×**,所以 `cacheCreationInputTokens` 单独一个数没法定价。2.3.0 补了细分:
+
+```java
+claudeUsage.getCacheCreation().getEphemeral5mInputTokens();   // 1.25×
+claudeUsage.getCacheCreation().getEphemeral1hInputTokens();   // 2×
+```
+
+两者相加等于 `cacheCreationInputTokens`。读取价约 0.1× 基础输入价(Opus 5.5 / Sonnet 5.5 是 0.05×,Fable / Mythos 5.1+ 是 0.025×),各模型不同,以官方价为准。
+
+同时补了 `inferenceGeo` 和 **`speed`** —— 后者影响计费(fast 模式约 2× 价),而且报的是**实际服务的速度**,可能和请求的不一致(会回落到 standard),按它报的算。
 
 ### Gemini 思考 token 与计费
 

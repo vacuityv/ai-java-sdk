@@ -414,10 +414,16 @@ public class OpenaiImageLiveSmokeTest {
     }
 
     /**
-     * SVG generations take 30s+ and this proxy intermittently answers 502 on
-     * them. Retrying a gateway error is not the same as retrying a failed
-     * assertion: the call never reached a verdict, so there is nothing to
-     * paper over. Anything that is not a 502/503/504 is rethrown immediately.
+     * SVG generations take 30s+ and this proxy intermittently fails them at
+     * the gateway — 502 and 520 have both been seen. Retrying a gateway error
+     * is not the same as retrying a failed assertion: the call never reached a
+     * verdict, so there is nothing to paper over.
+     * <p>
+     * The condition is any 5xx rather than a list of codes, because the list
+     * was the bug: a 520 from Cloudflare failed the run for a reason that has
+     * nothing to do with the SDK. A 4xx is still rethrown at once — that is
+     * the server judging the request, which is exactly what these tests are
+     * for.
      */
     private <T> T throughGatewayHiccups(java.util.function.Supplier<T> call) {
         RuntimeException last = null;
@@ -425,8 +431,7 @@ public class OpenaiImageLiveSmokeTest {
             try {
                 return call.get();
             } catch (retrofit2.adapter.rxjava2.HttpException e) {
-                int code = e.code();
-                if (code != 502 && code != 503 && code != 504) {
+                if (e.code() < 500) {
                     throw e;
                 }
                 last = e;
