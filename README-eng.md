@@ -497,7 +497,7 @@ u.getCompletionTokensDetails().getReasoningTokens();
 | `promptTokensDetails.cachedTokens` | OpenAI, Bailian, DeepSeek | all three vendors' docs + live OpenAI |
 | `promptTokensDetails.cacheWriteTokens` | OpenAI, gpt-5.6 and later | live gpt-5.6-terra |
 | `promptTokensDetails.cacheCreationInputTokens` | Alibaba Bailian compatible mode | Bailian docs (**not live-verified**) |
-| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek's flat shape | DeepSeek docs (**not live-verified**) |
+| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek's flat shape | DeepSeek docs + a real deepseek-v4-flash response (run by the Firefly maintainer, not reproduced here) |
 | `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` | live OpenAI |
 
 **Containment follows each vendor's own docs and differs between them — bill by the one you are calling:**
@@ -511,7 +511,7 @@ u.getCompletionTokensDetails().getReasoningTokens();
 
   The three are priced differently, so a bill has three terms: `ordinary * inputRate + cacheWrite * inputRate * writeMultiplier + cached * inputRate * readMultiplier`. On gpt-5.6+ writes are 1.25x (2.5x for the 12-hour lifetime) and reads 0.1x (0.05x for Sol and Terra); earlier models carry no write charge.
 
-- **DeepSeek**: its docs state `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`, and describe `cached_tokens` as "Same as `prompt_cache_hit_tokens`".
+- **DeepSeek**: its docs state `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`, and describe `cached_tokens` as "Same as `prompt_cache_hit_tokens`". Borne out by a real deepseek-v4-flash response: 1832 = 1664 hit + 168 miss, with 1664 in both shapes. DeepSeek has no write field.
 
 - **Alibaba Bailian**: its docs describe `cached_tokens` as "a part of" `usage.prompt_tokens`. But **they do not state how `cache_creation_input_tokens` relates to `prompt_tokens`**, and the SDK does not guess — OpenAI's equivalent is a subset, but that is OpenAI's behaviour, not a documented fact about Bailian. Check it against your own traffic before billing on it. Bailian's published multipliers: explicit cache writes 1.25x and reads 0.1x; implicit writes 1.0x and reads 0.2x.
 

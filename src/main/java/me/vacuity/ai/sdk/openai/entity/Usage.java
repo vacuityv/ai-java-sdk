@@ -26,7 +26,9 @@ import lombok.NoArgsConstructor;
  * <li>DeepSeek: documents {@code promptTokens} =
  * {@code promptCacheHitTokens} + {@code promptCacheMissTokens}, and puts the
  * hit count in {@code promptTokensDetails.cachedTokens} as well — its docs
- * call that field "Same as prompt_cache_hit_tokens".</li>
+ * call that field "Same as prompt_cache_hit_tokens". Confirmed on a real
+ * deepseek-v4-flash response: 1832 = 1664 hit + 168 miss, with 1664 in both
+ * shapes.</li>
  * <li>Alibaba Bailian: documents {@code promptTokensDetails.cachedTokens} as
  * "a part of" {@code promptTokens}. Its docs do not state how
  * {@code cacheCreationInputTokens} relates to {@code promptTokens}, so do not

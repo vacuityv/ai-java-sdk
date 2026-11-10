@@ -64,6 +64,22 @@ public class OpenaiUsageParsingTest {
             + "\"total_tokens\":18,\"prompt_tokens_details\":{\"cached_tokens\":0},"
             + "\"prompt_cache_hit_tokens\":0,\"prompt_cache_miss_tokens\":7}";
 
+    /**
+     * A real deepseek-v4-flash response with an actual cache hit: streaming
+     * with include_usage, the same prefix sent twice, second call.
+     * <p>
+     * Provenance matters here. The docs example above has a zero hit count, so
+     * it cannot show that a non-zero hit parses or that the arithmetic holds.
+     * These numbers come from a run by the Firefly maintainer, reported
+     * 2026-11-10 — not reproduced on this machine, which has no DeepSeek
+     * credentials and reaches no DeepSeek model through its proxy. They are
+     * better evidence than the docs example and weaker than something this
+     * suite could re-run.
+     */
+    private static final String DEEPSEEK_HIT = "{\"prompt_tokens\":1832,"
+            + "\"prompt_tokens_details\":{\"cached_tokens\":1664},"
+            + "\"prompt_cache_hit_tokens\":1664,\"prompt_cache_miss_tokens\":168}";
+
     @Test
     public void openaiShapeParses() throws Exception {
         Usage usage = mapper.readValue(OPENAI_CACHED, Usage.class);
@@ -230,5 +246,29 @@ public class OpenaiUsageParsingTest {
                 "DeepSeek's docs call cached_tokens the same as prompt_cache_hit_tokens");
         assertNull(u.getPromptTokensDetails().getCacheWriteTokens(),
                 "DeepSeek documents no write accounting");
+    }
+
+    /**
+     * The non-zero cache hit the docs example cannot show: both shapes carry
+     * the same number, and hit + miss accounts for the whole prompt.
+     */
+    @Test
+    public void deepseekRealCacheHitParsesInBothShapes() throws Exception {
+        Usage u = mapper.readValue(DEEPSEEK_HIT, Usage.class);
+
+        assertEquals(1664, u.getPromptCacheHitTokens());
+        assertEquals(168, u.getPromptCacheMissTokens());
+        assertEquals(1664, u.getPromptTokensDetails().getCachedTokens(),
+                "DeepSeek fills the standard shape with the same hit count");
+        assertEquals(1832, u.getPromptTokens());
+
+        // the documented identity, now against a response that actually hit
+        assertEquals(u.getPromptTokens(),
+                u.getPromptCacheHitTokens() + u.getPromptCacheMissTokens(),
+                "prompt_tokens = hit + miss");
+
+        // and no write accounting, as DeepSeek's docs say
+        assertNull(u.getPromptTokensDetails().getCacheWriteTokens());
+        assertNull(u.getPromptTokensDetails().getCacheCreationInputTokens());
     }
 }

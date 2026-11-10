@@ -493,7 +493,7 @@ u.getCompletionTokensDetails().getReasoningTokens();
 | `promptTokensDetails.cachedTokens` | OpenAI、百炼、DeepSeek | 三家官方文档 + OpenAI 真机 |
 | `promptTokensDetails.cacheWriteTokens` | OpenAI,gpt-5.6 起 | gpt-5.6-terra 真机 |
 | `promptTokensDetails.cacheCreationInputTokens` | 阿里云百炼兼容模式 | 百炼官方文档(**未真机验证**) |
-| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek 扁平形状 | DeepSeek 官方文档(**未真机验证**) |
+| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek 扁平形状 | DeepSeek 官方文档 + deepseek-v4-flash 真机(由 Firefly 维护者跑的,非本仓库复现) |
 | `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` | OpenAI 真机 |
 
 **包含关系按各家官方文档,互不相同,计费时请按你用的那家来算:**
@@ -507,7 +507,7 @@ u.getCompletionTokensDetails().getReasoningTokens();
 
   三者价格不同,所以账单是三项:`普通 × 输入价 + cacheWrite × 输入价 × 写入倍率 + cached × 输入价 × 命中倍率`。gpt-5.6+ 写入 1.25×(12 小时 TTL 2.5×)、命中 0.1×(Sol / Terra 0.05×);更早的模型不额外收写入费。
 
-- **DeepSeek**:官方文档写 `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`,并且 `cached_tokens` 文档原话是 "Same as `prompt_cache_hit_tokens`"。
+- **DeepSeek**:官方文档写 `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`,并且 `cached_tokens` 文档原话是 "Same as `prompt_cache_hit_tokens`"。deepseek-v4-flash 真机印证:`1832 = 1664 命中 + 168 未命中`,两种形状都是 1664。DeepSeek 没有写入字段。
 
 - **阿里云百炼**:官方文档写 `cached_tokens` 是 "`usage.prompt_tokens` 的一部分"。但**文档没写 `cache_creation_input_tokens` 和 `prompt_tokens` 的关系**,SDK 也不替你猜 —— OpenAI 的同类字段是子集,但那是 OpenAI 的行为,不是百炼的文档事实,按它计费前请用自己的流量核一次。百炼文档给的倍率:显式缓存写入 1.25×、命中 0.1×;隐式缓存写入 1.0×、命中 0.2×。
 
