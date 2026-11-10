@@ -43,9 +43,11 @@ public class CreateImageRequest {
      * Output container: "png", "jpeg", "webp", or, on gpt-image-2.6, "gif" and
      * "svg".
      * <p>
-     * GIF and SVG are generations-only and cannot be combined with
-     * {@code stream} / {@code partialImages} / {@code outputCompression};
-     * SVG additionally requires {@code n} = 1 and an {@link #svg} block.
+     * Neither GIF nor SVG can be combined with {@code stream} /
+     * {@code partialImages} / {@code outputCompression}, and SVG additionally
+     * requires {@code n} = 1 and an {@link #svg} block. Both also work on
+     * edits as of November 2026 — SVG edits were rejected before that, so
+     * anything written against the older behaviour is out of date.
      */
     @JsonProperty("output_format")
     private String outputFormat;

@@ -39,8 +39,17 @@ public final class ImageRequestValidator {
         // The server answers missing_required_parameter on svg.model, which is
         // clear enough — but it costs a round trip to learn that a nested
         // object was left out, so this one is worth catching.
-        if ("svg".equals(request.getOutputFormat())
-                && (request.getSvg() == null || isBlank(request.getSvg().getModel()))) {
+        requireSvgModel(request.getOutputFormat(), request.getSvg());
+    }
+
+    /**
+     * SVG output needs an authoring model on both endpoints. Edits gained SVG
+     * support in November 2026 and inherited the same requirement.
+     */
+    private static void requireSvgModel(
+            String outputFormat,
+            me.vacuity.ai.sdk.openai.image.entity.SvgOptions svg) {
+        if ("svg".equals(outputFormat) && (svg == null || isBlank(svg.getModel()))) {
             throw new IllegalArgumentException(
                     "svg output requires svg.model — the model that authors the SVG, "
                             + "e.g. .svg(SvgOptions.model(\"gpt-6.1-terra\"))");
@@ -68,6 +77,7 @@ public final class ImageRequestValidator {
             throw new IllegalArgumentException(
                     "markup and mask cannot be sent together on an image edit");
         }
+        requireSvgModel(request.getOutputFormat(), request.getSvg());
         // These can only go out as JSON. Sending them to the multipart form
         // would drop them without a word.
         if (request.getImages() != null && !request.getImages().isEmpty()) {
@@ -104,6 +114,7 @@ public final class ImageRequestValidator {
             throw new IllegalArgumentException(
                     "markup and mask cannot be sent together on an image edit");
         }
+        requireSvgModel(request.getOutputFormat(), request.getSvg());
         // The JSON body carries no file uploads, so a File set here is lost.
         if (request.getMarkup() != null) {
             throw new IllegalArgumentException(

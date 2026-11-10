@@ -478,7 +478,7 @@ public class OpenaiImageLiveSmokeTest {
     }
 
     @Test
-    public void theServerStillRefusesGifWithAMaskAndSvgEdits() throws Exception {
+    public void theServerStillRefusesGifWithAMask() throws Exception {
         File png = smallPng();
 
         // "'mask' is not supported for GIF output."
@@ -486,17 +486,63 @@ public class OpenaiImageLiveSmokeTest {
                 me.vacuity.ai.sdk.common.VacSdkException.class,
                 () -> client().editImage(EditImageRequest.builder().model(MODEL).prompt("x")
                         .outputFormat("gif").size("512x512").build(), png, png));
+    }
 
-        // "Invalid value: 'svg'. Supported values are: 'png', 'webp', and 'jpeg'."
-        me.vacuity.ai.sdk.common.VacSdkException e =
-                org.junit.jupiter.api.Assertions.assertThrows(
-                        me.vacuity.ai.sdk.common.VacSdkException.class,
-                        () -> client().editImage(EditImageRequest.builder().model(MODEL)
-                                .prompt("x").outputFormat("svg").build(),
-                                png, (File) null));
-        assertTrue(e.getMessage().contains("png"),
-                "svg edits must still be refused, naming the supported formats: "
-                        + e.getMessage());
+    /**
+     * SVG edits used to be refused outright — "Invalid value: 'svg'. Supported
+     * values are: 'png', 'webp', and 'jpeg'." Between 2026-11-05 and
+     * 2026-11-10 that changed, and this suite is what noticed: the old canary
+     * started failing because the server had moved on to complaining about a
+     * missing svg.model instead.
+     * <p>
+     * This is the case for keeping such rules on the server rather than
+     * mirroring them in the SDK. A mirrored "svg edits are unsupported" check
+     * would still be refusing this call today.
+     */
+    @Test
+    public void svgEditsAreSupportedNowAndStillNeedAnAuthoringModel() throws Exception {
+        File png = smallPng();
+
+        ImageResponse response = throughGatewayHiccups(
+                () -> client().editImage(EditImageRequest.builder()
+                        .model("gpt-image-2.6-flare")
+                        .prompt("redraw this as a flat vector icon")
+                        .outputFormat("svg")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions
+                                .of(SVG_MODEL, "low"))
+                        .quality("low")
+                        .n(1)
+                        .build(), png, (File) null));
+
+        assertEquals("svg", response.getOutputFormat());
+        String svg = new String(java.util.Base64.getDecoder()
+                .decode(response.getData().get(0).getB64Json()),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(svg.startsWith("<svg"), "an svg edit must return SVG source, was: "
+                + svg.substring(0, Math.min(40, svg.length())));
+        assertNotNull(response.getSvgUsage(), "svg_usage must come back on an svg edit");
+        assertEquals(SVG_MODEL, response.getSvgUsage().getModel());
+
+        // the SDK refuses this one locally rather than spending the request
+        IllegalArgumentException e = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> client().editImage(EditImageRequest.builder().model(MODEL)
+                        .prompt("x").outputFormat("svg").build(), png, (File) null));
+        assertTrue(e.getMessage().contains("svg.model"));
+    }
+
+    /** n > 1 and streaming are still refused for svg, on edits too. */
+    @Test
+    public void svgEditsStillRefuseMultipleImagesAndStreaming() throws Exception {
+        File png = smallPng();
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                me.vacuity.ai.sdk.common.VacSdkException.class,
+                () -> client().editImage(EditImageRequest.builder()
+                        .model("gpt-image-2.6-flare").prompt("x").outputFormat("svg")
+                        .svg(me.vacuity.ai.sdk.openai.image.entity.SvgOptions.model(SVG_MODEL))
+                        .n(2).quality("low").build(), png, (File) null),
+                "svg still requires n=1");
     }
 
     private void assertServerRejects(String label, CreateImageRequest request) {

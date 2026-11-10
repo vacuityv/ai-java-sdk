@@ -312,7 +312,18 @@ ImageResponse gif = client.editImage(EditImageRequest.builder()
         .build(), sourceImage, (File) null);
 ```
 
-That `512x512` is not interchangeable with a plain edit: a PNG edit at the same size is refused as `below the current minimum pixel budget`, because for GIF the budget is measured on the sprite sheet rather than one frame. GIF edits support neither `mask`, `stream`, `partialImages` nor `outputCompression`, and SVG edits are not supported at all (only png/webp/jpeg).
+That `512x512` is not interchangeable with a plain edit: a PNG edit at the same size is refused as `below the current minimum pixel budget`, because for GIF the budget is measured on the sprite sheet rather than one frame. GIF edits support neither `mask`, `stream`, `partialImages` nor `outputCompression`.
+
+**SVG edits work as of 2.2.1.** They were refused outright until early November 2026 (`Invalid value: 'svg'. Supported values are: 'png', 'webp', and 'jpeg'.`) and now work on gpt-image-2.6 — a change the SDK's own live tests caught. Like SVG generation they need `svg.model` and `n=1` and rule out streaming; unlike it, a mask is accepted:
+
+```java
+ImageResponse svg = client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-flare")
+        .prompt("redraw this as a flat vector icon")
+        .outputFormat("svg")
+        .svg(SvgOptions.of("gpt-6.1-terra", "low"))
+        .build(), sourceImage, (File) null);
+```
 
 ### Reasoning for the SVG author model (2.2.0)
 
@@ -465,6 +476,49 @@ for (ChatMessageContentPart part : candidate.getContent().getParts()) {
 ```
 
 Both part types **also carry `thoughtSignature`**. Gemini 3/4 expect the previous turn's model parts to be replayed verbatim, so `ChatMessageContentPart` now keeps a catch-all (`getExtra()`): fields the server returns but this SDK has not modelled are preserved and written back out unchanged instead of being silently dropped.
+
+### Cache tokens on OpenAI-compatible chat completions (2.2.1)
+
+Every vendor behind the OpenAI-compatible endpoint (OpenAI, DeepSeek, Qwen, ...) reports cache hits, in **two different shapes**. `Usage` carries both:
+
+```java
+ChatResponse r = client.chat(request);
+
+r.getUsage().getCachedPromptTokens();     // the hit count, from either shape
+r.getUsage().getUncachedPromptTokens();   // the part billed at the full rate
+```
+
+| Field | Used by |
+|---|---|
+| `promptTokensDetails.cachedTokens` | OpenAI, Qwen, **and DeepSeek** |
+| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek's flat shape |
+| `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` |
+
+**The billing trap: the cached count is a SUBSET of `promptTokens`, not a separate bucket.**
+
+A measured OpenAI call reported `promptTokens` 2658 with `cachedTokens` 1792, so only 2658 − 1792 = 866 were billed at the full input rate. Adding `promptTokens` and the cached count charges the cached part twice. DeepSeek documents the same subset relationship from the other side: `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`.
+
+`getUncachedPromptTokens()` is that subtraction. When a vendor reports no cache information it returns the whole `promptTokens` — better to bill the full rate than to under-bill — while `getCachedPromptTokens()` returns `null` rather than `0`, because "not reported" and "reported as zero" are different facts.
+
+DeepSeek fills both shapes with the same number, so `getCachedPromptTokens()` alone covers all three vendors with no per-vendor branching.
+
+**Streaming has to ask for usage.** Against OpenAI, without `streamOptions.includeUsage` **no chunk carries usage at all** — not even the last one. With it set, a separate usage-only chunk is emitted and every earlier chunk carries `usage: null`:
+
+```java
+ChatRequest request = ChatRequest.builder()
+        .model("gpt-5.5")
+        .messages(messages)
+        .streamOptions(StreamOptions.builder().includeUsage(true).build())
+        .build();
+
+client.streamChat(request).blockingSubscribe(chunk -> {
+    if (chunk.getUsage() != null) {          // only the last one is non-null
+        bill(chunk.getUsage());
+    }
+});
+```
+
+DeepSeek instead documents usage riding on the last content chunk, with no separate usage-only chunk. Code that bills from a stream must handle both — test `getUsage() != null` rather than counting chunks.
 
 ### Gemini thinking tokens and billing
 

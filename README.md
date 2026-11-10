@@ -307,7 +307,18 @@ ImageResponse gif = client.editImage(EditImageRequest.builder()
         .build(), sourceImage, (File) null);
 ```
 
-这里的 `512x512` 和普通编辑不能互换：同尺寸的 PNG 编辑会被拒为 `below the current minimum pixel budget`，因为 GIF 的像素预算是按雪碧图算的，不是按单帧。GIF 编辑不支持 `mask` / `stream` / `partialImages` / `outputCompression`，SVG 编辑完全不支持（只接受 png/webp/jpeg）。
+这里的 `512x512` 和普通编辑不能互换：同尺寸的 PNG 编辑会被拒为 `below the current minimum pixel budget`，因为 GIF 的像素预算是按雪碧图算的，不是按单帧。GIF 编辑不支持 `mask` / `stream` / `partialImages` / `outputCompression`。
+
+**SVG 编辑在 2.2.1 开始可用。** 它到 2026 年 11 月初还是直接被拒的（`Invalid value: 'svg'. Supported values are: 'png', 'webp', and 'jpeg'.`），现在 gpt-image-2.6 上已经支持 —— 这个变化是 SDK 自己的活体测试发现的。和 SVG 生成一样要 `svg.model` 和 `n=1`、不支持流式，但和生成不同,它接受 `mask`：
+
+```java
+ImageResponse svg = client.editImage(EditImageRequest.builder()
+        .model("gpt-image-2.6-flare")
+        .prompt("redraw this as a flat vector icon")
+        .outputFormat("svg")
+        .svg(SvgOptions.of("gpt-6.1-terra", "low"))
+        .build(), sourceImage, (File) null);
+```
 
 ### SVG 作图模型的 reasoning（2.2.0）
 
@@ -461,6 +472,49 @@ for (ChatMessageContentPart part : candidate.getContent().getParts()) {
 ```
 
 这两种 part **同样带 `thoughtSignature`**。Gemini 3 / 4 要求多轮对话把上一轮 model 的 part 原样回传，因此 `ChatMessageContentPart` 增加了未知字段兜底（`getExtra()`）：服务端返回但 SDK 尚未建模的字段会被保留并在回传时原样发出，不会被静默丢弃。
+
+### 兼容 OpenAI 的 chat-completions 缓存 token（2.2.1）
+
+走 OpenAI 兼容接口的厂商（OpenAI / DeepSeek / Qwen 等）都会报缓存命中，但**形状有两种**。`Usage` 两种都收：
+
+```java
+ChatResponse r = client.chat(request);
+
+r.getUsage().getCachedPromptTokens();     // 命中数，两种形状都能读
+r.getUsage().getUncachedPromptTokens();   // 按全价计费的那部分
+```
+
+| 字段 | 谁用 |
+|---|---|
+| `promptTokensDetails.cachedTokens` | OpenAI、Qwen，**以及 DeepSeek** |
+| `promptCacheHitTokens` / `promptCacheMissTokens` | DeepSeek 的扁平形状 |
+| `completionTokensDetails` | `reasoningTokens` / `audioTokens` / `acceptedPredictionTokens` / `rejectedPredictionTokens` |
+
+**计费口径（容易算错）：缓存命中数是 `promptTokens` 的子集，不是额外一桶。**
+
+实测一次 OpenAI 调用：`promptTokens` 2658、`cachedTokens` 1792，所以按全价计的只有 2658 − 1792 = 866。把 `promptTokens` 和命中数相加，会把缓存那部分收两次钱。DeepSeek 自己的文档也写了 `prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`，同样是子集关系。
+
+`getUncachedPromptTokens()` 就是这个减法；厂商没报缓存信息时它返回整个 `promptTokens`（宁可按全价算，也不要漏计费），而 `getCachedPromptTokens()` 这时返回 `null` 而不是 `0` —— "没报" 和 "报了 0" 是两件事。
+
+DeepSeek 同时填了两种形状且数值相同，所以 `getCachedPromptTokens()` 一个方法就够覆盖三家，不需要按厂商分支。
+
+**流式要显式要求 usage。** 对 OpenAI，不设 `streamOptions.includeUsage` 的话**任何 chunk 都不带 usage**，连最后一个也没有；设了之后会多出一个独立的 usage-only chunk，其余 chunk 的 `usage` 是 `null`：
+
+```java
+ChatRequest request = ChatRequest.builder()
+        .model("gpt-5.5")
+        .messages(messages)
+        .streamOptions(StreamOptions.builder().includeUsage(true).build())
+        .build();
+
+client.streamChat(request).blockingSubscribe(chunk -> {
+    if (chunk.getUsage() != null) {          // 只有最后那个非 null
+        bill(chunk.getUsage());
+    }
+});
+```
+
+DeepSeek 的文档则说 usage 挂在最后一个内容 chunk 上，不另发 usage-only chunk。靠流式计费的代码两种都要能处理 —— 判断 `getUsage() != null` 而不是数 chunk。
 
 ### Gemini 思考 token 与计费
 

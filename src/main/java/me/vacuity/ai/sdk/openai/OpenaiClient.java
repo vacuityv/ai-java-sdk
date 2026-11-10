@@ -618,6 +618,18 @@ public class OpenaiClient {
         if (request.getComplexity() != null) {
             builder.addFormDataPart("complexity", request.getComplexity());
         }
+        if (request.getSvg() != null) {
+            // multipart carries nested objects with bracket keys; the JSON form
+            // of this endpoint takes the same thing as a real nested object.
+            if (request.getSvg().getModel() != null) {
+                builder.addFormDataPart("svg[model]", request.getSvg().getModel());
+            }
+            if (request.getSvg().getReasoning() != null
+                    && request.getSvg().getReasoning().getEffort() != null) {
+                builder.addFormDataPart("svg[reasoning][effort]",
+                        request.getSvg().getReasoning().getEffort());
+            }
+        }
         if (request.getFrameCount() != null) {
             builder.addFormDataPart("frame_count", request.getFrameCount().toString());
         }

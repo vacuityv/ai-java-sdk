@@ -158,4 +158,18 @@ public class EditImageRequest {
      */
     @JsonProperty("markup")
     private me.vacuity.ai.sdk.openai.image.entity.ImageReference markupReference;
+
+    /**
+     * SVG authoring options. Required when {@code outputFormat} is "svg".
+     * <p>
+     * SVG edits were rejected outright until early November 2026 — the server
+     * answered "Invalid value: 'svg'. Supported values are: 'png', 'webp', and
+     * 'jpeg'." They now work on gpt-image-2.6, and the SDK's own live canary
+     * is what caught the change. Like SVG generation they require
+     * {@code svg.model} and {@code n} = 1, and rule out streaming; unlike it,
+     * a mask is accepted.
+     *
+     * @since 2.2.1
+     */
+    private me.vacuity.ai.sdk.openai.image.entity.SvgOptions svg;
 }
