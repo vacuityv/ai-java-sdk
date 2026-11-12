@@ -12,6 +12,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,6 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class OpenaiUsageLiveSmokeTest {
 
     private static final String MODEL = "gpt-5.5";
+
+    /**
+     * Cache writes and prompt_cache_options need a newer model: gpt-5.5
+     * answers {@code prompt_cache_options is not supported on this model},
+     * and reports no cache_write_tokens at all.
+     */
+    private static final String CACHE_MODEL = "gpt-5.6-terra";
 
     /**
      * Caching needs a prompt past the vendor's minimum, so this is
@@ -204,7 +212,7 @@ public class OpenaiUsageLiveSmokeTest {
 
     private ChatRequest writeProbe(String marker) {
         return ChatRequest.builder()
-                .model("gpt-5.6-terra")
+                .model(CACHE_MODEL)
                 .messages(Arrays.asList(
                         ChatMessage.builder().role("system")
                                 .content(LONG_SYSTEM + marker).build(),
@@ -214,5 +222,125 @@ public class OpenaiUsageLiveSmokeTest {
 
     private static int zeroIfNull(Integer v) {
         return v == null ? 0 : v;
+    }
+
+
+    // ------------------------------- max_completion_tokens / 缓存参数 (2.6.0)
+
+    /**
+     * Current models refuse max_tokens, so before 2.6.0 the SDK could not cap
+     * output on them at all: the only field it had was a guaranteed 400.
+     */
+    @Test
+    public void maxTokensIsRefusedAndMaxCompletionTokensWorks() {
+        ChatRequest withLegacy = ChatRequest.builder()
+                .model(MODEL)
+                .messages(Collections.singletonList(
+                        ChatMessage.builder().role("user").content("Reply with: ok").build()))
+                .maxTokens(16)
+                .build();
+
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(withLegacy));
+        assertTrue(e.getMessage().contains("max_completion_tokens"),
+                "the server should point at the replacement: " + e.getMessage());
+
+        ChatResponse ok = client().chat(ChatRequest.builder()
+                .model(MODEL)
+                .messages(Collections.singletonList(
+                        ChatMessage.builder().role("user").content("Reply with: ok").build()))
+                .maxCompletionTokens(16)
+                .build());
+        assertNotNull(ok.getUsage(), "max_completion_tokens must be accepted");
+        assertTrue(ok.getUsage().getCompletionTokens() <= 16,
+                "the cap must actually bind; got " + ok.getUsage().getCompletionTokens());
+    }
+
+    /**
+     * prompt_cache_key must partition the cache, not merely label it: the same
+     * bytes under a second key have to miss.
+     * <p>
+     * Order matters — key A twice, then key B — and the marker keeps this run
+     * from reading a cache entry left by an earlier one.
+     */
+    @Test
+    public void promptCacheKeyPartitionsTheCache() {
+        String marker = "cache-key-probe-" + System.nanoTime();
+
+        Integer firstWrite = cacheWrite(cacheKeyRequest(marker, "tenant-A"));
+        assertNotNull(firstWrite, "gpt-5.6 reports cache writes");
+
+        Integer secondCached = cached(cacheKeyRequest(marker, "tenant-A"));
+        assertTrue(secondCached > 0,
+                "the same key must read back what it wrote; got " + secondCached);
+
+        Integer otherKeyCached = cached(cacheKeyRequest(marker, "tenant-B"));
+        assertEquals(0, otherKeyCached,
+                "a different prompt_cache_key must not see tenant-A's entry; got "
+                        + otherKeyCached + " cached, so the keys are not partitioning");
+    }
+
+    /**
+     * The two prompt_cache_options fields this endpoint accepts. Its ttl takes
+     * only "30m" here, and prewarm is rejected — which is why neither a 12h
+     * option nor a prewarm field is modelled.
+     */
+    /**
+     * prompt_cache_options is model-gated: gpt-5.5 rejects it outright with
+     * {@code prompt_cache_options is not supported on this model}, so this
+     * runs on CACHE_MODEL.
+     */
+    @Test
+    public void promptCacheOptionsAcceptsModeAndThirtyMinuteTtl() {
+        String marker = "cache-opts-probe-" + System.nanoTime();
+
+        ChatResponse implicit = client().chat(cacheOptionsRequest(marker,
+                me.vacuity.ai.sdk.openai.entity.PromptCacheOptions.builder()
+                        .mode("implicit").ttl("30m").build()));
+        assertNotNull(implicit.getUsage().getPromptTokensDetails());
+
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(cacheOptionsRequest(marker,
+                                me.vacuity.ai.sdk.openai.entity.PromptCacheOptions.builder()
+                                        .ttl("12h").build())));
+        assertTrue(e.getMessage().contains("30m"),
+                "only a 30-minute ttl is accepted here: " + e.getMessage());
+    }
+
+    private ChatRequest cacheKeyRequest(String marker, String key) {
+        return ChatRequest.builder()
+                .model(CACHE_MODEL)
+                .messages(Arrays.asList(
+                        ChatMessage.builder().role("system")
+                                .content(LONG_SYSTEM + marker).build(),
+                        ChatMessage.builder().role("user").content("Reply with: ok").build()))
+                .maxCompletionTokens(8)
+                .promptCacheKey(key)
+                .build();
+    }
+
+    private ChatRequest cacheOptionsRequest(String marker,
+            me.vacuity.ai.sdk.openai.entity.PromptCacheOptions options) {
+        return ChatRequest.builder()
+                .model(CACHE_MODEL)
+                .messages(Arrays.asList(
+                        ChatMessage.builder().role("system")
+                                .content(LONG_SYSTEM + marker).build(),
+                        ChatMessage.builder().role("user").content("Reply with: ok").build()))
+                .maxCompletionTokens(8)
+                .promptCacheOptions(options)
+                .build();
+    }
+
+    private Integer cacheWrite(ChatRequest request) {
+        return client().chat(request).getUsage().getPromptTokensDetails().getCacheWriteTokens();
+    }
+
+    private Integer cached(ChatRequest request) {
+        return client().chat(request).getUsage().getPromptTokensDetails().getCachedTokens();
     }
 }

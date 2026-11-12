@@ -99,4 +99,52 @@ public class ChatMessage {
         return message;
     }
 
+    /**
+     * Makes a mid-conversation {@code system} message turn-scoped: it renders
+     * for one turn and then stays in the transcript, cleared.
+     * <p>
+     * "next_user_message" or "never" (the default when absent) — the server
+     * names both when it rejects anything else. Beta: send
+     * {@code "mid-conversation-system-clear-at-2026-08-21"} in
+     * {@code ChatRequest.betas}, or it answers
+     * {@code messages.N.clear_at: Extra inputs are not permitted}.
+     * <p>
+     * Two things are refused on a turn-scoped message, both measured:
+     * {@code cache_control} on its content blocks, and {@code output_config}
+     * — so this cannot be combined with
+     * {@link #effortOnly(String)}. A plain mid-conversation system message,
+     * without {@code clear_at}, <em>can</em> carry {@code cache_control} and
+     * caches normally.
+     * <p>
+     * Placement is the same as any system message that carries content: it
+     * must follow a {@code user} turn (or an {@code assistant} turn ending in
+     * a server tool result) and must precede an {@code assistant} turn or end
+     * the array. As {@code messages[0]} the server points you at the
+     * top-level {@code system} parameter instead.
+     * <p>
+     * The reason to reach for it: a reminder injected into history and removed
+     * on the next request is a history edit, which breaks the cache from that
+     * point and, on models with preserved thinking, invalidates later thinking
+     * blocks. Appending a turn-scoped copy each turn and leaving the old ones
+     * in place avoids both.
+     *
+     * @since 2.6.0
+     */
+    @JsonProperty("clear_at")
+    private String clearAt;
+
+    /**
+     * A system message that renders for one turn only, then stays in the
+     * transcript cleared. Append a fresh one each turn rather than deleting
+     * the previous.
+     *
+     * @since 2.6.0
+     */
+    public static ChatMessage turnScopedSystem(String text) {
+        ChatMessage message = new ChatMessage();
+        message.setRole("system");
+        message.setContent(text);
+        message.setClearAt("next_user_message");
+        return message;
+    }
 }

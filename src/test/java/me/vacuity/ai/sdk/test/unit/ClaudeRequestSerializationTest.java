@@ -2,6 +2,7 @@ package me.vacuity.ai.sdk.test.unit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import me.vacuity.ai.sdk.claude.entity.SystemMessageOutputConfig;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
@@ -303,6 +304,62 @@ public class ClaudeRequestSerializationTest {
         assertEquals("low", effortMessage.get("output_config").get("effort").asText());
         // the top-level effort stays as it was — the docs say to leave it alone
         assertEquals("high", sent.get("output_config").get("effort").asText());
+    }
+
+    // ------------------------------------------- clear_at (2.6.0)
+
+    /**
+     * A turn-scoped system message: renders for one turn, then stays in the
+     * transcript cleared. The point is to avoid editing history — deleting a
+     * reminder breaks the cache from that point and, on models with preserved
+     * thinking, invalidates later thinking blocks.
+     */
+    @Test
+    public void turnScopedSystemMessageSerializes() throws Exception {
+        JsonNode sent = MAPPER.valueToTree(ChatMessage.turnScopedSystem("Keep it to one word."));
+
+        assertEquals("system", sent.get("role").asText());
+        assertEquals("Keep it to one word.", sent.get("content").asText());
+        assertEquals("next_user_message", sent.get("clear_at").asText());
+        assertNull(sent.get("clearAt"), "the Java name must not reach the wire");
+        assertEquals(3, sent.size(), "nothing else may be sent: " + sent);
+    }
+
+    @Test
+    public void clearAtCanBeSetDirectlyAndAcceptsNever() throws Exception {
+        JsonNode sent = MAPPER.valueToTree(ChatMessage.builder()
+                .role("system")
+                .content("x")
+                .clearAt("never")
+                .build());
+
+        assertEquals("never", sent.get("clear_at").asText());
+    }
+
+    @Test
+    public void anOrdinaryMessageCarriesNoClearAt() throws Exception {
+        JsonNode sent = MAPPER.valueToTree(new ChatMessage("user", "hello"));
+
+        assertNull(sent.get("clear_at"),
+                "an unset clear_at must not be sent, not even as null");
+    }
+
+    /**
+     * The server refuses output_config on a turn-scoped message, so the two
+     * 2.4.0/2.6.0 features cannot be combined. Nothing stops a caller
+     * building it, but the shape is pinned here so the combination is at least
+     * visible in the tests.
+     */
+    @Test
+    public void clearAtAndOutputConfigAreASeparateConcern() throws Exception {
+        ChatMessage both = ChatMessage.effortOnly("low");
+        both.setClearAt("next_user_message");
+
+        JsonNode sent = MAPPER.valueToTree(both);
+        assertEquals("next_user_message", sent.get("clear_at").asText());
+        assertNotNull(sent.get("output_config"));
+        // the server rejects exactly this with
+        // "output_config is not permitted on a turn-scoped system message"
     }
 
     public static class SearchArgs {

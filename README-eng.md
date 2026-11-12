@@ -30,6 +30,7 @@ It targets Java 8 and builds on JDK 8 through 23.
 - [Veo video generation](https://ai.google.dev/gemini-api/docs/video)
 - Built-in tools alongside function declarations (`toolConfig.includeServerSideToolInvocations`)
 - [Decisions API](https://aistudio.google.com/docs/decisions-api) (structured judgements, `gemini-decision-1` only)
+- Structured output (`responseSchema` / `responseJsonSchema`), `imageConfig`, `speechConfig`, context caching (`cachedContent`)
 
 ## Supported openAI
 
@@ -669,6 +670,123 @@ decision.getUsage().getTotalOutputTokens();       // always 0
 **Not supported** (per the official page): context caching, the Batch API, Flex and Priority inference, conversation history, thought blocks, tool-call blocks, YouTube links and `gs://` URIs. A question's `instructions` accepts text only.
 
 **Limits**: 1–1000 questions; a 262144-token context window across the input and all questions; 2–255 choice options; 2–255 score levels (2–10 recommended); 100MB of inline data per request, 50MB for PDFs; 15MB per external URL. A safety block returns HTTP 400 with **no `answers`**, so it surfaces as a thrown exception rather than a `Decision` with holes in it.
+
+### Gemini GenerationConfig completed, and the topK type corrected (2.6.0)
+
+Filled in after a field-by-field comparison with the v1beta **discovery document** (`generativelanguage.googleapis.com/$discovery/rest?version=v1beta`) — the machine-readable contract rather than a prose page.
+
+**`topK` changed from `Float` to `Integer`.** The discovery document types it int32. Before the change, `.topK(5.5f)` compiled and was a guaranteed 400: `Invalid value at 'generation_config.top_k' (TYPE_INT32), 5.5`. Whole-valued floats such as `5.0f` were always accepted, so nothing wrong went over the wire — the type merely permitted a value that could not succeed. `topK` must also be non-negative (`-1` is rejected).
+
+**Structured output**:
+
+```java
+Map<String, Schema> props = new LinkedHashMap<>();
+props.put("ok", Schema.builder().type("BOOLEAN").build());
+props.put("why", Schema.builder().type("STRING").build());
+
+.generationConfig(ChatRequest.GenerationConfig.builder()
+        .responseMimeType("application/json")
+        .responseSchema(Schema.builder().type("OBJECT").properties(props)
+                .required(Collections.singletonList("ok"))
+                .propertyOrdering(Arrays.asList("ok", "why"))   // verified to be honoured
+                .build())
+        .build())
+```
+
+`Schema` type names are **upper case** (`OBJECT`, `STRING`, `BOOLEAN`, ...), unlike plain JSON Schema's lower case. `enum` is a Java keyword, so the field is `enumValues`; the wire name is still `enum`.
+
+To hand over a plain JSON Schema instead, use `responseJsonSchema` (typed `any` in the discovery document, so the SDK takes an `Object` — a Map works). It also honours `additionalProperties: false`, which `responseSchema` has no field for:
+
+```java
+.responseJsonSchema(jsonSchemaAsMap)
+```
+
+**Images and speech**:
+
+```java
+.imageConfig(ImageConfig.builder().aspectRatio("16:9").imageSize("2K").build())
+.speechConfig(SpeechConfig.voice("Kore"))                       // a single voice
+.speechConfig(SpeechConfig.builder().languageCode("en-US")      // per-speaker voices
+        .multiSpeakerVoiceConfig(MultiSpeakerVoiceConfig.builder()
+                .speakerVoiceConfigs(Arrays.asList(
+                        SpeakerVoiceConfig.of("Alice", "Kore"),
+                        SpeakerVoiceConfig.of("Bob", "Puck"))).build()).build())
+```
+
+The audio container **differs by model**: measured `audio/L16;codec=pcm;rate=24000` on `gemini-2.5-flash-preview-tts` and `audio/wav` on `gemini-3.8-flash-tts` — read the part's mimeType rather than assuming one.
+
+**Context caching**: `cachedContent` is a **top-level request field**, not part of generationConfig. Pass the full resource name returned when the cache was created:
+
+```java
+ChatRequest.builder().model("gemini-2.5-flash")
+        .cachedContent("cachedContents/qvk6m3...")   // the full name, not just the id
+        .contents(contents).build();
+```
+
+Creating and deleting caches goes through the separate `v1beta/cachedContents` endpoint, which this SDK does not wrap. The hit appears as `usageMetadata.cachedContentTokenCount`, which `Usage` already carries — a measured call reported 3302 cached of 3307 prompt tokens. Works on both the v1alpha and v1beta paths.
+
+**Four fields deliberately left out.** The discovery document also lists `enableAffectiveDialog`, `translationConfig`, `audioTranscriptionConfig` and `responseFormat`. Measured: the first is **rejected outright** on the models reachable here; the other three are accepted and have **no observable effect** (they belong to the Live API or to modalities generateContent cannot reach). Adding them would have meant shipping fields nobody could verify, so they are not modelled — and a test in `GeminiGenerationConfigLiveSmokeTest` pins their current behaviour so it goes red if upstream changes.
+
+### OpenAI: max_completion_tokens and the cache request parameters (2.6.0)
+
+**`maxTokens` no longer works on current models.** Measured: gpt-5.5 and gpt-5.6-terra both answer `Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead`, and sending both is rejected too. So before 2.6.0 the SDK **could not cap output on these models at all** — the only field it had was a guaranteed error.
+
+```java
+ChatRequest.builder().model("gpt-5.6-terra")
+        .maxCompletionTokens(16)     // the one current models take
+        .messages(messages).build();
+```
+
+`maxTokens` stays for models old enough to want it. The two are independent, but do not send both.
+
+**Cache request parameters**:
+
+```java
+.promptCacheKey("tenant-A")                                   // partitions the cache
+.promptCacheOptions(PromptCacheOptions.builder()
+        .mode("implicit").ttl("30m").build())
+```
+
+`promptCacheKey` really does **partition** rather than merely label: with one identical prompt, key `tenant-A` wrote 1812 tokens then read back the same 1812, while key `tenant-B` sent the very same bytes and wrote 1812 afresh with nothing cached.
+
+`promptCacheOptions` has two traps:
+
+- **Model-gated**: gpt-5.5 answers `prompt_cache_options is not supported on this model`; it needs gpt-5.6 or later
+- **`ttl` accepts only `"30m"`**: `12h` answers `Supported values are: '30m'`. The 12-hour option in OpenAI's caching guide (at 2.5x the write rate) belongs to the Responses API
+- **No `prewarm` field**: the guide documents one, but this endpoint answers `Unknown parameter: 'prompt_cache_options.prewarm'`, so the SDK does not model it
+
+`mode` is `implicit` or `explicit`. Measured, `explicit` neither read nor wrote — that mode caches only where something marks a breakpoint.
+
+### Claude: turn-scoped system messages via clear_at (2.6.0, beta)
+
+```java
+ChatRequest.builder()
+        .model("claude-opus-5-5")
+        .betas(Arrays.asList("mid-conversation-system-clear-at-2026-08-21"))
+        .messages(Arrays.asList(
+                new ChatMessage("user", "..."),
+                ChatMessage.turnScopedSystem("Keep answers to one word."),  // one turn only
+                new ChatMessage("assistant", "..."),
+                new ChatMessage("user", "...")))
+        .build();
+```
+
+`clearAt` is `next_user_message` or `never` (the default when absent).
+
+**Why reach for it**: injecting a reminder each turn and deleting it the next is a **history edit** — the cache misses from that point, and on models with preserved thinking every later assistant turn's thinking blocks are invalidated. A turn-scoped message is **appended fresh each turn with the old copies left in place**, which avoids both.
+
+**Two restrictions**, both measured:
+
+| | Result |
+|---|---|
+| With `cache_control` | **400** `cache_control is not permitted on a turn-scoped system message` |
+| With `output_config` (so it cannot be combined with 2.4.0's per-message effort) | **400** `output_config is not permitted on a turn-scoped system message` |
+| Without the beta flag | **400** `messages.N.clear_at: Extra inputs are not permitted` |
+| An unknown value | **400**, with the enum in the message |
+
+By contrast, a **plain mid-conversation system message — no `clear_at` — may carry `cache_control`** and caches normally (measured: 2409 tokens written).
+
+**Placement** is the same as for any system message carrying content: it must follow a `user` turn (or an `assistant` turn ending in a server tool result) and must precede an `assistant` turn or end the array. As `messages[0]` it is rejected, with the server pointing at the top-level `system` parameter instead.
 
 ### Gemini thinking tokens and billing
 

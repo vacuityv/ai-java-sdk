@@ -383,4 +383,153 @@ public class ClaudeLiveSmokeTest {
                 .messages(messages)
                 .build();
     }
+
+
+    // ------------------------------------------- clear_at (2.6.0)
+
+    private static final String CLEAR_AT_BETA = "mid-conversation-system-clear-at-2026-08-21";
+
+    /**
+     * A turn-scoped system message in the one position the API allows: right
+     * after a user turn, before an assistant turn.
+     */
+    @org.junit.jupiter.api.Test
+    public void turnScopedSystemMessageIsAccepted() {
+        ChatResponse response = client().chat(clearAtRequest(
+                ChatMessage.turnScopedSystem("Keep answers to one word."), true));
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getStopReason());
+    }
+
+    @org.junit.jupiter.api.Test
+    public void clearAtNeverIsAccepted() {
+        ChatMessage message = ChatMessage.builder()
+                .role("system").content("Keep answers to one word.").clearAt("never").build();
+
+        org.junit.jupiter.api.Assertions.assertNotNull(
+                client().chat(clearAtRequest(message, true)).getStopReason());
+    }
+
+    @org.junit.jupiter.api.Test
+    public void withoutTheBetaFlagClearAtIsRejected() {
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(clearAtRequest(
+                                ChatMessage.turnScopedSystem("Keep it short."), false)));
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                e.getMessage().contains("Extra inputs are not permitted"),
+                "expected the missing-beta rejection, got: " + e.getMessage());
+    }
+
+    /** An unknown value is the server's complaint, carrying the whole enum. */
+    @org.junit.jupiter.api.Test
+    public void anUnknownClearAtValueIsRejected() {
+        ChatMessage message = ChatMessage.builder()
+                .role("system").content("x").clearAt("bogus").build();
+
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(clearAtRequest(message, true)));
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                e.getMessage().contains("next_user_message"),
+                "the server should list the accepted values: " + e.getMessage());
+    }
+
+    /**
+     * The two restrictions that make a turn-scoped message different from a
+     * plain one. Both are the server's rules, kept here rather than mirrored
+     * in the SDK.
+     */
+    @org.junit.jupiter.api.Test
+    public void aTurnScopedMessageTakesNeitherCacheControlNorOutputConfig() {
+        ChatMessageContent cached = new ChatMessageContent();
+        cached.setType("text");
+        cached.setText("Keep answers to one word.");
+        cached.setCacheControl(CacheControl.builder().type("ephemeral").build());
+        ChatMessage withCache = ChatMessage.builder().role("system")
+                .content(java.util.Collections.singletonList(cached))
+                .clearAt("next_user_message").build();
+
+        me.vacuity.ai.sdk.common.VacSdkException cacheError =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(clearAtRequest(withCache, true)));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                cacheError.getMessage().contains("cache_control"),
+                "got: " + cacheError.getMessage());
+
+        ChatMessage withEffort = ChatMessage.effortOnly("low");
+        withEffort.setClearAt("next_user_message");
+        ChatRequest request = ChatRequest.builder()
+                .model("claude-opus-5-5").maxTokens(16)
+                .betas(java.util.Arrays.asList(CLEAR_AT_BETA,
+                        "mid-conversation-output-config-2026-07-01"))
+                .messages(java.util.Arrays.asList(
+                        new ChatMessage("user", "hi"), withEffort,
+                        new ChatMessage("assistant", "hello"),
+                        new ChatMessage("user", "Reply with: ok")))
+                .build();
+
+        me.vacuity.ai.sdk.common.VacSdkException effortError =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(request));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                effortError.getMessage().contains("output_config"),
+                "got: " + effortError.getMessage());
+    }
+
+    /**
+     * A plain mid-conversation system message, by contrast, does cache — which
+     * is the reason the restriction above is worth knowing rather than
+     * guessing at.
+     */
+    @org.junit.jupiter.api.Test
+    public void aPlainSystemMessageStillCaches() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 400; i++) {
+            sb.append("Keep answers to one word. ");
+        }
+        ChatMessageContent cached = new ChatMessageContent();
+        cached.setType("text");
+        cached.setText(sb.toString());
+        cached.setCacheControl(CacheControl.builder().type("ephemeral").build());
+
+        ChatResponse response = client().chat(ChatRequest.builder()
+                .model("claude-opus-5-5").maxTokens(16)
+                .messages(java.util.Arrays.asList(
+                        new ChatMessage("user", "hi"),
+                        ChatMessage.builder().role("system")
+                                .content(java.util.Collections.singletonList(cached)).build(),
+                        new ChatMessage("assistant", "hello"),
+                        new ChatMessage("user", "Reply with: ok")))
+                .build());
+
+        int written = response.getUsage().getCacheCreationInputTokens() == null
+                ? 0 : response.getUsage().getCacheCreationInputTokens();
+        int read = response.getUsage().getCacheReadInputTokens() == null
+                ? 0 : response.getUsage().getCacheReadInputTokens();
+        org.junit.jupiter.api.Assertions.assertTrue(written > 0 || read > 0,
+                "a plain system message with cache_control must cache; wrote " + written
+                        + ", read " + read);
+    }
+
+    private ChatRequest clearAtRequest(ChatMessage systemMessage, boolean withBeta) {
+        ChatRequest.ChatRequestBuilder builder = ChatRequest.builder()
+                .model("claude-opus-5-5")
+                .maxTokens(16)
+                .messages(java.util.Arrays.asList(
+                        new ChatMessage("user", "hi"),
+                        systemMessage,
+                        new ChatMessage("assistant", "hello"),
+                        new ChatMessage("user", "Reply with: ok")));
+        if (withBeta) {
+            builder.betas(java.util.Collections.singletonList(CLEAR_AT_BETA));
+        }
+        return builder.build();
+    }
 }

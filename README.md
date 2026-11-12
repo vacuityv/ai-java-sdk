@@ -28,6 +28,7 @@
 - [Veo 视频生成](https://ai.google.dev/gemini-api/docs/video)
 - 内置工具与函数声明同时使用（`toolConfig.includeServerSideToolInvocations`）
 - [Decisions API](https://aistudio.google.com/docs/decisions-api)（结构化判断，仅 `gemini-decision-1`）
+- 结构化输出（`responseSchema` / `responseJsonSchema`）、`imageConfig`、`speechConfig`、上下文缓存（`cachedContent`）
 
 ## 支持的 openAI
 
@@ -665,6 +666,123 @@ decision.getUsage().getTotalOutputTokens();      // 恒为 0
 **不支持的东西**(官方列出):上下文缓存、Batch API、Flex / Priority 推理、对话历史、thought 块、工具调用块、YouTube 链接、`gs://` URI。问题的 `instructions` 只接受文本。
 
 **限额**:问题 1–1000 条;上下文窗口 262144 token(输入与所有问题合计);choice 选项 2–255;score 档位 2–255(建议 2–10);inline 数据单请求 100MB、PDF 50MB;外部 URL 单个 15MB。安全拦截返回 HTTP 400 且**没有 `answers`**,所以在 SDK 里表现为抛异常,而不是返回一个带空洞的 `Decision`。
+
+### Gemini GenerationConfig 补齐与 topK 类型修正(2.6.0)
+
+按 v1beta **discovery 文档**(`generativelanguage.googleapis.com/$discovery/rest?version=v1beta`,机器可读的契约而非散文页)逐字段比对后补齐。
+
+**`topK` 从 `Float` 改成 `Integer`。** discovery 里是 int32。改之前 `.topK(5.5f)` 能编译但必然 400:`Invalid value at 'generation_config.top_k' (TYPE_INT32), 5.5`。整数值的小数(`5.0f`)一直是被接受的,所以线上没发错东西 —— 只是类型允许了一个不可能成功的值。`topK` 还必须非负(`-1` 被拒)。
+
+**结构化输出**:
+
+```java
+Map<String, Schema> props = new LinkedHashMap<>();
+props.put("ok", Schema.builder().type("BOOLEAN").build());
+props.put("why", Schema.builder().type("STRING").build());
+
+.generationConfig(ChatRequest.GenerationConfig.builder()
+        .responseMimeType("application/json")
+        .responseSchema(Schema.builder().type("OBJECT").properties(props)
+                .required(Collections.singletonList("ok"))
+                .propertyOrdering(Arrays.asList("ok", "why"))   // 实测生效
+                .build())
+        .build())
+```
+
+`Schema` 的类型名是**大写**(`OBJECT` / `STRING` / `BOOLEAN`…),和普通 JSON Schema 的小写不同。`enum` 是 Java 关键字,字段叫 `enumValues`,线名仍是 `enum`。
+
+想直接用普通 JSON Schema 就用 `responseJsonSchema`(discovery 里类型是 `any`,所以 SDK 收 `Object`,传 Map 即可)—— 它还支持 `additionalProperties: false`,而 `responseSchema` 没有这个字段:
+
+```java
+.responseJsonSchema(jsonSchemaAsMap)
+```
+
+**图片与语音**:
+
+```java
+.imageConfig(ImageConfig.builder().aspectRatio("16:9").imageSize("2K").build())
+.speechConfig(SpeechConfig.voice("Kore"))                       // 单一音色
+.speechConfig(SpeechConfig.builder().languageCode("en-US")      // 多说话人
+        .multiSpeakerVoiceConfig(MultiSpeakerVoiceConfig.builder()
+                .speakerVoiceConfigs(Arrays.asList(
+                        SpeakerVoiceConfig.of("Alice", "Kore"),
+                        SpeakerVoiceConfig.of("Bob", "Puck"))).build()).build())
+```
+
+TTS 返回的音频容器**按模型不同**:实测 `gemini-2.5-flash-preview-tts` 是 `audio/L16;codec=pcm;rate=24000`,`gemini-3.8-flash-tts` 是 `audio/wav` —— 读 part 的 mimeType,不要假定。
+
+**上下文缓存**:`cachedContent` 是**请求顶层字段**(不在 generationConfig 里),传创建缓存时返回的完整资源名:
+
+```java
+ChatRequest.builder().model("gemini-2.5-flash")
+        .cachedContent("cachedContents/qvk6m3...")   // 完整名,不只是 id
+        .contents(contents).build();
+```
+
+缓存的创建与删除走独立的 `v1beta/cachedContents` 端点,SDK 不封装;命中数在 `usageMetadata.cachedContentTokenCount`,`Usage` 本来就有。实测一次调用报 3302 缓存 / 3307 prompt。v1alpha 与 v1beta 路径都能用。
+
+**刻意没加的四个字段。** discovery 里还列着 `enableAffectiveDialog`、`translationConfig`、`audioTranscriptionConfig`、`responseFormat`,但实测:第一个在可用模型上**直接 400**;后三个被接受却**观察不到任何效果**(属于 Live API 或 generateContent 够不到的模态)。加上等于交付无法验证的字段,所以没加 —— `GeminiGenerationConfigLiveSmokeTest` 里有一条测试把这四个的当前行为钉住了,哪天上游变了会红。
+
+### OpenAI:max_completion_tokens 与缓存请求参数(2.6.0)
+
+**`maxTokens` 在当前模型上已经不能用了。** 实测 gpt-5.5 与 gpt-5.6-terra 都答 `Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead`,两个同时发也拒。也就是说 2.6.0 之前 SDK 在这些模型上**根本没法限制输出长度** —— 唯一有的那个字段必然报错。
+
+```java
+ChatRequest.builder().model("gpt-5.6-terra")
+        .maxCompletionTokens(16)     // 当前模型用这个
+        .messages(messages).build();
+```
+
+`maxTokens` 保留给仍需要它的老模型,两者互不干扰,但别同时发。
+
+**缓存请求参数**:
+
+```java
+.promptCacheKey("tenant-A")                                   // 按租户分隔缓存
+.promptCacheOptions(PromptCacheOptions.builder()
+        .mode("implicit").ttl("30m").build())
+```
+
+`promptCacheKey` 实测**真的分隔缓存**而不只是打标签:同一段 prompt,key `tenant-A` 第一次写入 1812、第二次命中 1812;key `tenant-B` 发完全相同的字节却又重新写入 1812、命中 0。
+
+`promptCacheOptions` 有两个坑:
+
+- **按模型门控**:gpt-5.5 答 `prompt_cache_options is not supported on this model`,要 gpt-5.6+
+- **`ttl` 只接受 `"30m"`**:传 `12h` 答 `Supported values are: '30m'`。官方缓存指南里那个 12 小时档(写入 2.5×)是 Responses API 的
+- **没有 `prewarm` 字段**:指南里有,这个端点答 `Unknown parameter: 'prompt_cache_options.prewarm'`,所以 SDK 不建模它
+
+`mode` 取 `implicit` 或 `explicit`。实测 `explicit` 下既不读也不写 —— 显式模式要有断点标记才会缓存。
+
+### Claude:回合级 system 消息 clear_at(2.6.0,beta)
+
+```java
+ChatRequest.builder()
+        .model("claude-opus-5-5")
+        .betas(Arrays.asList("mid-conversation-system-clear-at-2026-08-21"))
+        .messages(Arrays.asList(
+                new ChatMessage("user", "..."),
+                ChatMessage.turnScopedSystem("Keep answers to one word."),  // 只渲染一轮
+                new ChatMessage("assistant", "..."),
+                new ChatMessage("user", "...")))
+        .build();
+```
+
+`clearAt` 取 `next_user_message` 或 `never`(不设时即 never)。
+
+**为什么要它**:每轮插一条提醒、下一轮再删掉,那是**改历史** —— 缓存从那一点起失效,而且在保留 thinking 的模型上会让后续 assistant 轮的 thinking 块全部失效。回合级消息的做法是**每轮追加一条新的、旧的留着不动**,两个问题都避开。
+
+**两处限制**(都已实测):
+
+| | 结果 |
+|---|---|
+| 带 `cache_control` | **400** `cache_control is not permitted on a turn-scoped system message` |
+| 带 `output_config`(即不能和 2.4.0 的逐条 effort 合用) | **400** `output_config is not permitted on a turn-scoped system message` |
+| 不带 beta 标记 | **400** `messages.N.clear_at: Extra inputs are not permitted` |
+| 非法值 | **400**,报错里带枚举 |
+
+对照:**不带 `clear_at` 的普通 mid-conversation system 消息可以带 `cache_control`**,会正常缓存(实测写入 2409 token)。
+
+**放置位置**和其他带内容的 system 消息一样:必须紧跟 `user` 轮(或结束于服务端工具结果的 `assistant` 轮),并且后面接 `assistant` 轮或作为数组最后一条。放在 `messages[0]` 会被拒,服务端会提示改用顶层 `system` 参数。
 
 ### Gemini 思考 token 与计费
 

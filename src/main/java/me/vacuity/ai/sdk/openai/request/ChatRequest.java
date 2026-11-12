@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import me.vacuity.ai.sdk.openai.entity.ChatMessage;
 import me.vacuity.ai.sdk.openai.entity.ChatTool;
+import me.vacuity.ai.sdk.openai.entity.PromptCacheOptions;
 import me.vacuity.ai.sdk.openai.entity.StreamOptions;
 import me.vacuity.ai.sdk.xai.entity.SearchParameters;
 
@@ -41,8 +42,29 @@ public class ChatRequest {
     @JsonProperty("top_logprobs")
     private Integer topLogprobs;
 
+    /**
+     * The legacy output cap. <strong>Current models reject it</strong>:
+     * gpt-5.5 and gpt-5.6-terra both answer
+     * {@code Unsupported parameter: 'max_tokens' is not supported with this
+     * model. Use 'max_completion_tokens' instead}, and sending both is
+     * rejected too. Use {@link #maxCompletionTokens} unless you are calling a
+     * model old enough to still want this one.
+     */
     @JsonProperty("max_tokens")
     private Integer maxTokens;
+
+    /**
+     * The output cap current models take, counting reasoning tokens as well as
+     * visible ones.
+     * <p>
+     * This replaces {@code max_tokens}, which those models refuse outright —
+     * so before 2.6.0 the SDK could not cap output on them at all, since
+     * setting the only field it had was a 400. Do not send both.
+     *
+     * @since 2.6.0
+     */
+    @JsonProperty("max_completion_tokens")
+    private Integer maxCompletionTokens;
 
     private Integer n;
 
@@ -60,6 +82,29 @@ public class ChatRequest {
 
     @JsonProperty("stream_options")
     private StreamOptions streamOptions;
+
+    /**
+     * Partitions the prompt cache, so one tenant's prefix never satisfies
+     * another's and each is accounted for separately.
+     * <p>
+     * Measured on gpt-5.6-terra with one identical prompt: key "tenant-A"
+     * wrote 1812 tokens then read back the same 1812, while key "tenant-B"
+     * sent the very same bytes and wrote 1812 afresh with nothing cached. It
+     * really does segment rather than merely label.
+     *
+     * @since 2.6.0
+     */
+    @JsonProperty("prompt_cache_key")
+    private String promptCacheKey;
+
+    /**
+     * Caching mode and lifetime. See {@link PromptCacheOptions} for which of
+     * the documented fields this endpoint actually accepts.
+     *
+     * @since 2.6.0
+     */
+    @JsonProperty("prompt_cache_options")
+    private PromptCacheOptions promptCacheOptions;
 
     private Float temperature;
 
