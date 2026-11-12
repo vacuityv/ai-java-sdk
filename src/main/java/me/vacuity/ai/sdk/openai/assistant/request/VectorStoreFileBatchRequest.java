@@ -23,4 +23,14 @@ public class VectorStoreFileBatchRequest {
 
     @JsonProperty("file_ids")
     private List<String> fileIds;
+
+    /** Per-file entries ({@code file_id}, {@code attributes}, {@code chunking_strategy}), as an alternative to a flat file_ids list. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("files")
+    private java.util.List<java.util.Map<String, Object>> files;
+    /** Attributes applied to every file in the batch. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("attributes")
+    private java.util.Map<String, Object> attributes;
+    /** Chunking applied to every file in the batch. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("chunking_strategy")
+    private me.vacuity.ai.sdk.openai.entity.ChunkingStrategy chunkingStrategy;
 }

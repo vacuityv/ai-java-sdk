@@ -21,4 +21,8 @@ public class StreamOptions {
 
     @JsonProperty("include_usage")
     private Boolean includeUsage;
+
+    /** Set false to drop the {@code obfuscation} padding from stream chunks. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("include_obfuscation")
+    private Boolean includeObfuscation;
 }

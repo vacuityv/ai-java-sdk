@@ -70,4 +70,11 @@ public class DecisionRequest {
             return this;
         }
     }
+
+    /** Partitions the prompt cache, as on chat completions. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("prompt_cache_key")
+    private String promptCacheKey;
+    /** Caching mode and lifetime. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("prompt_cache_options")
+    private me.vacuity.ai.sdk.openai.entity.PromptCacheOptions promptCacheOptions;
 }

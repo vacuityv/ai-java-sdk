@@ -44,4 +44,7 @@ public class ToolConfig {
     public static ToolConfig includeServerSideToolInvocations() {
         return ToolConfig.builder().includeServerSideToolInvocations(Boolean.TRUE).build();
     }
+
+    /** Location and language hints for retrieval tools ({@code latLng}, {@code languageCode}). @since 2.7.0 */
+    private java.util.Map<String, Object> retrievalConfig;
 }

@@ -37,13 +37,33 @@ public class StreamChatResponse {
 
     private Usage usage;
 
+    /**
+     * The first choice's text content, or null.
+     * <p>
+     * Null-safe since 2.7.0: before that it threw a NullPointerException when
+     * {@code choices} was null, and a ClassCastException when the content
+     * was a list of parts rather than a string. It is also excluded from JSON
+     * now — Jackson used to serialize it as a {@code single_content} key the
+     * API does not have, so any ChatResponse written back out carried a field
+     * that was never there.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getSingleContent() {
-        if (this == null || this.getChoices().size() == 0
-                || this.getChoices().get(0).getDelta() == null
-                || this.getChoices().get(0).getDelta().getContent() == null) {
-            return "";
-        } else {
-            return (String) this.getChoices().get(0).getDelta().getContent();
+        if (getChoices() == null || getChoices().isEmpty()
+                || getChoices().get(0).getDelta() == null) {
+            return null;
         }
+        Object content = getChoices().get(0).getDelta().getContent();
+        return content instanceof String ? (String) content : null;
     }
+
+    /** Moderation results, when moderation was requested. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("moderation")
+    private java.util.Map<String, Object> moderation;
+    /** Random padding that hides payload sizes; present unless {@code stream_options.include_obfuscation} is false. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("obfuscation")
+    private String obfuscation;
+    /** The tier that actually served the request. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("service_tier")
+    private String serviceTier;
 }

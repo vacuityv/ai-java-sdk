@@ -21,4 +21,7 @@ public class ChatResponseSafetyRating {
     private String category;
 
     private String probability;
+
+    /** Whether this rating is what blocked the content. @since 2.7.0 */
+    private Boolean blocked;
 }

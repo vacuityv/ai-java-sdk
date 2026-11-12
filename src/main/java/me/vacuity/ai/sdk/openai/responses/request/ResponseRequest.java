@@ -207,4 +207,11 @@ public class ResponseRequest {
      */
     @JsonProperty("top_logprobs")
     private Integer topLogprobs;
+
+    /** Image-input settings, for example {@code context_compression}. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("image")
+    private java.util.Map<String, Object> image;
+    /** Access-program opt-ins, for example {@code cyber}. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("access_programs")
+    private java.util.Map<String, Object> accessPrograms;
 }

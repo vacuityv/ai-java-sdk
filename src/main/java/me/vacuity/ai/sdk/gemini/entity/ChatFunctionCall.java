@@ -14,4 +14,6 @@ public class ChatFunctionCall {
 
     private JsonNode args;
 
+    /** Identifies this call, so the matching {@code FunctionResponse.id} can be paired with it when several calls run in parallel. @since 2.7.0 */
+    private String id;
 }

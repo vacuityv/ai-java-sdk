@@ -32,4 +32,11 @@ public class VectorStoreRequest {
     private ExpiresAfter expiresAfter;
 
     private Map<String, Object> metadata;
+
+    /** A description of the store. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("description")
+    private String description;
+    /** How files added to the store are chunked. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("chunking_strategy")
+    private me.vacuity.ai.sdk.openai.entity.ChunkingStrategy chunkingStrategy;
 }

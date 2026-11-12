@@ -41,4 +41,8 @@ public class CompletionTokensDetails {
     /** Predicted-output tokens that did not match and were billed anyway. */
     @JsonProperty("rejected_prediction_tokens")
     private Integer rejectedPredictionTokens;
+
+    /** Text tokens in the completion. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("text_tokens")
+    private Integer textTokens;
 }

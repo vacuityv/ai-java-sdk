@@ -34,4 +34,14 @@ public class VectorStoreFile {
 
     @JsonProperty("last_error")
     private LastError lastError;
+
+    /** Up to 16 key/value pairs for filtering search results. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("attributes")
+    private java.util.Map<String, Object> attributes;
+    /** How this file was chunked. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("chunking_strategy")
+    private me.vacuity.ai.sdk.openai.entity.ChunkingStrategy chunkingStrategy;
+    /** Bytes this file takes up in the store. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("usage_bytes")
+    private Long usageBytes;
 }

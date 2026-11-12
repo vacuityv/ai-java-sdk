@@ -31,4 +31,8 @@ public class OpenaiFile {
     private String object;
 
     private String purpose;
+
+    /** Unix seconds at which the file expires, if it does. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("expires_at")
+    private Long expiresAt;
 }

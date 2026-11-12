@@ -92,4 +92,10 @@ public class Schema {
     public void setEnumValues(List<String> enumValues) {
         this.enumValues = enumValues;
     }
+
+    /** Default value. {@code default} is a Java keyword, hence the field name; the wire name is still {@code default}. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("default")
+    private Object defaultValue;
+    /** An example value. @since 2.7.0 */
+    private Object example;
 }

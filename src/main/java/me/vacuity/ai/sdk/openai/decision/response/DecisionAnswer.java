@@ -64,6 +64,8 @@ public class DecisionAnswer {
      * Whether the model declined to answer this question. Check this before
      * reading any value field: on a refusal they are all null.
      */
+    // derived, not a wire field — excluded so it never serializes as one
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isRefusal() {
         return "refusal".equals(type);
     }

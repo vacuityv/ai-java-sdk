@@ -83,4 +83,11 @@ public class GroundingMetadata {
 
         private String text;
     }
+
+    /** Image searches the model ran. @since 2.7.0 */
+    private java.util.List<String> imageSearchQueries;
+    /** Retrieval scores, for example {@code googleSearchDynamicRetrievalScore}. @since 2.7.0 */
+    private java.util.Map<String, Object> retrievalMetadata;
+    /** Token for rendering the Google Maps widget. @since 2.7.0 */
+    private String googleMapsWidgetContextToken;
 }

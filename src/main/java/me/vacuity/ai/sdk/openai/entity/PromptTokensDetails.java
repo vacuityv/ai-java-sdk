@@ -82,4 +82,11 @@ public class PromptTokensDetails {
      */
     @JsonProperty("cache_creation_input_tokens")
     private Integer cacheCreationInputTokens;
+
+    /** Text tokens in the prompt. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("text_tokens")
+    private Integer textTokens;
+    /** Image tokens in the prompt. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("image_tokens")
+    private Integer imageTokens;
 }

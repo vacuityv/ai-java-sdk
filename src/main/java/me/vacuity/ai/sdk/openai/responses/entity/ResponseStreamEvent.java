@@ -138,6 +138,8 @@ public class ResponseStreamEvent {
      * Get the output item from either "item" or "output_item" field.
      * API typically uses "item" field.
      */
+    // derived, not a wire field — excluded so it never serializes as one
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public ResponseOutputItem getOutputItemOrItem() {
         return item != null ? item : outputItem;
     }

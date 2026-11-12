@@ -1,5 +1,7 @@
 package me.vacuity.ai.sdk.openai;
 
+import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeClientSecretRequest;
+import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeClientSecret;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -345,10 +347,18 @@ public class OpenaiClient {
         return execute(api.retrieveFileContent(fileId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Assistant createAssistant(AssistantRequest request) {
         return execute(api.createAssistant(request));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public List<Assistant> listAssistants(ListRequest request) {
         Map<String, Object> queryParameters = mapper.convertValue(request, new TypeReference<Map<String, Object>>() {
         });
@@ -356,66 +366,126 @@ public class OpenaiClient {
     }
 
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Assistant retrieveAssistant(String assistantId) {
         return execute(api.retrieveAssistant(assistantId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Assistant modifyAssistant(String assistantId, ModifyAssistantRequest request) {
         return execute(api.modifyAssistant(assistantId, request));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public DeleteStatus deleteAssistant(String assistantId) {
         return execute(api.deleteAssistant(assistantId));
     }
 
+    /**
+     * @deprecated The endpoint no longer exists: it was the Assistants v1 file attachment, and the current OpenAI spec has no such route. Attach files through a vector store instead.
+     */
+    @Deprecated
     public DeleteStatus deleteAssistantFile(String assistantId, String fileId) {
         return execute(api.deleteAssistantFile(assistantId, fileId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Thread createThread(ThreadRequest request) {
         return execute(api.createThread(request));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Thread retrieveThread(String threadId) {
         return execute(api.retrieveThread(threadId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Thread modifyThread(String threadId, ThreadRequest request) {
         return execute(api.modifyThread(threadId, request));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public DeleteStatus deleteThread(String threadId) {
         return execute(api.deleteThread(threadId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public AssistantMessage createMessage(String threadId, AssistantMessageRequest request) {
         return execute(api.createMessage(threadId, request));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public List<AssistantMessage> listMessages(String threadId, ListRequest params) {
         Map<String, Object> queryParameters = mapper.convertValue(params, new TypeReference<Map<String, Object>>() {
         });
         return execute(api.listMessages(threadId, queryParameters)).data;
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public AssistantMessage retrieveMessage(String threadId, String messageId) {
         return execute(api.retrieveMessage(threadId, messageId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public AssistantMessage modifyMessage(String threadId, String messageId, ModifyAssistantMessageRequest request) {
         return execute(api.modifyMessage(threadId, messageId, request));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Run createRun(String threadId, RunRequest runRequest) {
         runRequest.setStream(false);
         return execute(api.createRun(threadId, runRequest));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Run createThreadAndRun(ThreadAndRunRequest threadAndRunRequest) {
         threadAndRunRequest.setStream(false);
         return execute(api.createThreadAndRun(threadAndRunRequest));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public List<Run> listRuns(String threadId, ListRequest listRequest) {
         Map<String, String> search = new HashMap<>(8);
         if (listRequest != null) {
@@ -424,6 +494,10 @@ public class OpenaiClient {
         return execute(api.listRuns(threadId, search)).data;
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public List<RunStep> listRunSteps(String threadId, String runId, ListRequest listRequest) {
         Map<String, Object> search = new HashMap<>(8);
         if (listRequest != null) {
@@ -432,37 +506,69 @@ public class OpenaiClient {
         return execute(api.listRunSteps(threadId, runId, search)).data;
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Run retrieveRun(String threadId, String runId) {
         return execute(api.retrieveRun(threadId, runId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public RunStep retrieveRunStep(String threadId, String runId, String stepId) {
         return execute(api.retrieveRunStep(threadId, runId, stepId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Run modifyRun(String threadId, String runId, Map<String, Object> metadata) {
         return execute(api.modifyRun(threadId, runId, metadata));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Run submitToolOutputs(String threadId, String runId, SubmitToolOutputsRequest submitToolOutputsRequest) {
         return execute(api.submitToolOutputs(threadId, runId, submitToolOutputsRequest));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Run cancelRun(String threadId, String runId) {
         return execute(api.cancelRun(threadId, runId));
     }
 
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Flowable<AssistantStreamResponse> streamCreateRun(String threadId, RunRequest runRequest) {
         runRequest.setStream(true);
         return assistantStream(api.streamCreateRun(threadId, runRequest));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Flowable<AssistantStreamResponse> streamCreateThreadAndRun(ThreadAndRunRequest threadAndRunRequest) {
         threadAndRunRequest.setStream(true);
         return assistantStream(api.streamCreateThreadAndRun(threadAndRunRequest));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public Flowable<AssistantStreamResponse> streamSubmitToolOutputs(String threadId, String runId, SubmitToolOutputsRequest submitToolOutputsRequest) {
         submitToolOutputsRequest.setStream(true);
         return assistantStream(api.streamSubmitToolOutputs(threadId, runId, submitToolOutputsRequest));
@@ -688,11 +794,19 @@ public class OpenaiClient {
         return eventSourceStream(api.streamEditImageByReference(request), ImageStreamEvent.class);
     }
 
+    /**
+     * @deprecated Retired by OpenAI and no longer available. Use {@link #editImage} with a GPT Image model and a prompt describing the variation.
+     */
+    @Deprecated
     public ImageResponse imageVariation(ImageVariationRequest request, String imagePath) {
         java.io.File image = new java.io.File(imagePath);
         return imageVariation(request, image);
     }
 
+    /**
+     * @deprecated Retired by OpenAI and no longer available. Use {@link #editImage} with a GPT Image model and a prompt describing the variation.
+     */
+    @Deprecated
     public ImageResponse imageVariation(ImageVariationRequest request, java.io.File image) {
         RequestBody imageBody = RequestBody.create(MediaType.parse("image"), image);
 
@@ -733,6 +847,10 @@ public class OpenaiClient {
         return execute(api.retrieveVectorStore(vectorStoreId));
     }
 
+    /**
+     * @deprecated Part of the Assistants API, which OpenAI has deprecated in favour of the Responses API — use {@link #createResponse} instead.
+     */
+    @Deprecated
     public VectorStore modifyAssistant(String vectorStoreId, ModifyVectorStoreRequest request) {
         return execute(api.modifyVectorStore(vectorStoreId, request));
     }
@@ -774,8 +892,30 @@ public class OpenaiClient {
         return execute(api.listVectorStoreFileInBatch(vectorStoreId, batchId, queryParameters)).data;
     }
 
+    /**
+     * @deprecated {@code POST /v1/realtime/sessions} has been removed — it answers {@code Invalid URL} — so this always fails. Use {@link #createRealtimeClientSecret} for the GA Realtime API.
+     */
+    @Deprecated
     public RealtimeSession createRealtimeSession(CreateRealtimeSessionRequest request) {
         return execute(api.createRealtimeSession(request));
+    }
+
+    /**
+     * Mints a short-lived key a browser or device can use to open a GA Realtime
+     * connection, without the real API key leaving the server.
+     * <p>
+     * Replaces {@link #createRealtimeSession}, whose endpoint has been removed.
+     * The session shape is the GA one — audio settings under {@code audio},
+     * {@code output_modalities} instead of {@code modalities} — see
+     * {@link me.vacuity.ai.sdk.openai.realtime.entity.RealtimeSessionConfig}.
+     * <p>
+     * The returned {@code value} is a secret: give it to the client, do not log
+     * it.
+     *
+     * @since 2.7.0
+     */
+    public RealtimeClientSecret createRealtimeClientSecret(CreateRealtimeClientSecretRequest request) {
+        return execute(api.createRealtimeClientSecret(request));
     }
 
     public Batch createBatch(CreateBatchRequest request) {
@@ -794,11 +934,19 @@ public class OpenaiClient {
         return execute(api.listBatch(after, limit)).getData();
     }
 
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public VideoJob createVideo(CreateVideoRequest request, String imagePath) {
         java.io.File image = new java.io.File(imagePath);
         return createVideo(request, image);
     }
     
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public VideoJob createVideo(CreateVideoRequest request, java.io.File image) {
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MediaType.get("multipart/form-data"));
@@ -821,22 +969,42 @@ public class OpenaiClient {
         return execute(api.createVideo(builder.build()));
     }
 
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public VideoJob remixVideo(String videoId, RemixVideoRequest request) {
         return execute(api.remixVideo(videoId, request));
     }
 
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public List<VideoJob> listVideos(String after, Integer limit, String order) {
         return execute(api.listVideos(after, limit, order)).getData();
     }
 
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public VideoJob retrieveVideo(String videoId) {
         return execute(api.retrieveVideo(videoId));
     }
 
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public VideoJob deleteVideo(String videoId) {
         return execute(api.deleteVideo(videoId));
     }
 
+    /**
+     * @deprecated OpenAI marks the Videos API deprecated.
+     */
+    @Deprecated
     public ResponseBody retrieveVideoContent(String videoId, String variant) {
         return execute(api.retrieveVideoContent(videoId, variant));
     }
@@ -986,7 +1154,10 @@ public class OpenaiClient {
      * @param limit  Maximum number of responses to return
      * @param order  Sort order ("asc" or "desc")
      * @return List of responses
+     * <p>
+     * @deprecated Not usable with an API key. Measured, {@code GET /v1/responses} answers 401 "must be made with a session key" — it accepts only browser session keys — and it is absent from OpenAI's public spec. Store response ids yourself and use {@link #retrieveResponse}.
      */
+    @Deprecated
     public List<Response> listResponses(String after, Integer limit, String order) {
         return execute(api.listResponses(after, limit, order)).getData();
     }

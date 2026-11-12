@@ -18,15 +18,20 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class VideoJob {
 
-    @JsonProperty("completedAt")
+    // Before 2.7.0 these four were annotated with camelCase names
+    // ("completedAt" and so on). An explicit @JsonProperty overrides the
+    // client's snake_case strategy, so each one read a key the API never sends
+    // and came back null. The spec names them completed_at, created_at,
+    // expires_at and remixed_from_video_id.
+    @JsonProperty("completed_at")
     private Integer completed_at;
 
-    @JsonProperty("createdAt")
+    @JsonProperty("created_at")
     private Integer created_at;
     
     private Error error;
 
-    @JsonProperty("expiresAt")
+    @JsonProperty("expires_at")
     private Integer expires_at;
     
     private String id;
@@ -37,7 +42,7 @@ public class VideoJob {
     
     private Integer progress;
 
-    @JsonProperty("remixedFromVideoId")
+    @JsonProperty("remixed_from_video_id")
     private String remixed_from_video_id;
     
     private String seconds;

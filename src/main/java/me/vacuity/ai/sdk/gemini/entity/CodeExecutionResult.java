@@ -20,4 +20,7 @@ public class CodeExecutionResult {
     private String outcome;
 
     private String output;
+
+    /** Pairs the code with its result. @since 2.7.0 */
+    private String id;
 }

@@ -64,4 +64,30 @@ public class Tool {
                 .googleSearch(new HashMap<>())
                 .build();
     }
+
+    /** Lets the model fetch URLs named in the prompt. Send an empty object — see {@link #urlContext()}. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private java.util.Map<String, Object> urlContext;
+    /** Grounding with Google Maps, for example {@code enableWidget}. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private java.util.Map<String, Object> googleMaps;
+    /** Search over file-search stores ({@code fileSearchStoreNames}, {@code topK}, {@code metadataFilter}). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private java.util.Map<String, Object> fileSearch;
+    /** Computer use ({@code environment}, {@code excludedPredefinedFunctions}). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private java.util.Map<String, Object> computerUse;
+    /** Remote MCP servers ({@code name}, {@code streamableHttpTransport}). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private java.util.List<java.util.Map<String, Object>> mcpServers;
+
+    /**
+     * The url-context tool, which lets the model read URLs given in the prompt.
+     * An empty object, sent the same way as {@link #googleSearch()}.
+     *
+     * @since 2.7.0
+     */
+    public static Tool urlContext() {
+        return Tool.builder().urlContext(new HashMap<>()).build();
+    }
 }

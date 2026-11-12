@@ -77,6 +77,8 @@ public class ImageStreamEvent {
     /**
      * Whether this is a final (completed) event rather than a partial one.
      */
+    // derived, not a wire field — excluded so it never serializes as one
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isCompleted() {
         return "image_generation.completed".equals(type) || "image_edit.completed".equals(type);
     }

@@ -68,6 +68,8 @@ public class ChatFunction {
     }
 
     public static class Builder {
+        private Boolean eagerInputStreaming;
+        private java.util.List<java.util.Map<String, Object>> inputExamples;
         private String type;
         private String name;
         private Integer maxUses;
@@ -124,6 +126,18 @@ public class ChatFunction {
             return this;
         }
 
+        /** @since 2.7.0 */
+        public Builder eagerInputStreaming(Boolean eagerInputStreaming) {
+            this.eagerInputStreaming = eagerInputStreaming;
+            return this;
+        }
+
+        /** @since 2.7.0 */
+        public Builder inputExamples(java.util.List<java.util.Map<String, Object>> inputExamples) {
+            this.inputExamples = inputExamples;
+            return this;
+        }
+
         public ChatFunction build() {
             ChatFunction chatFunction = new ChatFunction();
             chatFunction.setType(type);
@@ -136,7 +150,16 @@ public class ChatFunction {
             chatFunction.setDeferLoading(deferLoading);
             chatFunction.setAllowedCallers(allowedCallers);
             chatFunction.setCacheControl(cacheControl);
+            chatFunction.setEagerInputStreaming(eagerInputStreaming);
+            chatFunction.setInputExamples(inputExamples);
             return chatFunction;
         }
     }
+
+    /** Stream this tool's input as it is generated instead of in one burst. The input then arrives unvalidated, so check it against the schema before running the tool. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("eager_input_streaming")
+    private Boolean eagerInputStreaming;
+    /** Example inputs that show the model how to call the tool. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("input_examples")
+    private java.util.List<java.util.Map<String, Object>> inputExamples;
 }

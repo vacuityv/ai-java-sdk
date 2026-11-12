@@ -80,4 +80,11 @@ public class Batch {
     private BatchRequestCount requestCounts;
 
     private String status;
+
+    /** The model the batch ran. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("model")
+    private String model;
+    /** Token usage across the batch; same shape as a Responses usage block. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("usage")
+    private me.vacuity.ai.sdk.openai.responses.entity.Response.ResponseUsage usage;
 }

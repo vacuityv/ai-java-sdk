@@ -179,4 +179,13 @@ public class ChatRequest {
         
         private String thinkingLevel;
     }
+
+    /** "standard", "flex" or "priority". @since 2.7.0 */
+    private String serviceTier;
+    /** Whether the request may be stored for later retrieval. @since 2.7.0 */
+    private Boolean store;
+    /** Billing labels attached to the request. @since 2.7.0 */
+    private java.util.Map<String, String> labels;
+    /** Resumes a generation the server paused, from a previous candidate's {@code continuationToken}. @since 2.7.0 */
+    private String continuationToken;
 }

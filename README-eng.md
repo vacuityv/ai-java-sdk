@@ -788,6 +788,65 @@ By contrast, a **plain mid-conversation system message — no `clear_at` — may
 
 **Placement** is the same as for any system message carrying content: it must follow a `user` turn (or an `assistant` turn ending in a server tool result) and must precede an `assistant` turn or end the array. As `messages[0]` it is rejected, with the server pointing at the top-level `system` parameter instead.
 
+### 2.7.0: a full audit against the official specs
+
+Rather than one feature, this release compares **every wrapped endpoint** of all three vendors against their official specs, field by field: OpenAI's `openapi.json`, Gemini's v1beta discovery document, and Claude's official Python SDK types (generated from its spec). The comparison is scripted rather than done by reading docs, and each suspected problem was then checked against the live API.
+
+**The spec is not the live API.** OpenAI's OpenAPI still lists `/realtime/sessions`, which now answers `Invalid URL` — so endpoints were also checked with a side-effect-free live route sweep.
+
+#### Real failures fixed
+
+| Problem | Symptom | Fix |
+|---|---|---|
+| OpenAI Realtime | `POST /v1/realtime/sessions` was removed, so `createRealtimeSession` always failed | New `createRealtimeClientSecret` (the GA `/realtime/client_secrets` endpoint); the old method is `@Deprecated` |
+| `VectorStore.bytes` | Always null — it read a key the API never sends | Now `getUsageBytes()`; `getBytes()` kept and deprecated |
+| `VideoJob` timestamps | All four always null — annotated with camelCase names that overrode the snake_case strategy | Wire names corrected |
+| `getSingleContent()` | NullPointerException on null `choices`, ClassCastException on multi-part content, and a fake `single_content` key whenever serialized | Null-safe, safe cast, excluded from JSON |
+
+Using the GA Realtime API:
+
+```java
+RealtimeClientSecret secret = client.createRealtimeClientSecret(
+        CreateRealtimeClientSecretRequest.builder()
+                .session(RealtimeSessionConfig.builder()
+                        .type("realtime").model("gpt-realtime").build())
+                .build());
+secret.getValue();   // a short-lived key for the browser or device — a secret, do not log it
+```
+
+The GA session is shaped differently: audio settings nest under `audio.input` / `audio.output`, and `modalities` became `outputModalities`.
+
+#### Marked `@Deprecated`
+
+Kept, but deprecated with the reason and the replacement spelled out: Assistants / Threads / Runs (deprecated by OpenAI in favour of the Responses API), Videos, `imageVariation` (retired — use `editImage` with a prompt), `listResponses` (accepts only browser session keys, so an API key always gets 401), and `createRealtimeSession`.
+
+#### New capabilities worth knowing, and their traps
+
+- **OpenAI chat `refusal` is readable now.** When a model declines, `content` is null and the reason is in `refusal` — previously an SDK user just saw an empty message
+- **logprobs can be read now** (OpenAI `choice.getLogprobs()`, Gemini `candidate.getLogprobsResult()`). Before, they could be requested but not read. gpt-5.x rejects logprobs outright — gpt-4.1-mini-class models return them; on the Gemini side no model reachable here has logprobs enabled
+- **Function `strict`: annotate every field of the arguments class with `@JsonProperty(required = true)`.** The generated schema already sets `additionalProperties: false`, but lists a property as required only when annotated, and the server otherwise answers `'required' is required to be supplied` (both cases verified live)
+- OpenAI `metadata` is only allowed when `store = true`
+- Stream chunks carry `obfuscation` padding by default; `StreamOptions.includeObfuscation(false)` turns it off
+- **Claude `usage.getServerToolUse()`**: web search and web fetch counts — both are **billed per request**, so a token-only bill misses them
+- **Claude `tool_result` `isError`**: set it when a tool fails and Claude treats the call as failed (measured: it replied that the request timed out and it would try again) rather than reading the error text as a result
+- Claude document citations: turn them on with `setCitations(ChatMessageContent.citationsEnabled())` on the document block; a returned text block's `getCitations()` is the list. The one field has a different type on each block, hence `Object`
+- **Gemini `FunctionCall.getId()` / `FunctionResponse.setId()`**: pairs calls with responses when several run in parallel
+- Gemini `Part.setFileData(FileData.of(uri, mime))` references a Files API upload or a YouTube URL; `Tool.urlContext()` lets the model read URLs in the prompt
+- Responses API `input_tokens_details.cache_write_tokens` — added to chat completions in 2.3.0, now on the Responses API too
+
+#### Serialization fixes
+
+Six derived methods (`getSingleContent()`, `isRefusal()`, `isCompleted()` and others) were being written to JSON as if they were fields. They are excluded now, and a contract test requires every property any model class serializes to be backed by a real field.
+
+The hand-written builders of all three `ChatFunction` classes **could not set** this release's new fields (`build()` copied a fixed list). Fixed, with a contract test.
+
+#### Not verified live
+
+- OpenAI's Assistants / Threads / Runs / Videos / `images/variations` — 30 endpoints the configured proxy does not forward (the spec marks the first two groups deprecated and variations retired)
+- Chat `refusal` / `annotations`: not reliably triggerable; covered offline only
+- Gemini `logprobsResult`: no reachable model has logprobs enabled
+- DeepSeek and Alibaba Bailian: no credentials on this machine
+
 ### Gemini thinking tokens and billing
 
 On Gemini 2.5 / 3.x / 4 the thinking tokens live in `usageMetadata.thoughtsTokenCount`. They are **not included in `candidatesTokenCount`**, yet Google bills them at the output rate — billing on `candidatesTokenCount` alone undercounts.

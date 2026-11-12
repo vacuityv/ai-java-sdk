@@ -784,6 +784,65 @@ ChatRequest.builder()
 
 **放置位置**和其他带内容的 system 消息一样:必须紧跟 `user` 轮(或结束于服务端工具结果的 `assistant` 轮),并且后面接 `assistant` 轮或作为数组最后一条。放在 `messages[0]` 会被拒,服务端会提示改用顶层 `system` 参数。
 
+### 2.7.0:按官方规格全量审计
+
+这一版不是加某个功能,而是把三家**全部已封装的接口**和官方规格逐字段比对了一遍:OpenAI 用官方 `openapi.json`,Gemini 用 v1beta discovery 文档,Claude 用官方 Python SDK 的类型定义(从 spec 生成)。比对靠脚本,不靠人工翻文档;每个疑似问题再用真机验证。
+
+**规格不等于线上。** 官方 OpenAPI 里还列着 `/realtime/sessions`,线上已经返回 `Invalid URL`。所以端点层还做了一遍无副作用的线上路由扫描。
+
+#### 修掉的实际故障
+
+| 问题 | 现象 | 修法 |
+|---|---|---|
+| OpenAI Realtime | `POST /v1/realtime/sessions` 已被移除,`createRealtimeSession` 必然失败 | 新增 `createRealtimeClientSecret`(GA 端点 `/realtime/client_secrets`),旧方法标 `@Deprecated` |
+| `VectorStore.bytes` | 永远是 null(读的键 API 根本不发) | 改为 `getUsageBytes()`,`getBytes()` 保留并标废弃 |
+| `VideoJob` 四个时间字段 | 永远是 null(注解写成了 camelCase,覆盖了 snake_case 策略) | 改正线名 |
+| `getSingleContent()` | `choices` 为 null 时空指针;多模态内容时 `ClassCastException`;序列化时还会多出一个假字段 `single_content` | 判空、安全转型、排除出 JSON |
+
+Realtime GA 的用法:
+
+```java
+RealtimeClientSecret secret = client.createRealtimeClientSecret(
+        CreateRealtimeClientSecretRequest.builder()
+                .session(RealtimeSessionConfig.builder()
+                        .type("realtime").model("gpt-realtime").build())
+                .build());
+secret.getValue();   // 短期 key,交给浏览器 / 设备去连 —— 是机密,别打日志
+```
+
+GA 的 session 形状和旧版不同:音频设置嵌在 `audio.input` / `audio.output` 下,`modalities` 改名为 `outputModalities`。
+
+#### 标了 `@Deprecated` 的接口
+
+不删,只标废弃并写明原因和替代方案:Assistants / Threads / Runs(OpenAI 已废弃,改用 Responses API)、Videos、`imageVariation`(已退役,改用带 prompt 的 `editImage`)、`listResponses`(只接受浏览器会话 key,API key 调必 401)、`createRealtimeSession`。
+
+#### 值得知道的新能力和坑
+
+- **OpenAI chat 能读到 `refusal` 了。** 模型拒答时 `content` 为空、原因在 `refusal` 里 —— 之前 SDK 用户只会看到一条空消息
+- **logprobs 能读到结果了**(OpenAI `choice.getLogprobs()`、Gemini `candidate.getLogprobsResult()`)。之前能请求、读不到。注意 gpt-5.x 直接拒绝 logprobs,实测要用 gpt-4.1-mini 这类模型;Gemini 这边本机能访问的模型都没开 logprobs
+- **函数调用 `strict`:参数类的每个字段都要加 `@JsonProperty(required = true)`。** SDK 生成的 schema 已经带 `additionalProperties: false`,但只有带这个注解的字段才会进 `required`,否则服务端报 `'required' is required to be supplied`(两种情况都已真机验证)
+- OpenAI `metadata` 只有在 `store = true` 时才允许
+- 流式块默认带 `obfuscation` 填充,`StreamOptions.includeObfuscation(false)` 可以关掉
+- **Claude `usage.getServerToolUse()`**:web search / web fetch 的调用次数 —— 这两样**按次计费**,只看 token 会漏算
+- **Claude `tool_result` 的 `isError`**:工具失败时设上,Claude 会当作失败处理(实测它回答"请求超时了,我再试一次"),而不是把错误文本当成正常结果
+- Claude 文档引用:document 块用 `setCitations(ChatMessageContent.citationsEnabled())` 开启;返回的 text 块的 `getCitations()` 是引用列表。同一个字段在两种块上类型不同,所以是 `Object`
+- **Gemini `FunctionCall.getId()` / `FunctionResponse.setId()`**:并行函数调用时靠它把调用和响应对上
+- Gemini `Part.setFileData(FileData.of(uri, mime))`:引用 Files API 上传的文件或 YouTube 链接;`Tool.urlContext()` 让模型读取 prompt 里的 URL
+- Responses API 的 `input_tokens_details.cache_write_tokens`:2.3.0 给 chat completions 补过,这次补到 Responses API
+
+#### 序列化方面的修正
+
+6 个派生方法(`getSingleContent()`、`isRefusal()`、`isCompleted()` 等)之前会被 Jackson 当成字段写进 JSON。现在都排除了,并加了契约测试:任何模型类序列化出的每个属性都必须有对应的字段。
+
+三个 `ChatFunction` 的手写 builder 之前**设置不了**这次新增的字段(`build()` 只拷贝固定的几个),也一并修了并加了契约测试。
+
+#### 没法验证的部分
+
+- OpenAI 的 Assistants / Threads / Runs / Videos / `images/variations` 共 30 个端点:配置的代理不转发,没法真机验证(规格里前两组标 deprecated、variations 标 retired)
+- chat 的 `refusal` / `annotations`:无法稳定触发,只有离线测试覆盖
+- Gemini `logprobsResult`:可访问的模型都没开 logprobs
+- DeepSeek、阿里云百炼:本机没凭据
+
 ### Gemini 思考 token 与计费
 
 Gemini 2.5 / 3.x / 4 的思考 token 在 `usageMetadata.thoughtsTokenCount` 里，**不包含在 `candidatesTokenCount` 中**，但 Google 按输出价计费。只按 `candidatesTokenCount` 计费会漏收思考部分。

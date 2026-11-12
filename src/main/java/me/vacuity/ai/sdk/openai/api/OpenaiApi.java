@@ -1,5 +1,7 @@
 package me.vacuity.ai.sdk.openai.api;
 
+import me.vacuity.ai.sdk.openai.realtime.request.CreateRealtimeClientSecretRequest;
+import me.vacuity.ai.sdk.openai.realtime.entity.RealtimeClientSecret;
 import io.reactivex.Single;
 import me.vacuity.ai.sdk.openai.assistant.entity.Assistant;
 import me.vacuity.ai.sdk.openai.assistant.entity.AssistantMessage;
@@ -288,8 +290,17 @@ public interface OpenaiApi {
     @GET("v1/vector_stores/{vector_store_id}/file_batches/{batch_id}/files")
     Single<ListResponse<VectorStoreFile>> listVectorStoreFileInBatch(@Path("vector_store_id") String vectorStoreId, @Path("batch_id") String batchId, @QueryMap Map<String, Object> listRequest);
 
+    /**
+     * @deprecated removed upstream — answers {@code Invalid URL}. Use
+     *             {@link #createRealtimeClientSecret}.
+     */
+    @Deprecated
     @POST("v1/realtime/sessions")
     Single<RealtimeSession> createRealtimeSession(@Body CreateRealtimeSessionRequest request);
+
+    /** The GA Realtime API: mints an ephemeral key for a session. */
+    @POST("v1/realtime/client_secrets")
+    Single<RealtimeClientSecret> createRealtimeClientSecret(@Body CreateRealtimeClientSecretRequest request);
 
     @POST("v1/batches")
     Single<Batch> createBatch(@Body CreateBatchRequest request);

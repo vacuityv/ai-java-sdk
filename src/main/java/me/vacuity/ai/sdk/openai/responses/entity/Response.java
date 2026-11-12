@@ -188,9 +188,17 @@ public class Response {
     private String safetyIdentifier;
 
     /**
-     * Get the text content from the first output message.
+     * The response's text: the server's {@code output_text} when it sends one,
+     * otherwise the first {@code output_text} part of the first message.
+     * <p>
+     * The server-supplied field binds as of 2.7.0. Before that this method
+     * only derived the text from {@code output}, so a server-provided
+     * {@code output_text} was read into nothing.
      */
     public String getOutputText() {
+        if (outputText != null) {
+            return outputText;
+        }
         if (output == null || output.isEmpty()) {
             return null;
         }
@@ -292,5 +300,40 @@ public class Response {
          */
         @JsonProperty("text_tokens")
         private Integer textTokens;
-    }
+
+    /** Input tokens written into the cache — billed above the plain input rate on GPT-5.6 and later. Disjoint from {@code cached_tokens}; both are subsets of input_tokens. Added to chat completions in 2.3.0 and missed here until 2.7.0. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("cache_write_tokens")
+    private Integer cacheWriteTokens;
+    /** Cache writes split by lifetime ({@code ttl_30m_tokens}, {@code ttl_12h_tokens}). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("cache_write_tokens_details")
+    private java.util.Map<String, Object> cacheWriteTokensDetails;
+}
+
+    /** All output text concatenated, when the server supplies it. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("output_text")
+    private String outputText;
+    /** Moderation results for the input and output. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("moderation")
+    private java.util.Map<String, Object> moderation;
+    /** The caching settings in effect ({@code ttl}, {@code mode}, {@code comparison_response_id}). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("prompt_cache_options")
+    private java.util.Map<String, Object> promptCacheOptions;
+    /** Why the cache missed, when diagnostics were requested. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("prompt_cache_diagnostics")
+    private java.util.Map<String, Object> promptCacheDiagnostics;
+    /** Per-tool usage, for example image generation and web search counts. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("tool_usage")
+    private java.util.Map<String, Object> toolUsage;
+    /** Transformations the server applied to the input. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("input_transformations")
+    private java.util.List<java.util.Map<String, Object>> inputTransformations;
+    /** The reusable prompt reference, echoed back. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("prompt")
+    private java.util.Map<String, Object> prompt;
+    /** The image-input settings in effect. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("image")
+    private java.util.Map<String, Object> image;
+    /** The access programs in effect. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("access_programs")
+    private java.util.Map<String, Object> accessPrograms;
 }

@@ -79,4 +79,19 @@ public class ChatMessageContentPart {
 
         private String data;
     }
+
+    /** A file by URI — a Files API upload or a YouTube URL — instead of inline bytes. @since 2.7.0 */
+    private me.vacuity.ai.sdk.gemini.entity.FileData fileData;
+    /** Clip offsets and frame rate for a video part. @since 2.7.0 */
+    private me.vacuity.ai.sdk.gemini.entity.VideoMetadata videoMetadata;
+    /** Per-part media resolution, for example {@code {"level": "MEDIA_RESOLUTION_HIGH"}}. @since 2.7.0 */
+    private java.util.Map<String, Object> mediaResolution;
+    /** Transcription attached to an audio part ({@code text}, {@code words}, {@code speakerLabel}). @since 2.7.0 */
+    private java.util.Map<String, Object> audioTranscription;
+    /** Speaker and style for a speech part. @since 2.7.0 */
+    private java.util.Map<String, Object> speechMetadata;
+    /** Arbitrary metadata on the part. @since 2.7.0 */
+    private java.util.Map<String, Object> partMetadata;
+    /** "STATIC" or "AGENTIC". @since 2.7.0 */
+    private String mediaProcessing;
 }

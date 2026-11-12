@@ -19,6 +19,12 @@ import java.util.Set;
  **/
 
 
+/**
+ * @deprecated the beta Realtime session shape, for {@code POST /v1/realtime/sessions},
+ * which has been removed upstream. Use {@link RealtimeSessionConfig} with
+ * {@code OpenaiClient.createRealtimeClientSecret}.
+ */
+@Deprecated
 @Data
 @Builder
 @NoArgsConstructor

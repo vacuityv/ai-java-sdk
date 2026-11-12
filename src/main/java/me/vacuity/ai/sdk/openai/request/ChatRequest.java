@@ -127,4 +127,35 @@ public class ChatRequest {
     // XAI specific parameters
     @JsonProperty("search_parameters")
     private SearchParameters searchParameters;
+
+    /** Audio output settings ({@code voice}, {@code format}); needs {@code modalities} to include "audio". @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("audio")
+    private java.util.Map<String, Object> audio;
+    /** Up to 16 key/value pairs stored with the completion. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("metadata")
+    private java.util.Map<String, String> metadata;
+    /** Output modalities, for example ["text", "audio"]. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("modalities")
+    private java.util.List<String> modalities;
+    /** Moderation settings ({@code model}, {@code policy}); passed through as given. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("moderation")
+    private java.util.Map<String, Object> moderation;
+    /** Whether the model may call several tools in one turn. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("parallel_tool_calls")
+    private Boolean parallelToolCalls;
+    /** Predicted output, for faster regeneration when most of the answer is known. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("prediction")
+    private java.util.Map<String, Object> prediction;
+    /** Stable per-end-user id for abuse monitoring; replaces {@code user}. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("safety_identifier")
+    private String safetyIdentifier;
+    /** "auto", "default", "flex", "scale", "priority" or "fast". @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("service_tier")
+    private String serviceTier;
+    /** Whether to store the completion for later retrieval or distillation. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("store")
+    private Boolean store;
+    /** Web search settings for search-capable models ({@code search_context_size}, {@code user_location}). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("web_search_options")
+    private java.util.Map<String, Object> webSearchOptions;
 }

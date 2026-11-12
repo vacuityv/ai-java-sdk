@@ -105,4 +105,42 @@ public class ChatMessageContent {
         this.cacheControl = cacheControl;
         this.data = data;
     }
+
+    /** tool_result blocks: marks the tool call as failed, so Claude knows the content is an error rather than a result. Without it a failure reads as a successful answer. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("is_error")
+    private Boolean isError;
+    /** On a text block: the list of citations backing it. On a document block: {@code {"enabled": true}} to turn citations on — see {@link #citationsEnabled()}. One field for both because this class carries every block type. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("citations")
+    private Object citations;
+    /** document blocks: a title the model can cite the document by. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("title")
+    private String title;
+    /** document blocks: context about the document that is not itself citable. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("context")
+    private String context;
+    /** image blocks: transformations to apply before the model sees the image. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("transformations")
+    private java.util.Map<String, Object> transformations;
+    /** tool_use blocks: what invoked the tool, for programmatic tool calling. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("caller")
+    private java.util.Map<String, Object> caller;
+    /** tool_use / tool_result blocks: the MCP toolset the tool belongs to. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("toolset_name")
+    private String toolsetName;
+    /** Stream message_delta only: the refusal category when stop_reason is "refusal". @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("stop_details")
+    private StopDetails stopDetails;
+    /** Stream message_delta only: the code-execution container. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("container")
+    private java.util.Map<String, Object> container;
+
+    /**
+     * The value that turns citations on for a document block:
+     * {@code document.setCitations(ChatMessageContent.citationsEnabled())}.
+     *
+     * @since 2.7.0
+     */
+    public static java.util.Map<String, Object> citationsEnabled() {
+        return java.util.Collections.<String, Object>singletonMap("enabled", Boolean.TRUE);
+    }
 }

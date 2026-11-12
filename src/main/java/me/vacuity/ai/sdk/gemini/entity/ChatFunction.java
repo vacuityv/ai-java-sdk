@@ -35,6 +35,10 @@ public class ChatFunction {
     }
 
     public static class Builder {
+        private Object parametersJsonSchema;
+        private me.vacuity.ai.sdk.gemini.entity.Schema response;
+        private Object responseJsonSchema;
+        private String behavior;
         private String name;
         private String description;
         private Class<?> parameters;
@@ -56,13 +60,50 @@ public class ChatFunction {
             return this;
         }
 
+        /** @since 2.7.0 */
+        public Builder parametersJsonSchema(Object parametersJsonSchema) {
+            this.parametersJsonSchema = parametersJsonSchema;
+            return this;
+        }
+
+        /** @since 2.7.0 */
+        public Builder response(me.vacuity.ai.sdk.gemini.entity.Schema response) {
+            this.response = response;
+            return this;
+        }
+
+        /** @since 2.7.0 */
+        public Builder responseJsonSchema(Object responseJsonSchema) {
+            this.responseJsonSchema = responseJsonSchema;
+            return this;
+        }
+
+        /** @since 2.7.0 */
+        public Builder behavior(String behavior) {
+            this.behavior = behavior;
+            return this;
+        }
+
         public ChatFunction build() {
             ChatFunction chatFunction = new ChatFunction();
             chatFunction.setName(name);
             chatFunction.setDescription(description);
             chatFunction.setParametersClass(parameters);
             chatFunction.setExecutor(executor);
+            chatFunction.setParametersJsonSchema(parametersJsonSchema);
+            chatFunction.setResponse(response);
+            chatFunction.setResponseJsonSchema(responseJsonSchema);
+            chatFunction.setBehavior(behavior);
             return chatFunction;
         }
     }
+
+    /** Parameters as a plain JSON Schema, instead of {@code parameters}. Typed {@code any} in the discovery document. @since 2.7.0 */
+    private Object parametersJsonSchema;
+    /** Schema of the function's return value. @since 2.7.0 */
+    private me.vacuity.ai.sdk.gemini.entity.Schema response;
+    /** The return value as a plain JSON Schema. @since 2.7.0 */
+    private Object responseJsonSchema;
+    /** "BLOCKING" or "NON_BLOCKING" (asynchronous function calling). @since 2.7.0 */
+    private String behavior;
 }

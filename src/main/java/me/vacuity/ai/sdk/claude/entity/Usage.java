@@ -99,4 +99,14 @@ public class Usage {
      * @since 2.3.0
      */
     private String speed;
+
+    /** Server-side tool runs — web search and web fetch are billed per request, on top of tokens. A stable field, missing before 2.7.0. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("server_tool_use")
+    private ServerToolUsage serverToolUse;
+    /** Per-iteration usage for multi-iteration requests (beta). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("iterations")
+    private Object iterations;
+    /** Credit applied when a request fell back to another model (beta). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("fallback_credit")
+    private java.util.Map<String, Object> fallbackCredit;
 }

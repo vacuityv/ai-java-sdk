@@ -98,6 +98,8 @@ public class Usage {
      * thinking the model was charged for. Returns null only when both counters
      * are absent.
      */
+    // derived, not a wire field — excluded so it never serializes as one
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Integer getBillableOutputTokenCount() {
         if (candidatesTokenCount == null && thoughtsTokenCount == null) {
             return null;
@@ -105,4 +107,7 @@ public class Usage {
         return (candidatesTokenCount == null ? 0 : candidatesTokenCount)
                 + (thoughtsTokenCount == null ? 0 : thoughtsTokenCount);
     }
+
+    /** The tier that served the request — measured as "standard" on a live response. @since 2.7.0 */
+    private String serviceTier;
 }

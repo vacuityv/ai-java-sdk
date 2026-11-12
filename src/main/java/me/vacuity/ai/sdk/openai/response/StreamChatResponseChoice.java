@@ -25,4 +25,8 @@ public class StreamChatResponseChoice {
     private Integer index;
 
     private ChatResponseMessage delta;
+
+    /** Log probabilities, when the request set {@code logprobs}. Before 2.7.0 they were requested and then dropped. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("logprobs")
+    private me.vacuity.ai.sdk.openai.entity.ChoiceLogprobs logprobs;
 }

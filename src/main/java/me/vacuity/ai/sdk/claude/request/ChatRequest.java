@@ -164,4 +164,17 @@ public class ChatRequest {
             return this;
         }
     }
+
+    /** Server-side compaction settings (beta). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("compaction")
+    private java.util.Map<String, Object> compaction;
+    /** Message Threads (beta): the server keeps the conversation so later requests send only new messages. Cannot be combined with compaction. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("thread")
+    private java.util.Map<String, Object> thread;
+    /** A user profile to apply (beta). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("user_profile_id")
+    private String userProfileId;
+    /** The workspace to bill and attribute the request to (beta). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("workspace_id")
+    private String workspaceId;
 }

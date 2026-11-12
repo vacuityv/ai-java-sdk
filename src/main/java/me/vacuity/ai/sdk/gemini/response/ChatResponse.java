@@ -35,4 +35,11 @@ public class ChatResponse {
 
         private List<ChatResponseSafetyRating> safetyRatings;
     }
+
+    /** Server id for this response — present on every live response, dropped by the SDK before 2.7.0. @since 2.7.0 */
+    private String responseId;
+    /** The exact model version that served the request, for example "gemini-3-flash-preview". @since 2.7.0 */
+    private String modelVersion;
+    /** The serving model's lifecycle stage, when the server reports it. @since 2.7.0 */
+    private me.vacuity.ai.sdk.gemini.entity.ModelStatus modelStatus;
 }

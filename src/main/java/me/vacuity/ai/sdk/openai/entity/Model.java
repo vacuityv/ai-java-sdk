@@ -25,4 +25,11 @@ public class Model {
 
     @JsonProperty("owned_by")
     private String ownedBy;
+
+    /** "model". @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("object")
+    private String object;
+    /** When the model is scheduled to stop serving, if announced. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("shutdown_date")
+    private String shutdownDate;
 }

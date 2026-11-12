@@ -58,4 +58,14 @@ public class ChatResponse {
     private List<InputTransformation> inputTransformations;
 
     private Usage usage;
+
+    /** The code-execution container this response ran in ({@code id}, {@code expires_at}). Pass its id back to reuse the container across turns. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("container")
+    private java.util.Map<String, Object> container;
+    /** Which context-management edits were applied, and what they cleared. @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("context_management")
+    private java.util.Map<String, Object> contextManagement;
+    /** Cache diagnostics, when the request asked for them (beta). @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("diagnostics")
+    private java.util.Map<String, Object> diagnostics;
 }

@@ -30,4 +30,8 @@ public class CreateBatchRequest {
     private String inputFileId;
 
     private Map<String, Object> metadata;
+
+    /** When the output and error files expire; anchor is "created_at". @since 2.7.0 */
+    @com.fasterxml.jackson.annotation.JsonProperty("output_expires_after")
+    private me.vacuity.ai.sdk.openai.entity.ExpiresAfter outputExpiresAfter;
 }

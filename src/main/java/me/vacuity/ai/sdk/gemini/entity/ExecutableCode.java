@@ -20,4 +20,7 @@ public class ExecutableCode {
     private String language;
 
     private String code;
+
+    /** Pairs the code with its result. @since 2.7.0 */
+    private String id;
 }
