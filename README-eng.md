@@ -29,6 +29,7 @@ It targets Java 8 and builds on JDK 8 through 23.
 - [Streaming Chat (support function)](https://ai.google.dev/tutorials/rest_quickstart)
 - [Veo video generation](https://ai.google.dev/gemini-api/docs/video)
 - Built-in tools alongside function declarations (`toolConfig.includeServerSideToolInvocations`)
+- [Decisions API](https://aistudio.google.com/docs/decisions-api) (structured judgements, `gemini-decision-1` only)
 
 ## Supported openAI
 
@@ -612,6 +613,62 @@ claudeUsage.getCacheCreation().getEphemeral1hInputTokens();   // 2x
 The two add up to `cacheCreationInputTokens`. Reads run about 0.1x the base input rate (0.05x on Opus 5.5 and Sonnet 5.5, 0.025x on Fable / Mythos 5.1 and later) — rates vary by model, so check your own.
 
 `inferenceGeo` and **`speed`** were added too. `speed` is billing-relevant (fast mode is priced at roughly 2x) and reports the speed that actually served the request, which can differ from the one asked for since a request may fall back to standard. Bill what it reports.
+
+### Gemini Decisions API (structured judgements)
+
+`POST v1beta/decisions` returns calibrated probabilities for the questions you define instead of free text. **Only input is billed** — it generates no output tokens at all, so `total_output_tokens` is always 0. Only `gemini-decision-1` supports it.
+
+```java
+Map<String, String> causes = new LinkedHashMap<>();
+causes.put("pool", "database connection pool exhaustion");
+causes.put("deploy", "a bad deployment");
+causes.put("network", "a network partition");
+
+Map<String, DecisionQuestion> questions = new LinkedHashMap<>();
+questions.put("is_outage", DecisionQuestion.noul("Is this an active production outage?"));
+questions.put("root_cause", DecisionQuestion.choice("What is the most likely root cause?", causes));
+questions.put("severity", DecisionQuestion.score("How severe is this?",
+        Arrays.asList("negligible", "minor", "moderate", "major", "critical")));
+
+Decision decision = client.createDecision(DecisionRequest.builder()
+        .model("gemini-decision-1")
+        .input("The server returned HTTP 500 on 40% of requests for the last 10 minutes. ...")
+        .questions(questions)
+        .build());
+
+decision.answer("is_outage").getNoul();           // 0.95 — probability of yes; no is 1 minus it
+decision.answer("root_cause").getChoice();        // "pool"
+decision.answer("root_cause").getProbabilities(); // the full distribution, summing to 1
+decision.answer("severity").getScore();           // 3.11 — a weighted average, not a level index
+decision.answer("severity").getLegend();          // {"0":"negligible", ... "4":"critical"}
+decision.getUsage().getTotalOutputTokens();       // always 0
+```
+
+**Three question types**: `noul` (yes/no — Google's name for it), `choice` (unordered options) and `score` (ordered levels). Questions and answers are **maps keyed by id**, not lists — a different shape from OpenAI's Decisions API, and the SDK maps each vendor as that vendor defines it rather than making them look alike.
+
+**The order of `score` levels is load-bearing**: pass them lowest first. The answer's `score` is a probability-weighted average of the level indexes, so it is fractional — with five levels, 3.11 sits just past the fourth.
+
+**Multimodal input**:
+
+```java
+.input(Arrays.asList(
+        DecisionInput.text("Screenshot from monitoring:"),
+        DecisionInput.image(base64Png, "image/png", "low"),   // resolution optional
+        DecisionInput.document(base64Pdf)))                   // application/pdf only
+```
+
+`audio` and `video` work too, as does referencing by URL: `DecisionInput.uri("image", url, "image/png")` — note that **Google fetches the URL**, so it has to be reachable from their side, not just yours.
+
+**Two places where the official page is wrong, corrected against the live API**:
+
+1. **An input block must carry `type`.** The page describes an image block as `data` or `uri` plus `mime_type` and omits the required `type`; without it the request is rejected with `The 'type' parameter is required at 'input[0]'`. The SDK's factory methods always set it.
+2. **A `noul` question's `criteria` is not ignored.** The page's field table says criteria is unused for `noul`, while its examples pass one. Measured, the examples are right: the same question answered 0.9514 without criteria and 0.9464 with, and input tokens rose from 119 to 149 — it is sent, billed and acted on. Hence the three-argument `DecisionQuestion.noul(instructions, trueDescription, falseDescription)`.
+
+**This endpoint is snake_case** (`total_input_tokens`, `input_tokens_by_modality`, `mime_type`), unlike the camelCase the rest of the Gemini API uses. The Gemini client's mapper sets no naming strategy, so every such field carries an explicit `@JsonProperty`, with mutation tests behind them — a missing one would simply read as null forever.
+
+**Not supported** (per the official page): context caching, the Batch API, Flex and Priority inference, conversation history, thought blocks, tool-call blocks, YouTube links and `gs://` URIs. A question's `instructions` accepts text only.
+
+**Limits**: 1–1000 questions; a 262144-token context window across the input and all questions; 2–255 choice options; 2–255 score levels (2–10 recommended); 100MB of inline data per request, 50MB for PDFs; 15MB per external URL. A safety block returns HTTP 400 with **no `answers`**, so it surfaces as a thrown exception rather than a `Decision` with holes in it.
 
 ### Gemini thinking tokens and billing
 

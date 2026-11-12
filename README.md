@@ -27,6 +27,7 @@
 - [流式对话 (支持function)](https://ai.google.dev/tutorials/rest_quickstart)
 - [Veo 视频生成](https://ai.google.dev/gemini-api/docs/video)
 - 内置工具与函数声明同时使用（`toolConfig.includeServerSideToolInvocations`）
+- [Decisions API](https://aistudio.google.com/docs/decisions-api)（结构化判断，仅 `gemini-decision-1`）
 
 ## 支持的 openAI
 
@@ -608,6 +609,62 @@ claudeUsage.getCacheCreation().getEphemeral1hInputTokens();   // 2×
 两者相加等于 `cacheCreationInputTokens`。读取价约 0.1× 基础输入价(Opus 5.5 / Sonnet 5.5 是 0.05×,Fable / Mythos 5.1+ 是 0.025×),各模型不同,以官方价为准。
 
 同时补了 `inferenceGeo` 和 **`speed`** —— 后者影响计费(fast 模式约 2× 价),而且报的是**实际服务的速度**,可能和请求的不一致(会回落到 standard),按它报的算。
+
+### Gemini Decisions API（结构化判断）
+
+`POST v1beta/decisions`，不返回自由文本，而是对你定义的问题给出校准后的概率。**只收输入费**——它完全不产生输出 token，`total_output_tokens` 恒为 0。目前只有 `gemini-decision-1` 支持。
+
+```java
+Map<String, String> causes = new LinkedHashMap<>();
+causes.put("pool", "database connection pool exhaustion");
+causes.put("deploy", "a bad deployment");
+causes.put("network", "a network partition");
+
+Map<String, DecisionQuestion> questions = new LinkedHashMap<>();
+questions.put("is_outage", DecisionQuestion.noul("Is this an active production outage?"));
+questions.put("root_cause", DecisionQuestion.choice("What is the most likely root cause?", causes));
+questions.put("severity", DecisionQuestion.score("How severe is this?",
+        Arrays.asList("negligible", "minor", "moderate", "major", "critical")));
+
+Decision decision = client.createDecision(DecisionRequest.builder()
+        .model("gemini-decision-1")
+        .input("The server returned HTTP 500 on 40% of requests for the last 10 minutes. ...")
+        .questions(questions)
+        .build());
+
+decision.answer("is_outage").getNoul();          // 0.95 —— “是”的概率，“否”是 1 减它
+decision.answer("root_cause").getChoice();       // "pool"
+decision.answer("root_cause").getProbabilities();// 整个分布，和为 1
+decision.answer("severity").getScore();          // 3.11 —— 加权平均，是小数不是档位下标
+decision.answer("severity").getLegend();         // {"0":"negligible", ... "4":"critical"}
+decision.getUsage().getTotalOutputTokens();      // 恒为 0
+```
+
+**三种问题类型**:`noul`(是/否,Google 就叫这个名字)、`choice`(无序选项)、`score`(有序档位)。问题和答案都是**按 id 的 map**,不是列表 —— 这和 OpenAI 的 Decisions API 形状不同,SDK 按 Gemini 自己的样子映射,不往一起凑。
+
+**`score` 的档位顺序是有意义的**:从低到高传,答案里的 `score` 是档位下标的概率加权平均,所以是小数。五档时 3.11 落在第四档稍过一点。
+
+**多模态输入**:
+
+```java
+.input(Arrays.asList(
+        DecisionInput.text("Screenshot from monitoring:"),
+        DecisionInput.image(base64Png, "image/png", "low"),   // resolution 可选
+        DecisionInput.document(base64Pdf)))                   // 仅 application/pdf
+```
+
+也支持 `audio` / `video`,以及用 URL 引用:`DecisionInput.uri("image", url, "image/png")` —— 注意 URL 是**由 Google 去抓**,得从他们那边能访问到,不是从你这边。
+
+**两处官方文档不准确,已实测修正**:
+
+1. **输入块必须带 `type`**。官方页描述 image 块时只列了 `data` / `uri` / `mime_type`,漏了必填的 `type`,漏掉会被拒:`The 'type' parameter is required at 'input[0]'`。SDK 的工厂方法都带上了。
+2. **`noul` 的 `criteria` 不是没用的**。官方字段表说它对 `noul` 不使用,但示例里传了。实测示例是对的:同一问题不带 criteria 答 0.9514、带 0.9464,input token 从 119 涨到 149 —— 会发出去、会计费、会影响结果。所以提供了三参的 `DecisionQuestion.noul(instructions, trueDescription, falseDescription)`。
+
+**这个端点是 snake_case**(`total_input_tokens` / `input_tokens_by_modality` / `mime_type`),和 Gemini 其他接口的 camelCase 不一样。SDK 的 Gemini mapper 没设命名策略,所以这些字段都显式标了 `@JsonProperty`,并有变异测试兜底 —— 漏一个就是静默读不到。
+
+**不支持的东西**(官方列出):上下文缓存、Batch API、Flex / Priority 推理、对话历史、thought 块、工具调用块、YouTube 链接、`gs://` URI。问题的 `instructions` 只接受文本。
+
+**限额**:问题 1–1000 条;上下文窗口 262144 token(输入与所有问题合计);choice 选项 2–255;score 档位 2–255(建议 2–10);inline 数据单请求 100MB、PDF 50MB;外部 URL 单个 15MB。安全拦截返回 HTTP 400 且**没有 `answers`**,所以在 SDK 里表现为抛异常,而不是返回一个带空洞的 `Decision`。
 
 ### Gemini 思考 token 与计费
 

@@ -1,6 +1,8 @@
 package me.vacuity.ai.sdk.gemini.api;
 
 import io.reactivex.Single;
+import me.vacuity.ai.sdk.gemini.decision.request.DecisionRequest;
+import me.vacuity.ai.sdk.gemini.decision.response.Decision;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.video.request.VeoVideoRequest;
@@ -18,6 +20,13 @@ public interface GeminiApi {
 
     @POST("v1alpha/models/{model}:generateContent")
     Single<ChatResponse> chat(@Path("model") String model, @Body ChatRequest request);
+
+    /**
+     * The Decisions API. Note the model goes in the body, not the path, and
+     * this route is v1beta rather than the v1alpha used for generateContent.
+     */
+    @POST("v1beta/decisions")
+    Single<Decision> createDecision(@Body DecisionRequest request);
 
 
     @Streaming

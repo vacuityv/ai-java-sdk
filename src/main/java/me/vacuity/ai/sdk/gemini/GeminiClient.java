@@ -16,6 +16,8 @@ import me.vacuity.ai.sdk.gemini.entity.ChatFunctionMixIn;
 import me.vacuity.ai.sdk.gemini.entity.ResponseBodyCallback;
 import me.vacuity.ai.sdk.gemini.entity.SSE;
 import me.vacuity.ai.sdk.gemini.error.ChatResponseError;
+import me.vacuity.ai.sdk.gemini.decision.request.DecisionRequest;
+import me.vacuity.ai.sdk.gemini.decision.response.Decision;
 import me.vacuity.ai.sdk.gemini.request.ChatRequest;
 import me.vacuity.ai.sdk.gemini.response.ChatResponse;
 import me.vacuity.ai.sdk.gemini.response.StreamChatResponse;
@@ -198,6 +200,20 @@ public class GeminiClient {
 
     public ChatResponse chat(ChatRequest request) {
         return execute(api.chat(request.getModel(), request));
+    }
+
+    /**
+     * Scores typed questions against shared input, returning calibrated
+     * probabilities instead of generated text. Only input tokens are billed.
+     * <p>
+     * Not a generateContent variant: it is its own v1beta route and takes the
+     * model in the body. Context caching, the Batch API, conversation history
+     * and tool blocks are all unsupported there.
+     *
+     * @since 2.5.0
+     */
+    public Decision createDecision(DecisionRequest request) {
+        return execute(api.createDecision(request));
     }
 
     public Flowable<StreamChatResponse> streamChat(ChatRequest request) {
