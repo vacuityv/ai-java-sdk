@@ -2,6 +2,8 @@ package me.vacuity.ai.sdk.test.unit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import me.vacuity.ai.sdk.claude.entity.SystemMessageOutputConfig;
 import me.vacuity.ai.sdk.claude.ClaudeClient;
 import me.vacuity.ai.sdk.claude.entity.BlockBinding;
 import me.vacuity.ai.sdk.claude.entity.CacheControl;
@@ -218,6 +220,89 @@ public class ClaudeRequestSerializationTest {
         assertFalse(json.has("tool_choice"));
         assertFalse(json.has("thinking"));
         assertFalse(json.has("system"));
+    }
+
+    // ------------------------------------- 逐条消息 effort (2.4.0)
+
+    /**
+     * The exact wire shape, which the API is strict about:
+     * {@code {"role":"system","content":[],"output_config":{"effort":"low"}}}.
+     * <p>
+     * The fragile part is {@code content}: it must be present and empty. A
+     * mapper configured with NON_EMPTY inclusion instead of NON_NULL would
+     * drop the empty list and the field would vanish — the same way Gemini's
+     * googleSearch tool was silently unsendable before 1.13.0.
+     */
+    @Test
+    public void effortOnlyMessageSerializesWithAnEmptyContentArray() throws Exception {
+        ChatMessage message = ChatMessage.effortOnly("low");
+
+        JsonNode sent = MAPPER.valueToTree(message);
+        assertEquals("system", sent.get("role").asText());
+        assertTrue(sent.has("content"), "content must be present, not omitted");
+        assertTrue(sent.get("content").isArray(), "content must be an array");
+        assertEquals(0, sent.get("content").size(), "content must be empty");
+        assertEquals("low", sent.get("output_config").get("effort").asText());
+        // output_config is a sibling of role/content, not nested in content
+        assertTrue(sent.get("output_config").isObject());
+        assertEquals(3, sent.size(), "no other field may be sent: " + sent);
+    }
+
+    /**
+     * An ordinary message must not grow an output_config key.
+     */
+    @Test
+    public void ordinaryMessagesCarryNoOutputConfig() throws Exception {
+        JsonNode sent = MAPPER.valueToTree(new ChatMessage("user", "hello"));
+
+        assertNull(sent.get("output_config"),
+                "an unset output_config must not be sent, not even as null");
+        assertEquals("hello", sent.get("content").asText());
+    }
+
+    /**
+     * The field is usable directly, not only through the factory — Firefly was
+     * subclassing ChatMessage to get it before 2.4.0.
+     */
+    @Test
+    public void outputConfigCanBeSetOnAnyMessageDirectly() throws Exception {
+        ChatMessage message = ChatMessage.builder()
+                .role("system")
+                .content(java.util.Collections.emptyList())
+                .outputConfig(SystemMessageOutputConfig.effort("xhigh"))
+                .build();
+
+        JsonNode sent = MAPPER.valueToTree(message);
+        assertEquals("xhigh", sent.get("output_config").get("effort").asText());
+        assertEquals(0, sent.get("content").size());
+    }
+
+    /**
+     * The whole request, to prove the message survives being nested in one and
+     * that the beta flag rides along.
+     */
+    @Test
+    public void effortOnlyMessageSurvivesInAWholeRequest() throws Exception {
+        ChatRequest request = ChatRequest.builder()
+                .model("claude-opus-5-5")
+                .maxTokens(16)
+                .outputConfig(OutputConfig.builder().effort("high").build())
+                .betas(java.util.Collections.singletonList(
+                        "mid-conversation-output-config-2026-07-01"))
+                .messages(java.util.Arrays.asList(
+                        new ChatMessage("user", "hi"),
+                        new ChatMessage("assistant", "hello"),
+                        ChatMessage.effortOnly("low"),
+                        new ChatMessage("user", "Reply with: ok")))
+                .build();
+
+        JsonNode sent = MAPPER.valueToTree(request);
+        JsonNode effortMessage = sent.get("messages").get(2);
+        assertEquals("system", effortMessage.get("role").asText());
+        assertEquals(0, effortMessage.get("content").size());
+        assertEquals("low", effortMessage.get("output_config").get("effort").asText());
+        // the top-level effort stays as it was — the docs say to leave it alone
+        assertEquals("high", sent.get("output_config").get("effort").asText());
     }
 
     public static class SearchArgs {

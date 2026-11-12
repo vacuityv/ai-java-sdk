@@ -184,6 +184,46 @@ ChatRequest request = ChatRequest.builder()
 
 多个 beta 标记会以逗号拼接进 `anthropic-beta` 头。不设置时保持默认行为。
 
+### Claude 逐条消息 effort（2.4.0，beta）
+
+在对话中途改 effort，而**不打断缓存前缀** —— 这是它相对顶层 `output_config.effort` 的全部意义:逐条改动前面的内容原样不动,缓存还能命中;顶层改动会让缓存从头重建。
+
+```java
+ChatRequest request = ChatRequest.builder()
+        .model("claude-opus-5-5")
+        .maxTokens(1024)
+        .outputConfig(OutputConfig.builder().effort("high").build())   // 顶层保持不动
+        .betas(Arrays.asList("mid-conversation-output-config-2026-07-01"))
+        .messages(Arrays.asList(
+                new ChatMessage("user", "..."),
+                new ChatMessage("assistant", "..."),
+                ChatMessage.effortOnly("low"),      // 从这里起降到 low
+                new ChatMessage("user", "...")))
+        .build();
+```
+
+`ChatMessage.effortOnly(effort)` 产出的就是文档里那个形状:`{"role":"system","content":[],"output_config":{"effort":"low"}}`。`content` **必须是空数组**,`output_config` 和 `role` / `content` 同级。也可以直接设字段:`.outputConfig(SystemMessageOutputConfig.effort("xhigh"))`。
+
+**什么时候生效**:紧跟在一个带新输入的 `user` 轮之后,那一轮的回复就用新档位;放在别处(比如 `assistant` 轮和下一个 `user` 轮之间),从下一个带新输入的 `user` 轮开始生效。**只含 `tool_result` 的 `user` 轮不算新输入。** 之后一直有效,直到又有消息改它。
+
+**放置位置**:effort-only 消息不渲染任何内容,所以豁免放置规则,放在 `messages` 第一条也可以(已实测)。但带文本的 system 消息不豁免;如果 effort-only 挨着一条带内容的 system 消息,两条一起按规则判定。
+
+**会报 400 的几种情况**(都已实测):
+
+| 情况 | 服务端报错 |
+|---|---|
+| 没带 beta 标记 | `messages.N.output_config: Extra inputs are not permitted` |
+| 模型不支持 | `output_config.effort requires a model that supports per-turn effort; this model does not` |
+| 和 `clear_at` 同时给 | `output_config is not permitted on a turn-scoped system message` |
+| `effort` 传 `"adaptive"` | `Input should be 'low', 'medium', 'high', 'xhigh' or 'max'` —— `adaptive` 是 thinking 的类型,不是 effort 档位 |
+
+**支持的模型**:`claude-fable-5-2`、`claude-mythos-5-2`、`claude-fable-5-1`、`claude-mythos-5-1`、`claude-opus-5-5`、`claude-opus-5`、`claude-sonnet-5-5`、`claude-haiku-5-5`。SDK 不维护自己的模型白名单,不支持的模型由服务端报错 —— 上游加新模型时不用等 SDK 发版。
+
+另外两种拒绝来自 thinking 模式而不是模型:Claude Sonnet 5.5 配 `thinking.type` 为 `between_tools`、Claude Haiku 5.5 配 `disabled` 时,中途改 effort 会 400。
+
+**注意**:在保留 thinking 的模型上,事后挪动或删掉这条消息,会让它之后所有 `assistant` 轮的 thinking 块失效 —— 只能往后追加,不要回头改历史。
+
+
 ### GPT Image 流式生成
 
 生图通常要十几秒。流式可以在最终图出来之前先拿到中间图，实测首图能提前约 5 秒。

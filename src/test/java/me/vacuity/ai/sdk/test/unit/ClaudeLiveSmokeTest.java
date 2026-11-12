@@ -265,4 +265,122 @@ public class ClaudeLiveSmokeTest {
     private static int nz(Integer v) {
         return v == null ? 0 : v;
     }
+
+
+    // ------------------------------------- 逐条消息 effort (2.4.0)
+
+    private static final String EFFORT_BETA = "mid-conversation-output-config-2026-07-01";
+
+    /**
+     * The documented position — between an assistant turn and the next user
+     * turn — on a model that supports it.
+     */
+    @org.junit.jupiter.api.Test
+    public void perMessageEffortIsAcceptedInTheDocumentedPosition() {
+        ChatResponse response = client().chat(effortRequest("claude-opus-5-5",
+                java.util.Arrays.asList(
+                        new ChatMessage("user", "hi"),
+                        new ChatMessage("assistant", "hello"),
+                        ChatMessage.effortOnly("low"),
+                        new ChatMessage("user", "Reply with: ok"))));
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getContent(),
+                "a request with a per-message effort change must come back normally");
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getStopReason());
+    }
+
+    /**
+     * An effort-only message renders nothing, so unlike a system message that
+     * carries text it is accepted anywhere — the first entry included. This is
+     * the one placement claim worth pinning live, because it is an exemption
+     * rather than a rule, and an exemption is the kind of thing that gets
+     * tightened.
+     */
+    @org.junit.jupiter.api.Test
+    public void anEffortOnlyMessageIsAcceptedAsTheFirstEntry() {
+        ChatResponse response = client().chat(effortRequest("claude-opus-5-5",
+                java.util.Arrays.asList(
+                        ChatMessage.effortOnly("low"),
+                        new ChatMessage("user", "Reply with: ok"))));
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getStopReason(),
+                "an effort-only message must still be exempt from the placement rules");
+    }
+
+    /**
+     * A model outside the supported list must be the server's complaint, not a
+     * silently dropped field — the SDK does not keep its own model list.
+     */
+    @org.junit.jupiter.api.Test
+    public void anUnsupportedModelRejectsPerMessageEffort() {
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(effortRequest("claude-sonnet-5",
+                                java.util.Arrays.asList(
+                                        new ChatMessage("user", "hi"),
+                                        new ChatMessage("assistant", "ok"),
+                                        ChatMessage.effortOnly("low"),
+                                        new ChatMessage("user", "Reply with: ok")))));
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                e.getMessage().contains("per-turn effort"),
+                "the server should name the capability: " + e.getMessage());
+    }
+
+    /**
+     * Without the beta flag the field is rejected outright. Pinned so that a
+     * caller who forgets it gets a recognisable failure rather than silently
+     * unchanged effort.
+     */
+    @org.junit.jupiter.api.Test
+    public void withoutTheBetaFlagOutputConfigOnAMessageIsRejected() {
+        ChatRequest request = ChatRequest.builder()
+                .model("claude-opus-5-5")
+                .maxTokens(16)
+                .messages(java.util.Arrays.asList(
+                        new ChatMessage("user", "hi"),
+                        new ChatMessage("assistant", "ok"),
+                        ChatMessage.effortOnly("low"),
+                        new ChatMessage("user", "Reply with: ok")))
+                .build();
+
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(request));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                e.getMessage().contains("Extra inputs are not permitted"),
+                "expected the missing-beta rejection, got: " + e.getMessage());
+    }
+
+    /**
+     * "adaptive" is a thinking type, not an effort level. The server's error
+     * carries the whole enum, which is why the SDK does not keep a copy.
+     */
+    @org.junit.jupiter.api.Test
+    public void adaptiveIsNotAnEffortLevel() {
+        me.vacuity.ai.sdk.common.VacSdkException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        me.vacuity.ai.sdk.common.VacSdkException.class,
+                        () -> client().chat(effortRequest("claude-opus-5-5",
+                                java.util.Arrays.asList(
+                                        new ChatMessage("user", "hi"),
+                                        new ChatMessage("assistant", "ok"),
+                                        ChatMessage.effortOnly("adaptive"),
+                                        new ChatMessage("user", "Reply with: ok")))));
+
+        org.junit.jupiter.api.Assertions.assertTrue(e.getMessage().contains("xhigh"),
+                "the server should list the accepted levels: " + e.getMessage());
+    }
+
+    private ChatRequest effortRequest(String model, java.util.List<ChatMessage> messages) {
+        return ChatRequest.builder()
+                .model(model)
+                .maxTokens(16)
+                .outputConfig(OutputConfig.builder().effort("high").build())
+                .betas(java.util.Collections.singletonList(EFFORT_BETA))
+                .messages(messages)
+                .build();
+    }
 }

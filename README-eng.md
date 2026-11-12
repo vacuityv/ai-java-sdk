@@ -189,6 +189,46 @@ ChatRequest request = ChatRequest.builder()
 Multiple flags are joined with commas into the `anthropic-beta` header. Leaving `betas` unset keeps the previous
 default behaviour.
 
+### Claude per-message effort (2.4.0, beta)
+
+Change effort mid-conversation **without breaking the cached prefix** — which is the whole point of it over a top-level `output_config.effort` change: a per-message change leaves everything before it untouched so the cache still matches, while a top-level change restarts the cache.
+
+```java
+ChatRequest request = ChatRequest.builder()
+        .model("claude-opus-5-5")
+        .maxTokens(1024)
+        .outputConfig(OutputConfig.builder().effort("high").build())   // leave the top level alone
+        .betas(Arrays.asList("mid-conversation-output-config-2026-07-01"))
+        .messages(Arrays.asList(
+                new ChatMessage("user", "..."),
+                new ChatMessage("assistant", "..."),
+                ChatMessage.effortOnly("low"),      // drops to low from here on
+                new ChatMessage("user", "...")))
+        .build();
+```
+
+`ChatMessage.effortOnly(effort)` produces exactly the documented shape: `{"role":"system","content":[],"output_config":{"effort":"low"}}`. `content` **must be an empty array**, and `output_config` is a sibling of `role` and `content`. The field is also settable directly: `.outputConfig(SystemMessageOutputConfig.effort("xhigh"))`.
+
+**When it takes effect**: placed directly after a `user` turn with new input, that turn's reply already uses the new level. Anywhere else — between an `assistant` turn and the next `user` turn, say — it starts at the next `user` turn with new input. **A `user` turn holding only `tool_result` blocks does not count as new input.** The level then holds until another message changes it.
+
+**Placement**: an effort-only message renders nothing, so it is exempt from the placement rules and is accepted anywhere in `messages`, first entry included (verified live). A system message carrying text is not exempt, and if an effort-only message sits next to one that does carry content, both are judged by those rules.
+
+**What returns 400** (all verified live):
+
+| Case | Server error |
+|---|---|
+| Beta flag missing | `messages.N.output_config: Extra inputs are not permitted` |
+| Unsupported model | `output_config.effort requires a model that supports per-turn effort; this model does not` |
+| Sent with `clear_at` | `output_config is not permitted on a turn-scoped system message` |
+| `effort` set to `"adaptive"` | `Input should be 'low', 'medium', 'high', 'xhigh' or 'max'` — `adaptive` is a thinking type, not an effort level |
+
+**Supported models**: `claude-fable-5-2`, `claude-mythos-5-2`, `claude-fable-5-1`, `claude-mythos-5-1`, `claude-opus-5-5`, `claude-opus-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`. The SDK keeps no model allowlist of its own — an unsupported model is the server's complaint, so a newly supported model needs no SDK release.
+
+Two further rejections come from the thinking mode rather than the model: Claude Sonnet 5.5 with `thinking.type` `between_tools`, and Claude Haiku 5.5 with `disabled`, cannot change effort mid-conversation.
+
+**Caution**: on models with preserved thinking, moving or removing this message after the fact invalidates the thinking blocks in every later `assistant` turn — append it, do not rewrite history around it.
+
+
 ### Streaming image generation
 
 Generating an image usually takes tens of seconds. Streaming delivers partial images before the final one — measured here at roughly 5 seconds earlier for the first viewable image.
